@@ -2,8 +2,6 @@
 #!
 module
 {
-	@qname.crud = "miconexion@grupoapps"
-
 	@CXC_MENU = "/cxc/"
 
 	//#region cxc_clientes
