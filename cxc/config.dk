@@ -1,0 +1,35 @@
+#include "dkli.dkh"
+#!
+module
+{
+	@qname.crud = "miconexion@grupoapps"
+
+	@CXC_MENU = "/cxc/"
+
+	//#region cxc_clientes
+	@CXC_CLIENTES = "/cxc/clientes/"
+	@CTE_EDO_CTA = "/cxc/clientes/_cliente/balance/"
+	@CTE_DOCS_XCOBRAR = "/cxc/clientes/_cliente/pendientes/"
+	@CTE_COBROS_XAPLICAR = "/cxc/clientes/_cliente/xaplicar/"
+	@CTE_COBROS = "/cxc/clientes/_cliente/cobrar/"
+	@CTE_BONIFICACIONES = "/cxc/clientes/_cliente/bonificacion/"
+	//#endregion
+
+	@CXC_BUSCAR_CLIENTE = "/cxc/clientes/?_view=buscar-cliente&search=@search"
+
+	//#region cxc_docs
+	@CXC_DOCUMENTOS = "/cxc/documentos/"
+	@DOC_AGREGAR = "/cxc/documentos/_new/"
+	@DOC_COBROS = "/cxc/documentos/_documento/cobrar/"
+	@DOC_BONIFICACIONES = "/cxc/documentos/_documento/bonificacion/"
+	@DOC_INTMORATORIOS = "/cxc/documentos/_documento/intmoratorios/"
+	@DOC_APLICAR_ABONOS = "/cxc/documentos/_documento/aplicar/"
+	//#endregion
+
+	//#region cxc.destino
+	@CXC_DESTINO_APLICACION_INT_FINANCIEROS = 1
+    @CXC_DESTINO_APLICACION_INT_MORATORIOS = 2
+    @CXC_DESTINO_APLICACION_BONIFICACIONES = 3
+    @CXC_DESTINO_APLICACION_PAGOS = 4
+	//#endregion
+}

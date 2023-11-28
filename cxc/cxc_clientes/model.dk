@@ -1,0 +1,403 @@
+#include "dkli.dkh"
+#!
+module "model"
+{
+    @table_name = "cliente"
+
+    hoy::fmt
+    {
+        return date_str(now(),str(fmt))
+    }
+
+    date_format::str,fmt
+    {
+        fecha = trim(str(str))
+        formato = trim(str(fmt))
+
+        if fecha == "" { return "" }
+        if formato == "" { formato = "yyyy-MM-ddTHH:mm:ss" }
+
+        ref datetime = str2dt(fecha)
+        fecha = date_str(datetime,formato)
+
+        return fecha
+
+        exception { return "" /* do rise_error(99,"Debe proporcionar una cadena de fecha con un formato válido.") */ }
+    }
+
+    iniciar_post_get::
+    {
+        if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
+
+        ref @_GET = ifnull(@@(@http_context,"&request/get"),record.create())
+        ref @_POST = ifnull(@@(@http_context,"&request/post"),record.create())
+        
+        if list.count(list.create_from_fields(@_POST)) < 1 {
+			ref @_POST = from.json(field.dstr(@http_context,"request/post_string","{}"))
+		}
+    }
+
+    cte.buscarCliente::&db,&params
+    {
+        sql = "
+        SELECT 
+            cte.sys_pk,
+            cte.codigo,
+            cte.nombre,
+            tpc.descripcion AS tipo,
+            dvs.codigo AS divisa,
+            dvs.tcambio
+        FROM cliente AS cte 
+            INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+        WHERE (cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%'));
+        "
+        return dbr.list(db,sql,params)
+    }
+
+    cte.obtenerCliente::&db,id
+    {
+        new params { @"id": id }
+        sql = "
+        SELECT
+            cte.sys_pk,
+            cte.sys_guid,
+            cte.codigo,
+            cte.nombre,
+            IFNULL(cte.rfc,'') AS rfc,
+            IFNULL(cte.saldo,0) AS saldo,
+            tpc.descripcion AS tipo,
+            dvs.codigo AS divisa,
+            dvs.tcambio,
+            IFNULL(zna.nombre,'') AS zona
+        FROM cliente AS cte
+            INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+            LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
+        WHERE cte.sys_pk = @id
+            OR cte.sys_guid = @id
+            OR cte.codigo = @id
+        "
+        return dbr.rec(db,sql,params)
+    }
+
+    cte.prepareView::&db,&params,&data
+    {
+        switch @@(params,"$_view")
+        {
+            case "bonificacion"
+            {
+                data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
+                sql = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
+                data<"documentos*"> : dbr.list(db,sql,@null)
+                break
+            }
+            case "cobrar"
+            {
+                sql_cuentas = "SELECT c.sys_pk,CONCAT(c.nombre,'(',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
+                sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
+                sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
+                sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
+
+                data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
+                data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
+                data<"categorias*"> : dbr.list(db,sql_categorias,@null)
+                data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
+                data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+                break
+            }
+        }
+    }
+
+    cte.obtenerSaldos::&db,&params
+    {
+        ejercicio = @@(params,"#ejercicio")
+        periodo = @@(params,"#periodo")
+
+        if ejercicio <= 0 { ejercicio = val(hoy("yyyy")) }
+        if periodo <= 0 || periodo > 12 { periodo = val(hoy("MM")) }
+
+        first_day = str(ejercicio) + "-" + str(periodo) + "-01"
+        
+        params<"ejercicio"> : ejercicio
+        params<"periodo"> : periodo
+        params<"fd"> : first_day
+
+        sql_sinicial = "SELECT IFNULL(SUM(IFNULL(debe,0) - IFNULL(haber,0)),0) AS saldo_inicial FROM dcxc WHERE icliente = @_entity_id AND DATE(aplicacion) < @fd;"
+        sql_dbe_hbr = "SELECT IFNULL(SUM(IFNULL(haber,0)),0) AS haber, IFNULL(SUM(IFNULL(debe,0)),0) AS debe FROM dcxc WHERE icliente = @_entity_id AND DATE(aplicacion) BETWEEN @fd AND LAST_DAY(@fd);"
+        sql_stotal = "SELECT IFNULL(SUM(IFNULL(debe,0) - IFNULL(haber,0)),0) AS saldo_total FROM dcxc WHERE icliente = @_entity_id;"
+        sql_sdocs = "SELECT IFNULL(SUM(IFNULL(haber,0) + IFNULL(intmoratorios,0) - IFNULL(pagos,0) - IFNULL(bonificaciones,0)),0) AS saldo_docs FROM dcxc WHERE icliente = @_entity_id AND aplicable;"
+
+        sInicial = dbr.num(db,sql_sinicial,params)
+        ref DebeHaber = dbr.rec(db,sql_dbe_hbr,params)
+        sTotal = dbr.num(db,sql_stotal,params)
+        sDocs = dbr.num(db,sql_sdocs,params)
+        xAplicar = abs(sDocs - sTotal)
+        // Saldo al final del periodo
+        sFinalP = (sInicial + @@(DebeHaber,"#debe") - @@(DebeHaber,"#haber"))
+
+        new saldos
+        {
+            @"saldo_inicial": sInicial
+            @"debe": @@(DebeHaber,"#debe")
+            @"haber": @@(DebeHaber,"#haber")
+            @"saldo_total": sTotal
+            @"saldo_docs": sDocs
+            @"por_aplicar": xAplicar
+            @"saldo_alfinal": sFinalP
+        }
+
+        return saldos
+    }
+
+    cte.obtenerBalance::&db,&params
+    {
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+            DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+            doc.const AS documento,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            IFNULL(cxc.notas,'') AS notas
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        WHERE cxc.icliente = @_entity_id 
+            AND DATE(cxc.aplicacion) BETWEEN @fd AND LAST_DAY(@fd);
+        "
+        ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
+        data<"saldos*"> : cte.obtenerSaldos(db,params)
+        data<"docs*"> : dbr.list(db,sql,params)
+
+        return data
+    }
+
+    cte.obtenerDocsPorCobrar::&db,&params
+    {
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+            DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+            IFNULL(cxc.bonificaciones,0) AS bonificaciones,
+            doc.const AS documento,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            IFNULL(cxc.intmoratorios,0) AS int_moratorios,
+            IFNULL(cxc.pagos,0) AS pagos,
+            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        WHERE cxc.icliente = @_entity_id
+            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+        "
+        ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
+        data<"saldos*"> : cte.obtenerSaldos(db,params)
+        data<"docs*"> : dbr.list(db,sql,params)
+
+        return data
+    }
+
+    cte.obtenerCobrosPorAplicar::&db,&params
+    {
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+            doc.id AS idocumento,
+            doc.const AS documento,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            (IFNULL(cxc.debe,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
+            IFNULL(cxc.xaplicar,0) AS xaplicar
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        WHERE cxc.icliente = @_entity_id
+            AND IFNULL(cxc.xaplicar,0) > 0;
+        "
+        ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
+        data<"saldos*"> : cte.obtenerSaldos(db,params)
+        data<"docs*"> : dbr.list(db,sql,params)
+
+        return data
+    }
+
+    cte.bonificarCliente::&db,&params,&data
+    {
+        new bonificacion
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @false
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": @@(data,"#importe")
+            @"documento": @@(data,"#documento")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
+            @"haber": 0.0
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$notas")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": @@(data,"#importe")
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+
+        do dbr.begin(db)
+        do dbr.insert(db,"dcxc",bonificacion)
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cte.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cte.cobrarCliente::&db,&params,&data
+    {
+        new deposito
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @true
+            @"cancelado": @false
+            @"conciliado": parse.bool(@@(data,"$conciliado"))
+            @"contabilizado": @false
+            @"egreso": 0.0
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"ingreso": @@(data,"#importe")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipo": @@(data,"#documento_deposito")
+            @"icategoria": @@(data,"#categoria_deposito")
+            @"icuenta": @@(data,"#cuenta_deposito")
+        }
+
+        new cobro
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @false
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": @@(data,"#importe")
+            @"documento": @@(data,"#documento_cobro")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
+            @"haber": 0.0
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$notas")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": @@(data,"#importe")
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+
+        do dbr.begin(db)
+        do dbr.insert(db,"movcuenta",deposito)
+        do dbr.insert(db,"dcxc",cobro)
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cte.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cte.list::&db,&params
+    {
+        buscar = trim(@@(params,"$buscar"))
+        tipo = trim(@@(params,"$tipo"))
+
+        sql = "
+        SELECT
+            cte.sys_pk,
+            cte.codigo,
+            cte.nombre,
+            IFNULL(cte.rfc,'') AS rfc,
+            IFNULL(cte.saldo,0) AS saldo,
+            tpc.descripcion AS tipo,
+            dvs.codigo AS divisa,
+            dvs.tcambio,
+            IFNULL(zna.nombre,'') AS zona
+        FROM cliente AS cte
+            INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+            LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
+        WHERE TRUE
+        "
+        if buscar != "" {
+            sql = sql + " AND (
+                cte.codigo LIKE CONCAT('%',@buscar,'%')
+                OR cte.nombre LIKE CONCAT('%',@buscar,'%')
+                OR cte.rfc LIKE CONCAT('%',@buscar,'%')
+            )"
+        }
+        if tipo != "" {
+            sql = sql + " AND (
+                tpc.sys_pk = @tipo
+                OR tpc.codigo = @tipo
+                OR tpc.descripcion LIKE CONCAT('%',@tipo,'%')
+            )"
+        }
+
+        return dbr.list(db,sql,params)
+    }
+
+    cte.read::&db,&params
+    {
+        ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
+        do cte.prepareView(db,params,data)
+        return data
+    }
+
+    cte.blank::&db,&params
+    {
+        new data {}
+        do cte.prepareView(db,params,data)
+        return data
+    }
+}

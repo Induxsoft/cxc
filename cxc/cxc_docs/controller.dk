@@ -1,0 +1,54 @@
+#include "dkli.dkh"
+#!
+module "controller"
+{
+    switch @@(@http_context,"$request/get/_view")
+    {
+        case ""
+        {
+            if contains(@@(@http_context,"request/headers/http_accept"),"html") 
+            {
+                if @@(@http_context,"$request/get/_entity_id") == "_new" 
+                {
+                    point @create to cxc.crearDocumento
+                    point @blank to cxc.blank
+                    @form_view = "cxc.crear.dk"
+                }
+                else 
+                {
+                    point @read to cxc.read
+                    point @list to cxc.list
+                }
+            }
+            break
+        }
+        case "cobrar"
+        {
+            point @update to cxc.cobrarDocumento
+            point @read to cxc.blank
+            @form_view = "cxc.cobro.dk"
+            break
+        }
+        case "bonificacion"
+        {
+            point @update to cxc.aplicarBonificacion
+            point @read to cxc.blank
+            @form_view = "cxc.bonificacion.dk"
+            break
+        }
+        case "intmoratorios"
+        {
+            point @update to cxc.aplicarIntMoratorios
+            point @read to cxc.blank
+            @form_view = "cxc.intmor.dk"
+            break
+        }
+        case "aplicar"
+        {
+            point @create to cxc.aplicarCobros
+            point @read to cxc.obtenerDocumentosPorAplicar
+            @form_view = "cxc.aplicar.dk"
+            break
+        }
+    }
+}
