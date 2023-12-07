@@ -1,0 +1,631 @@
+#include "dkli.dkh"
+#!
+module "model"
+{
+    @table_name = "dcxc"
+
+    hoy::fmt
+    {
+        return date_str(now(),str(fmt))
+    }
+
+    date_format::str,fmt
+    {
+        fecha = trim(str(str))
+        formato = trim(str(fmt))
+
+        if fecha == "" { return "" }
+        if formato == "" { formato = "yyyy-MM-ddTHH:mm:ss" }
+
+        ref datetime = str2dt(fecha)
+        fecha = date_str(datetime,formato)
+
+        return fecha
+
+        exception { return "" /* do rise_error(99,"Debe proporcionar una cadena de fecha con un formato válido.") */ }
+    }
+
+    iniciar_post_get::
+    {
+        if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
+
+        ref @_GET = ifnull(@@(@http_context,"&request/get"),record.create())
+        ref @_POST = ifnull(@@(@http_context,"&request/post"),record.create())
+        
+        if list.count(list.create_from_fields(@_POST)) < 1 {
+			ref @_POST = from.json(field.dstr(@http_context,"request/post_string","{}"))
+		}
+    }
+
+    cxc.obtenerDocumento::&db,&params
+    {
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            DATE_FORMAT(cxc.sys_dtcreated,'%Y-%m-%d %H:%i:%s') AS sys_dtcreated,
+            DATE_FORMAT(cxc.sys_timestamp,'%Y-%m-%d %H:%i:%s') AS sys_timestamp,
+            cxc.aplicable,
+            DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d %H:%i:%s') AS fecha_aplicacion,
+            IFNULL(cxc.bonificaciones,0) AS bonificaciones,
+            IFNULL(cxc.debe,0) AS debe,
+            doc.id AS idocumento,
+            doc.const AS documento,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d %H:%i:%s') AS fecha_documento,
+            DATE_FORMAT(cxc.fultmoratorios,'%Y-%m-%d %H:%i:%s') AS fultmoratorios,
+            IFNULL(cxc.haber,0) AS haber,
+            IFNULL(cxc.intfinancieros,0) AS intereses_financieros,
+            IFNULL(cxc.intmoratorios,0) AS intereses_moratorios,
+            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
+            cxc.notas,
+            IFNULL(cxc.pagos,0) AS pagos,
+            cxc.referencia,
+            cxc.tipocambio,
+            cxc.xaplicar,
+            cte.sys_pk AS icliente,
+            cte.codigo AS ccliente,
+            cte.nombre AS cliente,
+            cte.saldo AS saldo_cliente,
+            dvs.codigo AS divisa,
+            DATE_FORMAT(now(),'%Y-%m-%d') AS hoy
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+            INNER JOIN cliente AS cte ON cte.sys_pk = cxc.icliente
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+        WHERE cxc.sys_pk = @_entity_id
+        "
+        return dbr.rec(db,sql,params)
+    }
+
+    cxc.prepareView::&db,&params,&data
+    {
+        switch @@(params,"$_view")
+        {
+            case ""
+            {
+                if @@(params,"$_entity_id") == "_new"
+                {
+                    new p { @"icliente": @@(data,"#icliente") }
+
+                    sql_cliente = "
+                    SELECT 
+                        cte.sys_pk,
+                        cte.codigo,
+                        cte.nombre,
+                        tpc.descripcion AS tipo,
+                        dvs.codigo AS divisa,
+                        dvs.tcambio
+                    FROM cliente AS cte 
+                        INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
+                        INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+                    WHERE cte.sys_pk = @icliente
+                    "
+                    sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.pagable,0);"
+                    
+                    data<"infoCliente*"> : dbr.rec(db,sql_cliente,p)
+                    data<"documentos*"> : dbr.list(db,sql_documentos,@null)
+                }
+                break
+            }
+            case "cobrar"
+            {
+                sql_cuentas = "SELECT c.sys_pk,CONCAT(c.nombre,'(',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
+                sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
+                sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
+                sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
+
+                data<"infoDoc*"> : cxc.obtenerDocumento(db,params)
+                data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
+                data<"categorias*"> : dbr.list(db,sql_categorias,@null)
+                data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
+                data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+                break
+            }
+            case "bonificacion"
+            {
+                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
+
+                data<"infoDoc*"> : cxc.obtenerDocumento(db,params)
+                data<"documentos*"> : dbr.list(db,sql_documentos,@null)
+                break
+            }
+            case "intmoratorios"
+            {
+                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_int_mor,0);"
+
+                data<"infoDoc*"> : cxc.obtenerDocumento(db,params)
+                data<"documentos*"> : dbr.list(db,sql_documentos,@null)
+                break
+            }
+        }
+    }
+
+    cxc.crearDocumento::&db,&params,&data
+    {
+        new dcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @true
+            @"aplicacion*": str2dt(@@(data,"$fecha_limite_pago"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": @@(data,"#importe")
+            @"documento": @@(data,"#documento")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_limite_pago"))
+            @"haber": 0.0
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$concepto")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": 0.0
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+
+        do dbr.begin(db)
+        do dbr.insert(db,"dcxc",dcxc)
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cxc.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cxc.cobrarDocumento::&db,&params,&data
+    {
+        do dbr.begin(db)
+
+        new deposito
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @true
+            @"cancelado": @false
+            @"conciliado": parse.bool(@@(data,"$conciliado"))
+            @"contabilizado": @false
+            @"egreso": 0.0
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"ingreso": @@(data,"#importe")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipo": @@(data,"#documento_deposito")
+            @"icategoria": @@(data,"#categoria_deposito")
+            @"icuenta": @@(data,"#cuenta_deposito")
+        }
+        do dbr.insert(db,"movcuenta",deposito)
+        
+        id_doc = uuid()
+        new cobro
+        {
+            @"sys_pk": 0
+            @"sys_guid": id_doc
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @false
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": 0.0
+            @"documento": @@(data,"#documento_cobro")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
+            @"haber": @@(data,"#importe")
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$notas")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": 0.0
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"dcxc",cobro)
+
+        new p { @"id_doc": id_doc }
+        fk_dcxc_aplicadoa = dbr.num(db,"SELECT sys_pk FROM dcxc WHERE sys_guid = @id_doc;",p)
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"destino": @@(data,"#destino")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"importe": @@(data,"#importe")
+            @"aplicadoa": @@(data,"#pkparent")
+            @"fk_dcxc_aplicadoa": fk_dcxc_aplicadoa
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql = "UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @importe) WHERE sys_pk = @pkparent 
+        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        
+        if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o el importe es mayor al saldo") }
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
+
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cxc.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cxc.aplicarBonificacion::&db,&params,&data
+    {
+        do dbr.begin(db)
+        
+        id_doc = uuid()
+
+        new bonificacion
+        {
+            @"sys_pk": 0
+            @"sys_guid": id_doc
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @false
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": 0.0
+            @"documento": @@(data,"#documento")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
+            @"haber": @@(data,"#importe")
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$notas")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": 0.0
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"dcxc",bonificacion)
+
+        new p { @"id_doc": id_doc }
+        fk_dcxc_aplicadoa = dbr.num(db,"SELECT sys_pk FROM dcxc WHERE sys_guid = @id_doc;",p)
+
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"destino": @@(data,"#destino")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"importe": @@(data,"#importe")
+            @"aplicadoa": @@(data,"#pkparent")
+            @"fk_dcxc_aplicadoa": fk_dcxc_aplicadoa
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql = "UPDATE dcxc SET bonificaciones = (IFNULL(bonificaciones,0) + @importe) WHERE sys_pk = @pkparent 
+        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        
+        if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o la bonificación es mayor al saldo.") }
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
+
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cxc.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cxc.aplicarIntMoratorios::&db,&params,&data
+    {
+        do dbr.begin(db)
+        
+        id_doc = uuid()
+
+        new intmoratorio
+        {
+            @"sys_pk": 0
+            @"sys_guid": id_doc
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"aplicable": @false
+            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
+            @"auditado": @false
+            @"basecm": 0
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": @@(data,"#importe")
+            @"documento": @@(data,"#documento")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
+            @"haber": 0.0
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": @@(data,"$notas")
+            @"pagos": 0.0
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": @@(data,"$referencia")
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": 0.0
+            @"icliente": @@(data,"#icliente")
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"dcxc",intmoratorio)
+
+        new p { @"id_doc": id_doc }
+        fk_dcxc_aplicadoa = dbr.num(db,"SELECT sys_pk FROM dcxc WHERE sys_guid = @id_doc;",p)
+
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"destino": @@(data,"#destino")
+            @"fecha*": str2dt(@@(data,"$fecha_documento"))
+            @"importe": @@(data,"#importe")
+            @"aplicadoa": @@(data,"#pkparent")
+            @"fk_dcxc_aplicadoa": fk_dcxc_aplicadoa
+            @"sys_recver": 0
+        }
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql = "UPDATE dcxc SET intmoratorios = (IFNULL(intmoratorios,0) + @importe) WHERE sys_pk = @pkparent 
+        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        
+        if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o el importe es mayor al saldo") }
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
+
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do cxc.prepareView(db,params,data)
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cxc.obtenerDocumentosPorAplicar::&db,&params
+    {
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            doc.const AS documento,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            (IFNULL(cxc.debe,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
+            IFNULL(cxc.xaplicar,0) AS xaplicar,
+            cxc.icliente
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        WHERE cxc.sys_pk = @_entity_id
+            AND IFNULL(cxc.xaplicar,0) > 0;
+        "
+        ref xaplicar = dbr.rec(db,sql,params)
+
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            doc.const AS documento,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+            DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+            IFNULL(cxc.bonificaciones,0) AS bonificaciones,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            IFNULL(cxc.intmoratorios,0) AS int_moratorios,
+            IFNULL(cxc.pagos,0) AS pagos,
+            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
+            0 AS aplicar,
+            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS sfinal
+        FROM dcxc AS cxc
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        WHERE cxc.icliente = @icliente
+            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+        "
+        ref pendientes = dbr.list(db,sql,xaplicar)
+
+        new result
+        {
+            @"xaplicar*": xaplicar
+            @"pendientes*": pendientes
+        }
+
+        return result
+    }
+
+    cxc.aplicarCobros::&db,&params,&data
+    {
+        ref aplicacion = ifnull(@@(data,"&aplicacion"),list.create())
+
+        go foreach.lobj(value:dst) with(aplicacion)
+        {
+            dst<"aplicado"> : 0
+            do dbr.begin(db)
+
+            new aplcxc
+            {
+                @"sys_pk": 0
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": now()
+                @"sys_timestamp*": now()
+                @"destino": 4 //pagos
+                @"fecha*": now()
+                @"importe": @@(dst,"#aplicar")
+                @"aplicadoa": @@(dst,"#id_origen")
+                @"fk_dcxc_aplicadoa": @@(dst,"#id_destino")
+                @"sys_recver": 0
+            }
+            do dbr.insert(db,"aplcxc",aplcxc)
+
+            // Aumentar en pago al documento a aplicar
+            sql = "
+            UPDATE dcxc 
+                SET pagos = (IFNULL(pagos,0) + @aplicar) 
+            WHERE sys_pk = @id_destino
+                AND ((IFNULL(haber,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @aplicar) >= 0);
+            "
+            if not(dbr.execute(db,sql,dst)) { do rise_error(1,"Documento destino no encontrado o el importe a aplicar es mayor al saldo del documento.") }
+            // Disminuir en xaplicar al documento de origen
+            sql = "
+            UPDATE dcxc 
+                SET xaplicar = (IFNULL(xaplicar,0) - @aplicar)
+            WHERE sys_pk = @id_origen
+                AND (IFNULL(debe,0) - (IFNULL(debe,0) - IFNULL(xaplicar,0)) - @aplicar) >= 0;
+            "
+            if not(dbr.execute(db,sql,dst)) { do rise_error(2,"Documento origen no encontrado o el importe aplicado es mayor al saldo disponible por aplicar.") }
+
+            do dbr.commit(db)
+            dst<"aplicado"> : @@(dst,"#aplicar")
+            
+            exception
+            {
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                dst<"error"> : last_error()
+            }
+        }
+
+        return aplicacion
+    }
+
+    cxc.vFields::field
+    {
+        switch field
+        {
+            case "codigo" { return "cte.codigo" }
+            case "cliente" { return "cte.nombre" }
+            case "documento" { return "doc.const" }
+            case "referencia" { return "cxc.referencia" }
+            case "emision" { return "cxc.fecha" }
+            case "aplicacion" { return "cxc.aplicacion" }
+            case "debe" { return "cxc.debe" }
+            case "haber" { return "cxc.haber" }
+            case "divisa" { return "dvs.codigo" }
+            default { return "" }
+        }
+    }
+
+    cxc.list::&db,&params
+    {
+        fformat = "yyyy-MM-dd"
+
+        cliente = trim(@@(params,"$cliente"))
+        orderby = cxc.vFields(tolower(trim(@@(params,"$orderby"))))
+        direction = toupper(trim(@@(params,"$direction")))
+        fi_emision = date_format(trim(@@(params,"$fie")), fformat)
+        ff_emision = date_format(trim(@@(params,"$ffe")), fformat)
+        fi_aplicacion = date_format(trim(@@(params,"$fia")), fformat)
+        ff_aplicacion = date_format(trim(@@(params,"$ffa")), fformat)
+        recent = field.dnum(params,"recent",250)
+
+        if not(field.exist(params,"orderby")) && not(field.exist(params,"recent")) {
+            orderby = "aplicacion"
+            recent = 250
+        }
+        if not(field.exist(params,"orderby")) && field.exist(params,"recent") {
+            orderby = "cxc.sys_dtcreated"
+        }
+        if direction != "ASC" || direction != "DESC" { direction = "DESC" }
+
+        sql = "
+        SELECT
+            cxc.sys_pk,
+            cxc.sys_guid,
+            cte.sys_pk AS icliente,
+            cte.codigo AS ccliente,
+            cte.nombre AS cliente,
+            doc.const AS documento,
+            cxc.referencia,
+            DATE_FORMAT(cxc.fecha, '%Y-%m-%d') AS emision,
+            DATE_FORMAT(cxc.aplicacion, '%Y-%m-%d') AS aplicacion,
+            IFNULL(cxc.debe,0) AS debe,
+            IFNULL(cxc.haber,0) AS haber,
+            dvs.codigo AS divisa
+        FROM dcxc AS cxc 
+            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+            INNER JOIN cliente AS cte ON cte.sys_pk = cxc.icliente
+            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
+        WHERE TRUE"
+
+        if cliente != "" {
+            sql = sql + " AND (
+                cte.sys_pk = @cliente
+                OR cte.sys_guid = @cliente
+                OR cte.codigo = @cliente
+            )"
+        }
+        
+        if fi_emision != "" && ff_emision != "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " AND DATE(cxc.fecha) BETWEEN @fie AND @ffe" }
+        if fi_emision == "" && ff_emision == "" && fi_aplicacion != "" && ff_aplicacion != "" { sql = sql + " AND DATE(cxc.aplicacion) BETWEEN @fia AND @ffa" }
+
+        if orderby != "" { sql = sql + " ORDER BY "+orderby+" "+direction }
+
+        if fi_emision == "" && ff_emision == "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " LIMIT "+str(recent)+";" }
+
+        query = trim(sql)
+        return dbr.list(db,query,params)
+    }
+
+    cxc.read::&db,&params
+    {
+        ref data = cxc.obtenerDocumento(db,params)
+        do cxc.prepareView(db,params,data)
+        return data
+    }
+
+    cxc.blank::&db,&params
+    {
+        new data {}
+        do cxc.prepareView(db,params,data)
+        return data
+    }
+}
