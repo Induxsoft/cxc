@@ -107,7 +107,7 @@ model "erp.cxc"
     entity "divisa" : "TableModel"
     {
         @"codigo" string(5) unique required
-        @"descripcion" string(30) required
+        @"descripcion" string(30) unique required
         @"tcambio" decimal(18,8)
     }
     // Documentos comerciales que afectan la cuenta por cobrar de un cliente
