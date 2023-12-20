@@ -25,32 +25,40 @@ module "model"
         exception { return "" /* do rise_error(99,"Debe proporcionar una cadena de fecha con un formato válido.") */ }
     }
 
-    iniciar_post_get::
-    {
-        if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
-
-        ref @_GET = ifnull(@@(@http_context,"&request/get"),record.create())
-        ref @_POST = ifnull(@@(@http_context,"&request/post"),record.create())
-        
-        if list.count(list.create_from_fields(@_POST)) < 1 {
-			ref @_POST = from.json(field.dstr(@http_context,"request/post_string","{}"))
-		}
-    }
-
     cte.buscarCliente::&db,&params
     {
         sql = "
-        SELECT 
+        SELECT
             cte.sys_pk,
             cte.codigo,
             cte.nombre,
+            IFNULL(cte.rfc,'') AS rfc,
+            IFNULL(cte.saldo,0) AS saldo,
             tpc.descripcion AS tipo,
             dvs.codigo AS divisa,
-            dvs.tcambio
-        FROM cliente AS cte 
+            dvs.tcambio,
+            IFNULL(zna.nombre,'') AS zona
+        FROM cliente AS cte
             INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
             INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
-        WHERE (cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%'));
+            LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
+        WHERE (cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%') OR cte.rfc LIKE CONCAT('%',@search,'%'))
+        "
+        return dbr.list(db,sql,params)
+    }
+
+    cte.buscarContacto::&db,&params
+    {
+        sql = "
+        SELECT
+            sys_pk,
+            sys_guid,
+            IFNULL(apellidos,'') apellidos,
+            IFNULL(nombre,'') nombre,
+            IFNULL(empresa,'') empresa,
+            IFNULL(tratamiento,'') tratamiento
+        FROM contacto
+        WHERE (apellidos LIKE CONCAT('%',@search,'%') OR nombre LIKE CONCAT('%',@search,'%') OR empresa LIKE CONCAT('%',@search,'%'))
         "
         return dbr.list(db,sql,params)
     }
@@ -104,6 +112,36 @@ module "model"
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+                break
+            }
+            case ""
+            {
+                if @@(params,"$_entity_id") != "_new" { break }
+                
+                sql_tipos_clientes = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM tipocliente ORDER BY sys_pk ASC;"
+                sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM divisa ORDER BY sys_pk ASC;"
+                sql_pais = "SELECT sys_pk, codigo, CONCAT('[',codigo,'] ',nombre,' (',codigotel,')') AS `text` FROM pais WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
+                sql_estado = "SELECT sys_pk, codigo, ipais, CONCAT('[',codigo,'] ',nombre) AS `text` FROM edoprov WHERE NOT IFNULL(sys_deleted,0) AND ipais = @ipais ORDER BY sys_pk ASC;"
+                sql_ciudad = "SELECT sys_pk, codigo, estado, CONCAT('[',codigo,'] ',nombre,' (',codigotel,')') AS `text` FROM ciudad WHERE NOT IFNULL(sys_deleted,0) AND estado = @iestado ORDER BY sys_pk ASC;"
+                sql_agente = "SELECT sys_pk, CONCAT('[',codigo,'] ',nombre) AS `text` FROM agente WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
+                sql_zona = "SELECT sys_pk, nombre AS `text` FROM zona WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
+                sql_status = "SELECT id, const FROM cstatusorg WHERE NOT IFNULL(sys_deleted,0) ORDER BY id ASC;"
+
+                new p {}
+                ref list_pais = dbr.list(db,sql_pais,@null)
+                p<"ipais"> : @@(list.obj(list_pais,0),"#sys_pk")
+                ref list_estado = dbr.list(db,sql_estado,p)
+                p<"iestado"> : @@(list.obj(list_estado,0),"#sys_pk")
+                ref list_ciudad = dbr.list(db,sql_ciudad,p)
+
+                data<"list_tclientes*"> : dbr.list(db,sql_tipos_clientes,@null)
+                data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
+                data<"list_pais*"> : list_pais
+                data<"list_estado*"> : list_estado
+                data<"list_ciudad*"> : list_ciudad
+                data<"list_agente*"> : dbr.list(db,sql_agente,@null)
+                data<"list_zona*"> : dbr.list(db,sql_zona,@null)
+                data<"list_status*"> : dbr.list(db,sql_status,@null)
                 break
             }
         }
@@ -399,5 +437,33 @@ module "model"
         new data {}
         do cte.prepareView(db,params,data)
         return data
+    }
+
+    cte.create::&db,&params,&data
+    {
+        ref clienteData = record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona")
+
+        new cliente
+        {
+            @"sys_pk": 0
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+        }
+
+        if trim(@@(data,"$codigo")) == "" {
+            sql_gen_code = "SELECT (IF(COUNT(*) >= 1,CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')),'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%';"
+            cliente<"codigo"> : dbr.str(db,sql_gen_code,@null)
+        }
+
+        go foreach.fstr(key:key, value:value) with(clienteData)
+        {
+            if trim(value) != "" { do @@set(cliente,key,value) }
+        }
+
+        cliente<"uf_addenda"> : parse.bool(@@(data,"incluir_addenda"))
+        
+        // ref entity = entity.create(db,params,cliente)
+        do rise_error(0,to.json(cliente))
     }
 }

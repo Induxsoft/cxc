@@ -2,13 +2,16 @@
 #!
 module "controller"
 {
-    // if not(contains(@@(@http_context,"request/headers/http_accept"),"html")) { return }
-    
     switch @@(@http_context,"$request/get/_view")
     {
         case "buscar-cliente"
         {
             point @list to cte.buscarCliente
+            break
+        }
+        case "buscar-contacto"
+        {
+            point @list to cte.buscarContacto
             break
         }
         case "bonificacion"
@@ -47,6 +50,9 @@ module "controller"
         {
             point @list to cte.list
             point @read to cte.read
+            point @blank to cte.blank
+
+            point @create to cte.create
             break
         }
     }

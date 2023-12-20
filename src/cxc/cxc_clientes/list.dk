@@ -4,32 +4,52 @@ module "list.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "../config.dk"
+    #include "../_lib/icons.dk"
+    #include "../_lib/config.dk"
     
     do @context.begin(@crud_context)
     
     #$
     div(class="container")
     {
-        h1(class="h4 text-primary"){$"Clientes"}
+        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top" id="main_action_bar")
+        {
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Clientes"} }
+            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            {
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+
+                div(class="dropdown")
+                {
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action dropdown-toggle" id="btn_menu_add" "data-bs-toggle"="dropdown" "aria-expanded"="false"){$"Agregar"}
+                    ul(class="dropdown-menu" "aria-labelledby"="btn_menu_add")
+                    {
+                        li{ a(class="dropdown-item" href="#<@CTE_NEW>"){$"Cliente"} }
+                        li{ a(class="dropdown-item" href="#"){$"Tipo de cliente"} }
+                    }
+                }
+
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
+            }
+        }
 
         div
         {
             div(class="bg-light my-1")
             {
-                div(class="btn-group" role="group")
+                div(class="input-group")
                 {
-                    a(href="#<@CXC_MENU>" class="btn btn-secondary btn-sm fw-bolder"){$"<--"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
-                    button(type="button" class="btn btn-light btn-sm fw-bolder" onclick="goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
-                    a(href="./" class="btn btn-light btn-sm fw-bolder"){$"Refrescar"}
+                    input(type="text" class="form-control form-control-sm" id="txt_search_cliente" "data-url-search"="#<@CXC_BUSCAR_CLIENTE>" placeholder="Código, Nombre, RFC")
+                    a(href="#<@CTE_NEW>" class="btn btn-light btn-sm border" type="button" id="btn_new_cliente" title="Nuevo cliente"){$"#<@ICON_USER_ADD>"}
+                    button(class="btn btn-primary btn-sm" type="button" id="btn_search_cliente"){$"Buscar #<@ICON_SEARCH>"}
                 }
             }
 
-            "edit-table"(class="w-100" id="tbl_clientes" data="#<to.json(@('&.'))>")
+            "edit-table"(class="w-100" id="tbl_clientes")
             {
                 "edit-thead"
                 {
@@ -49,20 +69,17 @@ module "list.dk"
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            var table = document.getElementById("tbl_clientes");
-
-            function goTo(url)
-            {
-                if (!url) { alert("No se ha indicado un destino."); return; }
-                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-                var data = table.DataArray[table.CurrentRowIndex()];
-
-                var url = url.replace("_cliente",data.sys_pk);
-                window.location.href = url;
-            }
-        '}
+        div
+        {
+            script(src="#<@JS_CLIENTES>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    cliente.tableId = "tbl_clientes";
+                    cliente.init();
+                    cliente.list.init();
+                });
+            '}
+        }
     }
 }

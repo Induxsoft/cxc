@@ -4,7 +4,8 @@ module "cte.pendientes.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "../config.dk"
+    #include "../_lib/icons.dk"
+    #include "../_lib/config.dk"
     
     do @context.begin(@crud_context)
 
