@@ -23,8 +23,12 @@ program
 
     // Archivos de datos iniciales (Orden de instalación)
     init_files = '
+        agente.csv,
         ctiposcategorias.csv,
         categoria.csv,
+        pais.csv,
+        edoprov.csv,
+        ciudad.csv,
         cbcimoratorios.csv,
         cdocumentos.csv,
         cfg_chq_docs.csv,
