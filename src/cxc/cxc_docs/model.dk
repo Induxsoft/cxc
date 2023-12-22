@@ -56,7 +56,7 @@ module "model"
             IFNULL(cxc.haber,0) AS haber,
             IFNULL(cxc.intfinancieros,0) AS intereses_financieros,
             IFNULL(cxc.intmoratorios,0) AS intereses_moratorios,
-            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
+            (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
             cxc.notas,
             IFNULL(cxc.pagos,0) AS pagos,
             cxc.referencia,
@@ -267,7 +267,7 @@ module "model"
         do dbr.insert(db,"aplcxc",aplcxc)
 
         sql = "UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @importe) WHERE sys_pk = @pkparent 
-        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0)-@importe) >= 0);"
         
         if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o el importe es mayor al saldo") }
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
@@ -341,7 +341,7 @@ module "model"
         do dbr.insert(db,"aplcxc",aplcxc)
 
         sql = "UPDATE dcxc SET bonificaciones = (IFNULL(bonificaciones,0) + @importe) WHERE sys_pk = @pkparent 
-        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0)-@importe) >= 0);"
         
         if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o la bonificación es mayor al saldo.") }
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
@@ -415,7 +415,7 @@ module "model"
         do dbr.insert(db,"aplcxc",aplcxc)
 
         sql = "UPDATE dcxc SET intmoratorios = (IFNULL(intmoratorios,0) + @importe) WHERE sys_pk = @pkparent 
-        AND ((ifnull(haber,0)+ifnull(intmoratorios,0)-ifnull(bonificaciones,0)-ifnull(pagos,0)-@importe) >= 0);"
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0)-@importe) >= 0);"
         
         if not(dbr.execute(db,sql,data)) { do rise_error(0,"Documento destino no encontrado o el importe es mayor al saldo") }
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
@@ -464,13 +464,13 @@ module "model"
             IFNULL(cxc.haber,0) AS haber,
             IFNULL(cxc.intmoratorios,0) AS int_moratorios,
             IFNULL(cxc.pagos,0) AS pagos,
-            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
+            (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
             0 AS aplicar,
-            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS sfinal
+            (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS sfinal
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @icliente
-            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+            AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
         "
         ref pendientes = dbr.list(db,sql,xaplicar)
 
@@ -512,7 +512,7 @@ module "model"
             UPDATE dcxc 
                 SET pagos = (IFNULL(pagos,0) + @aplicar) 
             WHERE sys_pk = @id_destino
-                AND ((IFNULL(haber,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @aplicar) >= 0);
+                AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @aplicar) >= 0);
             "
             if not(dbr.execute(db,sql,dst)) { do rise_error(1,"Documento destino no encontrado o el importe a aplicar es mayor al saldo del documento.") }
             // Disminuir en xaplicar al documento de origen

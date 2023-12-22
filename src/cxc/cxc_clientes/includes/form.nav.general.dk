@@ -43,8 +43,14 @@ section(class="my-2" id="")
 {
     div(class="card")
     {
-        div(class="card-header bg-transparent"){ h6(class="text-muted m-0"){$"Domicilio Fiscal"} }
-        div(class="card-body")
+        div(class="card-header bg-transparent")
+        {
+            div(class="form-check") {
+                input(type="checkbox" class="form-check-input" name="chq_domicilio1" id="chq_domicilio1")
+                label(class="form-check-label h6 text-muted mb-0" "for"="chq_domicilio1"){$"Domicilio Fiscal"}
+            }
+        }
+        div(class="card-body disable-form" id="cbody_domicilio1")
         {
             div(class="row")
             {
@@ -109,13 +115,13 @@ section(class="my-2" id="")
                 }
                 div(class="col-lg-4 col-md-4 col-sm-4")
                 {
-                    label(class="form-label" "for"="txt_codigo_postal"){$"Código postal:"}
-                    input(class="form-control form-control-sm rounded-0" type="text" name="codigo_postal" minlength="5" maxlength="10" value="" id="txt_codigo_postal")
+                    label(class="form-label" "for"="txt_codpos"){$"Código postal:"}
+                    input(class="form-control form-control-sm rounded-0" type="text" name="codpos" minlength="5" maxlength="10" value="" id="txt_codpos")
                 }
                 div(class="col-lg-8 col-md-8 col-sm-8")
                 {
-                    label(class="form-label" "for"="txt_telefono"){$"Tel:"}
-                    input(class="form-control form-control-sm rounded-0" type="text" name="telefono" maxlength="20" value="" id="txt_telefono")
+                    label(class="form-label" "for"="txt_dm_telefonos"){$"Tel:"}
+                    input(class="form-control form-control-sm rounded-0" type="text" name="dm_telefonos" maxlength="150" value="" id="txt_dm_telefonos")
                 }
             }
         }

@@ -18,6 +18,7 @@ module "form.dk"
     ref listAgente = ifnull(@("&./list_agente"),list.create())
     ref listZona = ifnull(@("&./list_zona"),list.create())
     ref listStatus = ifnull(@("&./list_status"),list.create())
+    ref formData = ifnull(@("&./form"),record.create())
 
     // do rise_error(0,to.json(@("&.")))
 
@@ -34,26 +35,6 @@ module "form.dk"
         @"value_field": "sys_pk"
         @"text_field": "text"
         @"selected": form("tipo","nm",@null)
-    }
-
-    new sel_divisa
-    {
-        @"datatable*": listDivisas
-        @"id": "sel_divisa"
-        new member "attributes"
-        {
-            @"class": "form-select form-select-sm rounded-0"
-            @"name": "idivisa"
-            @"required": ""
-        }
-        @"value_field": "sys_pk"
-        @"text_field": "text"
-        new member "attr_options"
-        {
-            @"data-codigo": "#<@@(row,'codigo')>"
-            @"data-tcambio": "#<@@(row,'tcambio')>"
-        }
-        @"selected": form("idivisa","nm",@null)
     }
 
     new sel_pais
@@ -112,6 +93,26 @@ module "form.dk"
         @"selected": form("iciudad","nm",@null)
     }
 
+    new sel_divisa
+    {
+        @"datatable*": listDivisas
+        @"id": "sel_divisa"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "idivisa"
+            @"required": ""
+        }
+        @"value_field": "sys_pk"
+        @"text_field": "text"
+        new member "attr_options"
+        {
+            @"data-codigo": "#<@@(row,'codigo')>"
+            @"data-tcambio": "#<@@(row,'tcambio')>"
+        }
+        @"selected": form("idivisa","nm",@null)
+    }
+
     new sel_agente
     {
         @"datatable*": listAgente
@@ -119,11 +120,11 @@ module "form.dk"
         new member "attributes"
         {
             @"class": "form-select form-select-sm rounded-0"
-            @"name": "iagente"
+            @"name": "agente"
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
-        @"selected": form("iagente","nm",@null)
+        @"selected": form("agente","nm",@null)
     }
 
     new sel_zona
@@ -152,6 +153,52 @@ module "form.dk"
         @"value_field": "id"
         @"text_field": "const"
         @"selected": form("status","nm",@null)
+    }
+
+    /**
+    * Los options refieren a los campos `precio#` de la tabla `producto`.
+    * 6 => Campo `precio` de la tabla `cconsumo`.
+    */
+    text jsonPrecio
+    {$'
+    [
+        {"id":6,"const":"El del centro de consumo"},
+        {"id":1,"const":"Precio 1"},
+        {"id":2,"const":"Precio 1"},
+        {"id":3,"const":"Precio 1"},
+        {"id":4,"const":"Precio 1"},
+        {"id":5,"const":"Precio 1"},
+        {"id":106,"const":"Precio 6"},
+        {"id":107,"const":"Precio 7"},
+        {"id":108,"const":"Precio 8"},
+        {"id":109,"const":"Precio 9"},
+        {"id":110,"const":"Precio 10"},
+        {"id":111,"const":"Precio 11"},
+        {"id":112,"const":"Precio 12"},
+        {"id":113,"const":"Precio 13"},
+        {"id":114,"const":"Precio 14"},
+        {"id":115,"const":"Precio 15"},
+        {"id":116,"const":"Precio 16"},
+        {"id":117,"const":"Precio 17"},
+        {"id":118,"const":"Precio 18"},
+        {"id":119,"const":"Precio 19"},
+        {"id":120,"const":"Precio 20"},
+    ]
+    '}
+    ref listPrecio = from.json(jsonPrecio)
+
+    new sel_precio
+    {
+        @"datatable*": listPrecio
+        @"id": "sel_precio"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"name": "precio"
+        }
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": form("precio","nm",@null)
     }
     
     #$
@@ -188,7 +235,7 @@ module "form.dk"
                 input(type="hidden" name="sys_pk" value="")
                 Input(type="hidden" name="sys_recver" value="")
 
-                div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+                div(class="overflow-auto"){ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
 
                 div(class="tab-content")
                 {

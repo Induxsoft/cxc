@@ -2,9 +2,24 @@
 #!
 module
 {
+	//* ======================================== [ CONSTANTS ]
+	//#region cxc.destino
+	@CXC_DESTINO_APLICACION_INT_FINANCIEROS = 1
+    @CXC_DESTINO_APLICACION_INT_MORATORIOS = 2
+    @CXC_DESTINO_APLICACION_BONIFICACIONES = 3
+    @CXC_DESTINO_APLICACION_PAGOS = 4
+	//#endregion
+
+	// Ubicacion predeterminada
+	@PAIS = "México"
+	@ESTADO = "Chiapas"
+	@CIUDAD = "Tuxtla Gutiérrez"
+
+	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_MAIN = "/$/cxc/css/main.css"
 	@JS_CLIENTES = "/$/cxc/js/clientes.js"
 
+	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
 
 	//#region cxc_clientes
@@ -27,12 +42,5 @@ module
 	@DOC_BONIFICACIONES = "/!/cxc/documentos/_documento/bonificacion/"
 	@DOC_INTMORATORIOS = "/!/cxc/documentos/_documento/intmoratorios/"
 	@DOC_APLICAR_ABONOS = "/!/cxc/documentos/_documento/aplicar/"
-	//#endregion
-
-	//#region cxc.destino
-	@CXC_DESTINO_APLICACION_INT_FINANCIEROS = 1
-    @CXC_DESTINO_APLICACION_INT_MORATORIOS = 2
-    @CXC_DESTINO_APLICACION_BONIFICACIONES = 3
-    @CXC_DESTINO_APLICACION_PAGOS = 4
 	//#endregion
 }

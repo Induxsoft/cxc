@@ -64,14 +64,45 @@ var cliente =
 
     form: {
         formCliente: null,
+        fcElements: null,
         btnSave: null,
         
         init()
         {
             this.formCliente = document.getElementById("form_cliente");
             this.btnSave = document.getElementById("btn_save");
+            this.setEvents();
+        },
 
-            this.btnSave.addEventListener("click", () => { this.saveForm(); });
+        setEvents()
+        {
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.formCliente) {
+                this.fcElements = this.formCliente.elements;
+
+                this.fcElements["chq_domicilio1"].addEventListener("change", (event) => {
+                    let domicilio1 = document.getElementById("cbody_domicilio1");
+                    (event.target.checked) ? domicilio1.classList.remove("disable-form") : domicilio1.classList.add("disable-form");
+                });
+                this.fcElements["chq_domicilio2"].addEventListener("change", (event) => {
+                    let domicilio2 = document.getElementById("cbody_domicilio2");
+                    (event.target.checked) ? domicilio2.classList.remove("disable-form") : domicilio2.classList.add("disable-form");
+                });
+                this.fcElements["chq_domicilio3"].addEventListener("change", (event) => {
+                    let domicilio3 = document.getElementById("cbody_domicilio3");
+                    (event.target.checked) ? domicilio3.classList.remove("disable-form") : domicilio3.classList.add("disable-form");
+                });
+                this.fcElements["chq_otorgar_credito"].addEventListener("change", (event) => {
+                    let div_credito = document.getElementById("div_otorgar_credito");
+                    (event.target.checked) ? div_credito.classList.remove("disable-form") : div_credito.classList.add("disable-form");
+                });
+                this.fcElements["rd_credito_ilimitado"].addEventListener("change", (event) => {
+                    this.fcElements["limitecredito"].type = "hidden";
+                });
+                this.fcElements["rd_credito_limitado"].addEventListener("change", (event) => {
+                    this.fcElements["limitecredito"].type = "number";
+                });
+            }
         },
 
         saveForm(){

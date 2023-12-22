@@ -3,27 +3,44 @@
 module "model"
 {
     @table_name = "cliente"
-
-    hoy::fmt
-    {
-        return date_str(now(),str(fmt))
-    }
-
-    date_format::str,fmt
-    {
-        fecha = trim(str(str))
-        formato = trim(str(fmt))
-
-        if fecha == "" { return "" }
-        if formato == "" { formato = "yyyy-MM-ddTHH:mm:ss" }
-
-        ref datetime = str2dt(fecha)
-        fecha = date_str(datetime,formato)
-
-        return fecha
-
-        exception { return "" /* do rise_error(99,"Debe proporcionar una cadena de fecha con un formato válido.") */ }
-    }
+    @read_query = "
+    SELECT
+        sys_pk,
+        sys_guid,
+        sys_recver,
+        IFNULL(codcuenta,'') codcuenta,
+        codigo,
+        IFNULL(curp,'') curp,
+        IFNULL(descuento,0) descuento,
+        IFNULL(diascredito,0) diascredito,
+        IFNULL(email,'') email,
+        IFNULL(fax,'') fax,
+        IFNULL(limitecredito,0) limitecredito,
+        IFNULL(monedero,0) monedero,
+        nombre,
+        IFNULL(notas,'') notas,
+        IFNULL(precio,0) precio,
+        IFNULL(puntos,0) puntos,
+        IFNULL(rfc,'') rfc,
+        IFNULL(saldo,0) saldo,
+        IFNULL(saldopuntos,0) saldopuntos,
+        status,
+        IFNULL(telefonos,'') telefonos,
+        IFNULL(website,'') website,
+        agente,
+        contacto1,
+        contacto2,
+        contacto3,
+        domicilio1,
+        domicilio2,
+        domicilio3,
+        idivisa,
+        tipo,
+        zona,
+        uf_addenda
+    FROM cliente
+    WHERE #<@keyfield> = @_entity_id
+    "
 
     cte.buscarCliente::&db,&params
     {
@@ -116,8 +133,6 @@ module "model"
             }
             case ""
             {
-                if @@(params,"$_entity_id") != "_new" { break }
-                
                 sql_tipos_clientes = "SELECT sys_pk, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM tipocliente ORDER BY sys_pk ASC;"
                 sql_divisas = "SELECT sys_pk, codigo, tcambio, CONCAT('[',codigo,'] ',descripcion) AS `text` FROM divisa ORDER BY sys_pk ASC;"
                 sql_pais = "SELECT sys_pk, codigo, CONCAT('[',codigo,'] ',nombre,' (',codigotel,')') AS `text` FROM pais WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
@@ -126,13 +141,39 @@ module "model"
                 sql_agente = "SELECT sys_pk, CONCAT('[',codigo,'] ',nombre) AS `text` FROM agente WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
                 sql_zona = "SELECT sys_pk, nombre AS `text` FROM zona WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
                 sql_status = "SELECT id, const FROM cstatusorg WHERE NOT IFNULL(sys_deleted,0) ORDER BY id ASC;"
+                sql_domicilio = "SELECT sys_pk, sys_guid, sys_recver, IFNULL(codpos,'') codpos, IFNULL(colonia,'') colonia, IFNULL(direccion,'') direccion, IFNULL(notas,'') notas, IFNULL(telefonos,'') telefonos, iciudad FROM domicilio WHERE #<condition>"
 
                 new p {}
-                ref list_pais = dbr.list(db,sql_pais,@null)
-                p<"ipais"> : @@(list.obj(list_pais,0),"#sys_pk")
-                ref list_estado = dbr.list(db,sql_estado,p)
-                p<"iestado"> : @@(list.obj(list_estado,0),"#sys_pk")
-                ref list_ciudad = dbr.list(db,sql_ciudad,p)
+                ref list_pais = @null
+                ref list_estado = @null
+                ref list_ciudad = @null
+
+                if @@(params,"#_entity_id") > 0
+                {
+                    using p
+                    {
+                        @"domicilio1": @@(data,"#domicilio1")
+                        @"domicilio2": @@(data,"#domicilio2")
+                        @"domicilio3": @@(data,"#domicilio3")
+                    }
+                    
+                    condition = "sys_pk = @domicilio1"
+                    data<"domicilio1*"> : dbr.rec(db,ftext(sql_domicilio),p)
+                    condition = "sys_pk = @domicilio2"
+                    data<"domicilio2*"> : dbr.rec(db,ftext(sql_domicilio),p)
+                    condition = "sys_pk = @domicilio3"
+                    data<"domicilio3*"> : dbr.rec(db,ftext(sql_domicilio),p)
+
+                    ref list_ciudad = dbr.list()
+                }
+                else
+                {
+                    ref list_pais = dbr.list(db,sql_pais,@null)
+                    p<"ipais"> : @@(list.obj(list_pais,0),"#sys_pk")
+                    ref list_estado = dbr.list(db,sql_estado,p)
+                    p<"iestado"> : @@(list.obj(list_estado,0),"#sys_pk")
+                    ref list_ciudad = dbr.list(db,sql_ciudad,p)
+                }
 
                 data<"list_tclientes*"> : dbr.list(db,sql_tipos_clientes,@null)
                 data<"list_divisas*"> : dbr.list(db,sql_divisas,@null)
@@ -266,6 +307,7 @@ module "model"
 
         return data
     }
+
     fieldDebeHaberByDoc::doc,&obj,total
     {
         switch doc
@@ -283,6 +325,7 @@ module "model"
             }
         }
     }
+
     cte.bonificarCliente::&db,&params,&data
     {
         new bonificacion
@@ -318,11 +361,14 @@ module "model"
             @"sys_recver": 0
         }
         do fieldDebeHaberByDoc(@@(data,"#documento"),bonificacion,@@(data,"#importe"))
+
         do dbr.begin(db)
         do dbr.insert(db,"dcxc",bonificacion)
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
         do dbr.commit(db)
-        @url_redir=@CXC_CLIENTES
+
+        @url_redir = @CXC_CLIENTES
+
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -366,7 +412,7 @@ module "model"
             @"basecm": 0
             @"bonificaciones": 0.0
             @"contabilizado": @false
-            @"debe": 0.0
+            @"debe": 0.00
             @"documento": @@(data,"#documento_cobro")
             @"fecha*": str2dt(@@(data,"$fecha_documento"))
             @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
@@ -387,12 +433,15 @@ module "model"
             @"sys_recver": 0
         }
         do fieldDebeHaberByDoc(@@(data,"#documento_cobro"),cobro,@@(data,"#importe"))
+
         do dbr.begin(db)
         do dbr.insert(db,"movcuenta",deposito)
         do dbr.insert(db,"dcxc",cobro)
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
         do dbr.commit(db)
-        @url_redir=@CXC_CLIENTES
+
+        @url_redir = @CXC_CLIENTES
+
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -443,7 +492,7 @@ module "model"
 
     cte.read::&db,&params
     {
-        ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
+        ref data = entity.read(db,params)
         do cte.prepareView(db,params,data)
         return data
     }
@@ -455,31 +504,135 @@ module "model"
         return data
     }
 
-    cte.create::&db,&params,&data
+    rec.init::
     {
-        ref clienteData = record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona")
-
-        new cliente
+        new record
         {
             @"sys_pk": 0
             @"sys_dtcreated*": now()
             @"sys_timestamp*": now()
             @"sys_recver": 0
         }
+        return record
+    }
 
+    cleanFormData::&fields,&data,&output
+    {
+        for i = 0; i < list.count(fields)
+        {
+            field = trim(list.str(fields,i))
+            // 1 - $ | 2 - # | 3 - * | 0 - not exist
+            switch field.typeof(data,field)
+            {
+                case 1
+                {
+                    str = trim(field.str(data,field))
+                    if str != "" { output<field> : str }
+                    break
+                }
+                case 2
+                {
+                    output<field> : field.num(data,field)
+                    break
+                }
+                case 3
+                {
+                    ref obj = field.obj(data,field)
+                    if not(isnull(obj)) { output<field+"*"> : obj }
+                    break
+                }
+            }
+        }
+    }
+
+    cte.create::&db,&params,&data
+    {
+        do errordet(@false)
+        @use_transaction = @false
+
+        ref fieldsCliente = split("codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
+
+        ref cliente = rec.init()
+        ref domicilio1 = @null
+        ref domicilio2 = @null
+        ref domicilio3 = @null
+
+        chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
+        chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
+        chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
+
+        // Datos del nuevo cliente
         if trim(@@(data,"$codigo")) == "" {
             sql_gen_code = "SELECT (IF(COUNT(*) >= 1,CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')),'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%';"
             cliente<"codigo"> : dbr.str(db,sql_gen_code,@null)
         }
+        do cleanFormData(fieldsCliente,data,cliente)
+        cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
-        go foreach.fstr(key:key, value:value) with(clienteData)
+        do dbr.begin(db)
+        // Datos de domicilios
+        if chq_domicilio1
         {
-            if trim(value) != "" { do @@set(cliente,key,value) }
+            ref domicilio1 = rec.init()
+            using domicilio1
+            {
+                @"codpos": trim(@@(data,"$codpos"))
+                @"colonia": trim(@@(data,"$colonia"))
+                @"direccion": "||" + trim(@@(data,"$calle")) + "|" + trim(@@(data,"$numext")) + "|" + trim(@@(data,"$numint")) + "||"
+                @"notas": trim(@@(data,"$dm_notas"))
+                @"telefonos": trim(@@(data,"$dm_telefonos"))
+                @"iciudad": @@(data,"#iciudad")
+            }
+            
+            cliente<"domicilio1"> : @@(dbr.save(db,"domicilio",domicilio1),"#sys_pk")
+        }
+        if chq_domicilio2
+        {
+            ref domicilio2 = rec.init()
+            using domicilio2
+            {
+                @"codpos": trim(@@(data,"$codpos2"))
+                @"colonia": trim(@@(data,"$colonia2"))
+                @"direccion": "||" + trim(@@(data,"$calle2")) + "|" + trim(@@(data,"$numext2")) + "|" + trim(@@(data,"$numint2")) + "||"
+                @"notas": trim(@@(data,"$dm_notas2"))
+                @"telefonos": trim(@@(data,"$dm_telefonos2"))
+                @"iciudad": @@(data,"#iciudad2")
+            }
+
+            cliente<"domicilio2"> : @@(dbr.save(db,"domicilio",domicilio2),"#sys_pk")
+        }
+        if chq_domicilio3
+        {
+            ref domicilio3 = rec.init()
+            using domicilio3
+            {
+                @"codpos": trim(@@(data,"$codpos3"))
+                @"colonia": trim(@@(data,"$colonia3"))
+                @"direccion": "||" + trim(@@(data,"$calle3")) + "|" + trim(@@(data,"$numext3")) + "|" + trim(@@(data,"$numint3")) + "||"
+                @"notas": trim(@@(data,"$dm_notas3"))
+                @"telefonos": trim(@@(data,"$dm_telefonos3"))
+                @"iciudad": @@(data,"#iciudad3")
+            }
+
+            cliente<"domicilio3"> : @@(dbr.save(db,"domicilio",domicilio3),"#sys_pk")
         }
 
-        cliente<"uf_addenda"> : parse.bool(@@(data,"incluir_addenda"))
-        
-        // ref entity = entity.create(db,params,cliente)
-        do rise_error(0,to.json(cliente))
+        ref entity = entity.create(db,params,cliente)
+        do dbr.commit(db)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref formData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : formData
+            
+            do cte.prepareView(db,params,data)
+            do rise_error(code,error)
+        }
     }
 }
