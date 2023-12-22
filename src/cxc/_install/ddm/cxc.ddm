@@ -8,6 +8,74 @@ model "erp.cxc"
 
     #include "induxsoft.abstracts.ddm"
 
+    //#region Domicilio
+    entity "pais" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"codigotel" string(5)
+        @"nombre" string(100) unique required
+    }
+    entity "edoprov" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"nombre" string(50) required
+        @"ipais" int ref:"pais" ["sys_pk"] required
+    }
+    entity "ciudad" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"codigotel" string(5)
+        @"nombre" string(100) required
+        @"estado" int ref:"edoprov" ["sys_pk"] required
+    }
+    entity "domicilio" : "TableModel"
+    {
+        @"codpos" string(10)
+        @"colonia" string(150)
+        @"direccion" string(1024)
+        @"notas" string(150)
+        @"telefonos" string(150)
+        @"iciudad" int ref:"ciudad" ["sys_pk"]
+        @"numint" string(1024)
+        @"numext" string(1024)
+    }
+    //#endregion
+    // agente
+    entity "agente" : "TableModel"
+    {
+        @"codigo" string(50) unique required
+        @"codnomina" string(50) unique
+        @"email" string(50)
+        @"nombre" string(50) unique required
+        @"notas" memo
+        @"pcomision" decimal(18,8)
+        @"telefono" string(150)
+        @"domicilio1" int ref:"domicilio" ["sys_pk"]
+        @"uf_capitan" bool
+        @"uf_sys_baja" bool
+        @"uf_iuser" int
+
+    }
+    // contacto
+    entity "contacto" : "TableModel"
+    {
+        @"apellidos" string(50) required
+        @"email1" string(50)
+        @"email2" string(50)
+        @"email3" string(50)
+        @"email4" string(50)
+        @"empresa" string(50)
+        @"nombre" string(50) required
+        @"notas" memo
+        @"puesto" string(50)
+        @"tel1" string(50)
+        @"tel2" string(50)
+        @"tel3" string(50)
+        @"tratamiento" string(5)
+        @"website" string(150)
+        @"domicilio1" int ref:"domicilio" ["sys_pk"]
+        @"domicilio2" int ref:"domicilio" ["sys_pk"]
+    }
     // Detalle de cobros aplicados
     entity "aplcxc" : "TableModel"
     {
@@ -96,6 +164,13 @@ model "erp.cxc"
         @"status" int ref:"cstatusorg" ["id"]
         @"telefonos" string(150)
         @"website" string(150)
+        @"agente" int ref:"agente" ["sys_pk"]
+        @"contacto1" int ref:"contacto" ["sys_pk"]
+        @"contacto2" int ref:"contacto" ["sys_pk"]
+        @"contacto3" int ref:"contacto" ["sys_pk"]
+        @"domicilio1" int ref:"domicilio" ["sys_pk"]
+        @"domicilio2" int ref:"domicilio" ["sys_pk"]
+        @"domicilio3" int ref:"domicilio" ["sys_pk"]
         @"idivisa" ref:"divisa"  required
         @"tipo" int ref:"tipocliente" ["sys_pk"] required
         @"zona" int ref:"zona" ["sys_pk"]
