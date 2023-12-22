@@ -34,6 +34,8 @@ module
 
 	@CXC_BUSCAR_CLIENTE = "/!/cxc/clientes/?_view=buscar-cliente&search=@search"
 	@URL_BUSCAR_CONTACTO = "/!/cxc/clientes/?_view=buscar-contacto&search=@search"
+	@URL_BUSCAR_EDOPROV = "/!/cxc/clientes/?_view=buscar-edoprov&search=@search"
+	@URL_BUSCAR_CIUDAD = "/!/cxc/clientes/?_view=buscar-ciudad&search=@search"
 
 	//#region cxc_docs
 	@CXC_DOCUMENTOS = "/!/cxc/documentos/"

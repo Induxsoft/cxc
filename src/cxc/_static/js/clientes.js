@@ -7,6 +7,13 @@ var cliente =
         if (this.tableId.trim() != "") { this.table = document.getElementById(this.tableId); }
     },
 
+    trigger(element,event) {
+        if (element) {
+            let e = new Event(event);
+            element.dispatchEvent(e);
+        }
+    },
+
     goTo(url)
     {
         if (!url) { alert("No se ha indicado un destino."); return; }
@@ -66,6 +73,8 @@ var cliente =
         formCliente: null,
         fcElements: null,
         btnSave: null,
+        url_buscar_edoprov: "",
+        url_buscar_ciudad: "",
         
         init()
         {
@@ -83,15 +92,39 @@ var cliente =
                 this.fcElements["chq_domicilio1"].addEventListener("change", (event) => {
                     let domicilio1 = document.getElementById("cbody_domicilio1");
                     (event.target.checked) ? domicilio1.classList.remove("disable-form") : domicilio1.classList.add("disable-form");
+                    if (this.fcElements["sel_estado"].options.length <= 0) this.fillEstados(this.fcElements["sel_pais"],this.fcElements["sel_estado"]);
                 });
+                this.fcElements["sel_pais"].addEventListener("change", () => {
+                    this.fillEstados(this.fcElements["sel_pais"],this.fcElements["sel_estado"]);
+                });
+                this.fcElements["sel_estado"].addEventListener("change", () => {
+                    this.fillCiudades(this.fcElements["sel_estado"],this.fcElements["sel_ciudad"]);
+                });
+                
                 this.fcElements["chq_domicilio2"].addEventListener("change", (event) => {
                     let domicilio2 = document.getElementById("cbody_domicilio2");
                     (event.target.checked) ? domicilio2.classList.remove("disable-form") : domicilio2.classList.add("disable-form");
+                    if (this.fcElements["sel_estado2"].options.length <= 0) this.fillEstados(this.fcElements["sel_pais2"],this.fcElements["sel_estado2"]);
                 });
+                this.fcElements["sel_pais2"].addEventListener("change", () => {
+                    this.fillEstados(this.fcElements["sel_pais2"],this.fcElements["sel_estado2"]);
+                });
+                this.fcElements["sel_estado2"].addEventListener("change", () => {
+                    this.fillCiudades(this.fcElements["sel_estado2"],this.fcElements["sel_ciudad2"]);
+                });
+
                 this.fcElements["chq_domicilio3"].addEventListener("change", (event) => {
                     let domicilio3 = document.getElementById("cbody_domicilio3");
                     (event.target.checked) ? domicilio3.classList.remove("disable-form") : domicilio3.classList.add("disable-form");
+                    if (this.fcElements["sel_estado3"].options.length <= 0) this.fillEstados(this.fcElements["sel_pais3"],this.fcElements["sel_estado3"]);
                 });
+                this.fcElements["sel_pais3"].addEventListener("change", () => {
+                    this.fillEstados(this.fcElements["sel_pais3"],this.fcElements["sel_estado3"]);
+                });
+                this.fcElements["sel_estado3"].addEventListener("change", () => {
+                    this.fillCiudades(this.fcElements["sel_estado3"],this.fcElements["sel_ciudad3"]);
+                });
+
                 this.fcElements["chq_otorgar_credito"].addEventListener("change", (event) => {
                     let div_credito = document.getElementById("div_otorgar_credito");
                     (event.target.checked) ? div_credito.classList.remove("disable-form") : div_credito.classList.add("disable-form");
@@ -103,6 +136,43 @@ var cliente =
                     this.fcElements["limitecredito"].type = "number";
                 });
             }
+        },
+
+        fillEstados(ref,out){
+            let url = this.url_buscar_edoprov.replace("search","ipais");
+            url = InduxsoftCrudlModel.UrlReplace(url,{ipais:ref.value});
+
+            let onSuccess = (data) => {
+                out.innerHTML = "";
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.sys_pk;
+                    option.text = item.text;
+
+                    out.appendChild(option);
+                });
+                cliente.trigger(out,"change");
+            }
+            let onFailure = (error) => { console.error(error) }
+            InduxsoftCrudlModel.InvokeService(url,null,onSuccess,onFailure,"GET",false,false);
+        },
+
+        fillCiudades(ref,out){
+            let url = this.url_buscar_ciudad.replace("search","iestado");
+            url = InduxsoftCrudlModel.UrlReplace(url,{iestado:ref.value});
+
+            let onSuccess = (data) => {
+                out.innerHTML = "";
+                data.forEach(item => {
+                    const option = document.createElement("option");
+                    option.value = item.sys_pk;
+                    option.text = item.text;
+
+                    out.appendChild(option);
+                });
+            }
+            let onFailure = (error) => { console.error(error) }
+            InduxsoftCrudlModel.InvokeService(url,null,onSuccess,onFailure,"GET",false,false);
         },
 
         saveForm(){

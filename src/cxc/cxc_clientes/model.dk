@@ -112,7 +112,7 @@ module "model"
         }
         if @@(params,"#ipais") > 0 {
             condition = "AND ipais = @ipais"
-            return dbr.rec(db,ftext(sql),params)
+            return dbr.list(db,ftext(sql),params)
         }
         if trim(@@(params,"$search")) != {
             condition = "AND (codigo LIKE CONCAT('%',@search,'%') OR nombre LIKE CONCAT('%',@search,'%'))"
@@ -144,7 +144,7 @@ module "model"
         }
         if @@(params,"#iestado") > 0 {
             condition = "AND estado = @iestado"
-            return dbr.rec(db,ftext(sql),params)
+            return dbr.list(db,ftext(sql),params)
         }
         if trim(@@(params,"$search")) != {
             condition = "AND (codigo LIKE CONCAT('%',@search,'%') OR nombre LIKE CONCAT('%',@search,'%'))"
@@ -197,7 +197,7 @@ module "model"
                 sql_domicilio = "SELECT sys_pk, sys_guid, sys_recver, IFNULL(codpos,'') codpos, IFNULL(colonia,'') colonia, IFNULL(direccion,'') direccion, IFNULL(notas,'') notas, IFNULL(telefonos,'') telefonos, iciudad FROM domicilio WHERE #<condition>"
 
                 new p {}
-                ref list_pais = @null
+                ref list_pais = dbr.list(db,sql_pais,@null)
                 ref list_estado = @null
                 ref list_ciudad = @null
 
@@ -216,16 +216,6 @@ module "model"
                     data<"domicilio2*"> : dbr.rec(db,ftext(sql_domicilio),p)
                     condition = "sys_pk = @domicilio3"
                     data<"domicilio3*"> : dbr.rec(db,ftext(sql_domicilio),p)
-
-                    // ref list_ciudad = dbr.list()
-                }
-                else
-                {
-                    ref list_pais = dbr.list(db,sql_pais,@null)
-                    p<"ipais"> : @@(list.obj(list_pais,0),"#sys_pk")
-                    ref list_estado = dbr.list(db,sql_estado,p)
-                    p<"iestado"> : @@(list.obj(list_estado,0),"#sys_pk")
-                    ref list_ciudad = dbr.list(db,sql_ciudad,p)
                 }
 
                 data<"list_tclientes*"> : dbr.list(db,sql_tipos_clientes,@null)
@@ -439,6 +429,7 @@ module "model"
             ref rec=dbr.rec(db,"select * from movcuenta where referencia=@referencia",p)
             if not(isnull(rec)){do rise_error(500,"El valor de la referencia ya existe")}
         }
+        
         new deposito
         {
             @"sys_pk": 0

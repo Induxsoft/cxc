@@ -4,39 +4,6 @@ module "model"
 {
     @table_name = "dcxc"
 
-    hoy::fmt
-    {
-        return date_str(now(),str(fmt))
-    }
-
-    date_format::str,fmt
-    {
-        fecha = trim(str(str))
-        formato = trim(str(fmt))
-
-        if fecha == "" { return "" }
-        if formato == "" { formato = "yyyy-MM-ddTHH:mm:ss" }
-
-        ref datetime = str2dt(fecha)
-        fecha = date_str(datetime,formato)
-
-        return fecha
-
-        exception { return "" /* do rise_error(99,"Debe proporcionar una cadena de fecha con un formato válido.") */ }
-    }
-
-    iniciar_post_get::
-    {
-        if not(isset("@http_context")) && isset("@crud_context") { ref @http_context = ifnull(@@(@crud_context,"&http"),record.create()) }
-
-        ref @_GET = ifnull(@@(@http_context,"&request/get"),record.create())
-        ref @_POST = ifnull(@@(@http_context,"&request/post"),record.create())
-        
-        if list.count(list.create_from_fields(@_POST)) < 1 {
-			ref @_POST = from.json(field.dstr(@http_context,"request/post_string","{}"))
-		}
-    }
-
     cxc.obtenerDocumento::&db,&params
     {
         sql = "
@@ -143,6 +110,7 @@ module "model"
     cxc.crearDocumento::&db,&params,&data
     {
         if trim(@@(data,"$referencia"))==""{do rise_error(500,"Debe indicar una referencia")}
+
         new dcxc
         {
             @"sys_pk": 0
@@ -191,10 +159,10 @@ module "model"
 
     cxc.cobrarDocumento::&db,&params,&data
     {
-
         if trim(@@(data,"$referencia"))==""{do rise_error(500,"Debe indicar una referencia")}
         if trim(@@(data,"$referencia"))!=""
         {
+            new p { @"referencia":@@(data,"$referencia") }
             ref rec=dbr.rec(db,"select * from movcuenta where referencia=@referencia",p)
             if not(isnull(rec)){do rise_error(500,"El valor de la referencia ya existe")}
         }
@@ -283,6 +251,8 @@ module "model"
 
         do dbr.commit(db)
 
+        @url_redir = @CXC_DOCUMENTOS
+
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -295,9 +265,8 @@ module "model"
     {
         if trim(@@(data,"$referencia"))==""{do rise_error(500,"Debe indicar una referencia")}
         do dbr.begin(db)
-        
         id_doc = uuid()
-
+        
         new bonificacion
         {
             @"sys_pk": 0
@@ -358,6 +327,8 @@ module "model"
 
         do dbr.commit(db)
 
+        @url_redir = @CXC_DOCUMENTOS
+
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -370,7 +341,6 @@ module "model"
     {
         if trim(@@(data,"$referencia"))==""{do rise_error(500,"Debe indicar una referencia")}
         do dbr.begin(db)
-        
         id_doc = uuid()
 
         new intmoratorio
@@ -432,6 +402,8 @@ module "model"
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
 
         do dbr.commit(db)
+
+        @url_redir = @CXC_DOCUMENTOS
 
         exception
         {

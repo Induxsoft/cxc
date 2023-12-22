@@ -7,6 +7,7 @@ module "cxc.bonificacion.dk"
     #include "uielements.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
     
     do @context.begin(@crud_context)
 
@@ -20,7 +21,7 @@ module "cxc.bonificacion.dk"
         @"id": "sel_documento"
         new member "attributes"
         {
-            @"class": "form-select"
+            @"class": "form-select form-select-sm rounded-0"
             @"name": "documento"
             @"required": ""
         }
@@ -32,7 +33,16 @@ module "cxc.bonificacion.dk"
     #$
     div(class="container")
     {
-        h1(class="h4"){$"Bonificación"}
+        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+        {
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Bonificación"} }
+            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+            {
+                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
+                a(href="#<@CXC_DOCUMENTOS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+            }
+        }
 
         form(action="." method="post" id="form_bonificacion")
         {
@@ -80,7 +90,7 @@ module "cxc.bonificacion.dk"
             {
                 div(class="col-lg-8")
                 {
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Capital:"}
                         div(class="col-6") {
@@ -88,7 +98,7 @@ module "cxc.bonificacion.dk"
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Financieros:"}
                         div(class="col-6") {
@@ -96,7 +106,7 @@ module "cxc.bonificacion.dk"
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Moratorios:"}
                         div(class="col-6") {
@@ -104,7 +114,7 @@ module "cxc.bonificacion.dk"
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Bonificaciones:"}
                         div(class="col-6") {
@@ -112,7 +122,7 @@ module "cxc.bonificacion.dk"
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}
                         div(class="col-6") {
@@ -128,7 +138,7 @@ module "cxc.bonificacion.dk"
             {
                 div(class="col-lg-8")
                 {
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="sel_documento"){$"Tipo de documento:"}
                         div(class="col-6") {
@@ -138,51 +148,51 @@ module "cxc.bonificacion.dk"
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_referencia"){$"Referencia:"}
                         div(class="col-6") {
-                            input(type="text" class="form-control" name="referencia" id="txt_referencia" value="#<@('$input/referencia')>" required="true")
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" value="#<@('$input/referencia')>" required="true")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_fdoc"){$"Fecha del documento:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control" name="fecha_documento" id="txt_fdoc" value="#<@('$input/fecha_documento')>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_documento" id="txt_fdoc" value="#<form('fecha_documento','dt',@null)>" required="true")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_faplicacion"){$"Fecha de aplicación:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control" name="fecha_aplicacion" id="txt_faplicacion" value="#<@('$input/fecha_aplicacion')>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_aplicacion" id="txt_faplicacion" value="#<form('fecha_aplicacion','dt',@null)>" required="true")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control" name="tcambio" min="1" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control" name="importe" min="1" id="txt_importe" value="#<@('#input/importe')>")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="txt_notas"){$"Notas:"}
                         div(class="col-6") {
-                            textarea(class="form-control" name="notas" id="txt_notas" required="true")
+                            textarea(class="form-control form-control-sm rounded-0" name="notas" id="txt_notas" required="true")
                             {
                                 #!
                                 if @('$input/notas') == "" {#$ $"Bonificación de documento con referencia #<@@(infoDoc,'$referencia')>" #!}
@@ -203,15 +213,15 @@ module "cxc.bonificacion.dk"
                     {
                         label(class="col-auto col-form-label"){$"Nuevo saldo:"}
                         div(class="col-4") {
-                            input(type="number" class="form-control" name="nuevo_saldo" id="txt_nuevo_saldo" value="" disabled="disabled" readonly="readonly")
+                            input(type="number" class="form-control form-control-sm rounded-0" name="nuevo_saldo" id="txt_nuevo_saldo" value="" disabled="disabled" readonly="readonly")
                         }
                     }
 
-                    div(class="mt-2 d-flex gap-1 justify-content-end")
+                    /* div(class="d-flex gap-1 justify-content-end")
                     {
                         button(type="submit" class="btn btn-primary"){$"Aceptar"}
                         button(type="reset" class="btn btn-danger"){$"Cancelar"}
-                    }
+                    } */
                 }
             }
         }
@@ -223,12 +233,18 @@ module "cxc.bonificacion.dk"
             window.onload = function(){
                 let txt_importe = document.getElementById("txt_importe");
                 let form_bonificacion = document.getElementById("form_bonificacion");
+                let btnSave = document.getElementById("btn_save");
                 
                 txt_importe.addEventListener("input",function(data) {
                     let saldo = #<@@(infoDoc,"#saldo")>;
                     let txt_nvosaldo = document.getElementById("txt_nuevo_saldo");
                     
                     txt_nvosaldo.value = Math.sub(saldo,Number(txt_importe.value));
+                });
+
+                btnSave.addEventListener("click", () => {
+                    if (!form_bonificacion.reportValidity()) return;
+                    form_bonificacion.submit();
                 });
 
                 form_bonificacion.addEventListener("reset", () => {

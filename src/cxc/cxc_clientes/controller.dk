@@ -14,6 +14,16 @@ module "controller"
             point @list to cte.buscarContacto
             break
         }
+        case "buscar-edoprov"
+        {
+            point @list to cte.buscarEstado
+            break
+        }
+        case "buscar-ciudad"
+        {
+            point @list to cte.buscarCiudad
+            break
+        }
         case "bonificacion"
         {
             point @read to cte.blank
