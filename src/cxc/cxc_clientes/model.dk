@@ -47,6 +47,8 @@ module "model"
         sql = "
         SELECT
             cte.sys_pk,
+            cte.sys_guid,
+            cte.sys_recver,
             cte.codigo,
             cte.nombre,
             IFNULL(cte.rfc,'') AS rfc,
@@ -59,9 +61,18 @@ module "model"
             INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
             INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
             LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
-        WHERE (cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%') OR cte.rfc LIKE CONCAT('%',@search,'%'))
+        WHERE #<condition>
         "
-        return dbr.list(db,sql,params)
+        
+        if trim(@@(params,"$id")) != "" {
+            condition = "(cte.sys_pk = @id OR cte.sys_guid = @id)"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if trim(@@(params,"$search")) != "" {
+            condition = "(cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%') OR cte.rfc LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(sql),params)
+        }
+        return list.create()
     }
 
     cte.buscarContacto::&db,&params
@@ -80,30 +91,72 @@ module "model"
         return dbr.list(db,sql,params)
     }
 
+    cte.buscarEstado::&db,&params
+    {
+        sql = "
+        SELECT
+            sys_pk,
+            sys_guid,
+            sys_recver,
+            codigo,
+            nombre,
+            ipais,
+            CONCAT('[',codigo,'] ',nombre) AS `text`
+        FROM edoprov 
+        WHERE NOT IFNULL(sys_deleted,0) #<condition>
+        ORDER BY sys_pk ASC;"
+
+        if trim(@@(params,"$id")) != "" {
+            condition = "AND (sys_pk = @id OR sys_guid = @id)"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if @@(params,"#ipais") > 0 {
+            condition = "AND ipais = @ipais"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if trim(@@(params,"$search")) != {
+            condition = "AND (codigo LIKE CONCAT('%',@search,'%') OR nombre LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(sql),params)
+        }
+        return list.create()
+    }
+
+    cte.buscarCiudad::&db,params
+    {
+        sql = "
+        SELECT
+            sys_pk,
+            sys_guid,
+            sys_recver,
+            codigo,
+            nombre,
+            codigotel,
+            estado,
+            CONCAT('[',codigo,'] ',nombre,' (',codigotel,')') AS `text`
+        FROM ciudad
+        WHERE NOT IFNULL(sys_deleted,0) #<condition>
+        ORDER BY sys_pk ASC;
+        "
+
+        if trim(@@(params,"$id")) != "" {
+            condition = "AND (sys_pk = @id OR sys_guid = @id)"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if @@(params,"#iestado") > 0 {
+            condition = "AND estado = @iestado"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if trim(@@(params,"$search")) != {
+            condition = "AND (codigo LIKE CONCAT('%',@search,'%') OR nombre LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(sql),params)
+        }
+        return list.create()
+    }
+
     cte.obtenerCliente::&db,id
     {
         new params { @"id": id }
-        sql = "
-        SELECT
-            cte.sys_pk,
-            cte.sys_guid,
-            cte.codigo,
-            cte.nombre,
-            IFNULL(cte.rfc,'') AS rfc,
-            IFNULL(cte.saldo,0) AS saldo,
-            tpc.descripcion AS tipo,
-            dvs.codigo AS divisa,
-            dvs.tcambio,
-            IFNULL(zna.nombre,'') AS zona
-        FROM cliente AS cte
-            INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
-            INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
-            LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
-        WHERE cte.sys_pk = @id
-            OR cte.sys_guid = @id
-            OR cte.codigo = @id
-        "
-        return dbr.rec(db,sql,params)
+        return cte.buscarCliente(db,params)
     }
 
     cte.prepareView::&db,&params,&data
@@ -140,7 +193,7 @@ module "model"
                 sql_ciudad = "SELECT sys_pk, codigo, estado, CONCAT('[',codigo,'] ',nombre,' (',codigotel,')') AS `text` FROM ciudad WHERE NOT IFNULL(sys_deleted,0) AND estado = @iestado ORDER BY sys_pk ASC;"
                 sql_agente = "SELECT sys_pk, CONCAT('[',codigo,'] ',nombre) AS `text` FROM agente WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
                 sql_zona = "SELECT sys_pk, nombre AS `text` FROM zona WHERE NOT IFNULL(sys_deleted,0) ORDER BY sys_pk ASC;"
-                sql_status = "SELECT id, const FROM cstatusorg WHERE NOT IFNULL(sys_deleted,0) ORDER BY id ASC;"
+                sql_status = "SELECT id, const FROM cstatusorg ORDER BY id ASC;"
                 sql_domicilio = "SELECT sys_pk, sys_guid, sys_recver, IFNULL(codpos,'') codpos, IFNULL(colonia,'') colonia, IFNULL(direccion,'') direccion, IFNULL(notas,'') notas, IFNULL(telefonos,'') telefonos, iciudad FROM domicilio WHERE #<condition>"
 
                 new p {}
@@ -164,7 +217,7 @@ module "model"
                     condition = "sys_pk = @domicilio3"
                     data<"domicilio3*"> : dbr.rec(db,ftext(sql_domicilio),p)
 
-                    ref list_ciudad = dbr.list()
+                    // ref list_ciudad = dbr.list()
                 }
                 else
                 {
