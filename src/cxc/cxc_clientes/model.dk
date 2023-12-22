@@ -266,7 +266,23 @@ module "model"
 
         return data
     }
-
+    fieldDebeHaberByDoc::doc,&obj,total
+    {
+        switch doc
+        {
+            case 4{ obj<"debe">:total }//cfactura
+            case 3{ obj<"debe">:total }//cremision
+            case 6{ obj<"debe">:total }//ctickets
+            case 5{ obj<"haber">:total}//cnota_de_credito
+            case 17{obj<"debe">:total}//cnota_de_cargo
+            case 19{obj<"haber">:total}//crecibo
+            default
+            {
+               obj<"haber">:0
+               obj<"debe">:0
+            }
+        }
+    }
     cte.bonificarCliente::&db,&params,&data
     {
         new bonificacion
@@ -281,7 +297,7 @@ module "model"
             @"basecm": 0
             @"bonificaciones": 0.0
             @"contabilizado": @false
-            @"debe": @@(data,"#importe")
+            @"debe": 0.00
             @"documento": @@(data,"#documento")
             @"fecha*": str2dt(@@(data,"$fecha_documento"))
             @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
@@ -301,12 +317,12 @@ module "model"
             @"icliente": @@(data,"#icliente")
             @"sys_recver": 0
         }
-
+        do fieldDebeHaberByDoc(@@(data,"#documento"),bonificacion,@@(data,"#importe"))
         do dbr.begin(db)
         do dbr.insert(db,"dcxc",bonificacion)
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
         do dbr.commit(db)
-
+        @url_redir=@CXC_CLIENTES
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
@@ -350,7 +366,7 @@ module "model"
             @"basecm": 0
             @"bonificaciones": 0.0
             @"contabilizado": @false
-            @"debe": @@(data,"#importe")
+            @"debe": 0.0
             @"documento": @@(data,"#documento_cobro")
             @"fecha*": str2dt(@@(data,"$fecha_documento"))
             @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
@@ -370,13 +386,13 @@ module "model"
             @"icliente": @@(data,"#icliente")
             @"sys_recver": 0
         }
-
+        do fieldDebeHaberByDoc(@@(data,"#documento_cobro"),cobro,@@(data,"#importe"))
         do dbr.begin(db)
         do dbr.insert(db,"movcuenta",deposito)
         do dbr.insert(db,"dcxc",cobro)
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
         do dbr.commit(db)
-
+        @url_redir=@CXC_CLIENTES
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
