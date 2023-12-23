@@ -132,11 +132,6 @@ section(class="" id="")
 {
     div(class="row")
     {
-        div(class="col-12")
-        {
-            label(class="form-label" "for"="txt_telefonos"){$"Telefonos:"}
-            input(class="form-control form-control-sm rounded-0" type="text" name="telefonos" maxlength="150" value="" id="txt_telefonos")
-        }
         div(class="col-lg-6 col-md-6 col-sm-6")
         {
             label(class="form-label" "for"="txt_email"){$"E-mail:"}
@@ -144,13 +139,18 @@ section(class="" id="")
         }
         div(class="col-lg-6 col-md-6 col-sm-6")
         {
-            label(class="form-label" "for"="txt_fax"){$"Fax:"}
-            input(class="form-control form-control-sm rounded-0" type="text" name="fax" maxlength="150" value="" id="txt_fax")
+            label(class="form-label" "for"="txt_telefonos"){$"Telefonos:"}
+            input(class="form-control form-control-sm rounded-0" type="text" name="telefonos" maxlength="150" value="" id="txt_telefonos")
         }
-        div(class="col-12")
+        div(class="col-lg-6 col-md-6 col-sm-6")
         {
             label(class="form-label" "for"="txt_website"){$"Sitio web:"}
             input(class="form-control form-control-sm rounded-0" type="text" name="website" maxlength="150" value="" id="txt_website")
+        }
+        div(class="col-lg-6 col-md-6 col-sm-6")
+        {
+            label(class="form-label" "for"="txt_fax"){$"Fax:"}
+            input(class="form-control form-control-sm rounded-0" type="text" name="fax" maxlength="150" value="" id="txt_fax")
         }
     }
 }

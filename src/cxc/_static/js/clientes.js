@@ -143,6 +143,11 @@ var cliente =
             url = InduxsoftCrudlModel.UrlReplace(url,{ipais:ref.value});
 
             let onSuccess = (data) => {
+                if (data.message) {
+                    console.error(data.message);
+                    return;
+                }
+
                 out.innerHTML = "";
                 data.forEach(item => {
                     const option = document.createElement("option");
@@ -162,6 +167,11 @@ var cliente =
             url = InduxsoftCrudlModel.UrlReplace(url,{iestado:ref.value});
 
             let onSuccess = (data) => {
+                if (data.message) {
+                    console.error(data.message);
+                    return;
+                }
+
                 out.innerHTML = "";
                 data.forEach(item => {
                     const option = document.createElement("option");
