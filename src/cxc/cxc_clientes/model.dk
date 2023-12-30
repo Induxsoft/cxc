@@ -172,16 +172,20 @@ module "model"
             }
             case "cobrar"
             {
-                sql_cuentas = "SELECT c.sys_pk,CONCAT(c.nombre,'(',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
+                params<"pk_dvs"> : @IDIVISA_PREDETERMINADA //parse.num(dbr.vars.get(db,"FXCA013"))
+
+                sql_cuentas = "SELECT c.sys_pk, d.codigo AS divisa, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
                 sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
+                sql_divisa_predeterminada = "SELECT sys_pk, codigo, tcambio FROM divisa WHERE sys_pk = @pk_dvs;"
 
                 data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
                 data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case ""

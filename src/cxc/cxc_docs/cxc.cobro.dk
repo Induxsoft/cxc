@@ -11,12 +11,17 @@ module "cxc.cobro.dk"
 
     do @context.begin(@crud_context)
     
-    fmoneda = "$ #,0.00"
+    ref formData = ifnull(@("&./form"),record.create())
     ref infoDoc = ifnull(@("&./infoDoc"),record.create())
     ref cuentas = ifnull(@("&./cuentas"),list.create())
     ref categorias = ifnull(@("&./categorias"),list.create())
     ref docDepositos = ifnull(@('&./docDepositos'),list.create())
     ref docCobros = ifnull(@('&./docCobros'),list.create())
+    ref dvsPred = ifnull(@("&./dvsPred"),record.create())
+
+    fmoneda = "$ #,0.00"
+    cDIVISA_PRED = field.dstr(dvsPred,"codigo","MXN")
+    tCAMBIO_PRED = field.dnum(dvsPred,"tcambio",1)
 
     new sel_cuenta_deposito
     {
@@ -26,6 +31,11 @@ module "cxc.cobro.dk"
         {
             @"class": "form-select form-select-sm rounded-0"
             @"name": "cuenta_deposito"
+        }
+        new member "attr_options"
+        {
+            @"data-divisa": "#<@@(row,'$divisa')>"
+            @"data-tcambio": "#<@@(row,'#tcambio')>"
         }
         @"value_field": "sys_pk"
         @"text_field": "nombre"
@@ -89,7 +99,7 @@ module "cxc.cobro.dk"
             }
         }
 
-        form(action="." method="post" id="form_cobrar")
+        form(action="." method="post" id="form_cobro")
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
             input(type="hidden" name="icliente" value="#<@@(infoDoc,'#icliente')>")
@@ -215,6 +225,28 @@ module "cxc.cobro.dk"
                         }
                     }
 
+                    div(class="row d-flex justify-content-end align-items-center d-none" id="div_tcambio_deposito")
+                    {
+                        label(class="col-auto col-form-label" "for"="txt_tcambio_deposito"){$"Tipo de cambio:"}
+                        div(class="col-6") {
+                            div(class="input-group input-group-sm") {
+                                input(type="number" class="form-control rounded-0" name="tcambio_deposito" min="1" step="0.000001" id="txt_tcambio_deposito" value="#<form('tcambio_deposito','nm',@null)>" required="true")
+                                span(class="input-group-text rounded-0" id="spn_tcambio_deposito"){$"#<cDIVISA_PRED>"}
+                            }
+                        }
+                    }
+
+                    div(class="row d-flex justify-content-end align-items-center d-none" id="div_importe_deposito")
+                    {
+                        label(class="col-auto col-form-label" "for"="txt_importe_deposito"){$"Importe:"}
+                        div(class="col-6") {
+                            div(class="input-group input-group-sm"){
+                                input(type="number" class="form-control rounded-0" name="importe_deposito" step="0.000001" id="txt_importe_deposito" value="#<form('importe_deposito','nm',@null)>")
+                                span(class="input-group-text rounded-0" id="spn_importe_deposito"){$""}
+                            }
+                        }
+                    }
+
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         // label(class="col-auto col-form-label" "for"=""){$""}
@@ -262,11 +294,14 @@ module "cxc.cobro.dk"
                         }
                     }
 
-                    div(class="row d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center d-none" id="div_tcambio")
                     {
                         label(class="col-auto col-form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control form-control-sm rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
+                            div(class="input-group input-group-sm") {
+                                input(type="number" class="form-control form-control-sm rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
+                                span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(infoDoc,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -274,7 +309,10 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
+                            div(class="input-group input-group-sm") {
+                                input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
+                                span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -306,41 +344,24 @@ module "cxc.cobro.dk"
                             input(type="number" class="form-control form-control-sm rounded-0" name="nuevo_saldo" id="txt_nuevo_saldo" value="" disabled="disabled" readonly="readonly")
                         }
                     }
-
-                    /* div(class="d-flex gap-1 justify-content-end")
-                    {
-                        button(type="submit" class="btn btn-primary"){$"Aceptar"}
-                        button(type="reset" class="btn btn-danger"){$"Cancelar"}
-                    } */
                 }
             }
         }
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            window.onload = function(){
-                let txt_importe = document.getElementById("txt_importe");
-                let form_cobrar = document.getElementById("form_cobrar");
-                let btnSave = document.getElementById("btn_save");
-                
-                txt_importe.addEventListener("input",function(data) {
-                    let saldo = #<@@(infoDoc,"#saldo")>;
-                    let txt_nvosaldo = document.getElementById("txt_nuevo_saldo");
-                    
-                    txt_nvosaldo.value = Math.sub(saldo,Number(txt_importe.value));
+        div
+        {
+            script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    documento.cobro.dtCxC = #<to.json(infoDoc)>;
+                    documento.cobro.dvsPred = #<to.json(dvsPred)>;
+                    documento.cobro.init();
+                    documento.cobro.pedirTCambio();
                 });
-
-                btnSave.addEventListener("click", () => {
-                    if (!form_cobrar.reportValidity()) return;
-                    form_cobrar.submit();
-                });
-
-                form_cobrar.addEventListener("reset", () => {
-                    window.location.href = "#<@CXC_DOCUMENTOS>";
-                });
-            }
-        '}
+            '}
+        }
     }
 }

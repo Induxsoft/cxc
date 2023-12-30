@@ -10,6 +10,12 @@ module
     @CXC_DESTINO_APLICACION_PAGOS = 4
 	//#endregion
 
+	/**
+	* Clave Primaria (PK) de la divisa predeterminada
+	* 0 : Se obtiene la divisa de las variables globales (glovalbar), 1 por defecto si no existe.
+	*/
+	@IDIVISA_PREDETERMINADA = 1
+
 	// Ubicacion predeterminada
 	@PAIS = "México"
 	@ESTADO = "Chiapas"
@@ -18,6 +24,7 @@ module
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_MAIN = "/$/cxc/css/main.css"
 	@JS_CLIENTES = "/$/cxc/js/clientes.js"
+	@JS_DOCUMENTOS = "/$/cxc/js/documentos.js"
 
 	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
