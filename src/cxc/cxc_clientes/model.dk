@@ -482,7 +482,7 @@ module "model"
 
         ref fieldsCliente = split("codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
 
-        ref cliente = new_rec()
+        ref cliente = record.create()
         ref domicilio1 = @null
         ref domicilio2 = @null
         ref domicilio3 = @null
@@ -503,7 +503,7 @@ module "model"
         // Datos de domicilios
         if chq_domicilio1
         {
-            ref domicilio1 = new_rec()
+            ref domicilio1 = record.create()
             using domicilio1
             {
                 @"codpos": trim(@@(data,"$codpos"))
@@ -518,7 +518,7 @@ module "model"
         }
         if chq_domicilio2
         {
-            ref domicilio2 = new_rec()
+            ref domicilio2 = record.create()
             using domicilio2
             {
                 @"codpos": trim(@@(data,"$codpos2"))
@@ -533,7 +533,7 @@ module "model"
         }
         if chq_domicilio3
         {
-            ref domicilio3 = new_rec()
+            ref domicilio3 = record.create()
             using domicilio3
             {
                 @"codpos": trim(@@(data,"$codpos3"))
