@@ -6,20 +6,15 @@ module "controller"
     {
         case ""
         {
-            if contains(@@(@http_context,"request/headers/http_accept"),"html") 
-            {
-                if @@(@http_context,"$request/get/_entity_id") == "_new" 
-                {
-                    point @create to cxc.crearDocumento
-                    point @blank to cxc.blank
-                    @form_view = "cxc.crear.dk"
-                }
-                else 
-                {
-                    point @read to cxc.read
-                    point @list to cxc.list
-                }
-            }
+            point @list to cxc.list
+            point @read to cxc.read
+            point @blank to cxc.blank
+
+            point @create to cxc.crearDocumento
+            point @update to cxc.update
+            point @delete to cxc.delete
+
+            @form_view = "cxc.crear.dk"
             break
         }
         case "cobrar"

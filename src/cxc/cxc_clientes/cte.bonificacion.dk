@@ -11,8 +11,13 @@ module "cte.bonificacion.dk"
     
     do @context.begin(@crud_context)
 
+    ref formData = ifnull(@("&./form"),record.create())
     ref cliente = ifnull(@("&./infoCliente"),record.create())
     ref documentos = ifnull(@('&./documentos'),list.create())
+    ref dvsPred = ifnull(@("&./dvsPred"),record.create())
+
+    cDIVISA_PRED = field.dstr(dvsPred,"codigo","MXN")
+    tCAMBIO_PRED = field.dnum(dvsPred,"tcambio",1)
 
     new sel_documento
     {
@@ -26,7 +31,7 @@ module "cte.bonificacion.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("$input/documento")
+        @"selected": form("documento","nm",@null)
     }
 
     #$
@@ -39,7 +44,7 @@ module "cte.bonificacion.dk"
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
-                a(href="#<@CXC_DOCUMENTOS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+                a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
             }
         }
 
@@ -49,19 +54,26 @@ module "cte.bonificacion.dk"
 
             div(class="row")
             {
-                div(class="col-lg-8 col-12 d-flex gap-2") {
-                    p(class="") {
-                        b{$"Cliente: "}
-                        $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
-                    }
-                }
-                div(class="col-lg-4"){$""}
-            }
-
-            div(class="row")
-            {
                 div(class="col-lg-8")
                 {
+                    div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label"){$"Proveedor:"}
+                        div(class="col-6") {
+                            $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
+                        }
+                    }
+
+                    div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label"){$"Divisa:"}
+                        div(class="col-6") {
+                            $"#<@@(cliente,'$divisa')>"
+                        }
+                    }
+
+                    hr{}
+
                     div(class="row mt-2 d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label" "for"="sel_documento"){$"Tipo de documento:"}
@@ -76,7 +88,7 @@ module "cte.bonificacion.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_referencia"){$"Referencia:"}
                         div(class="col-6") {
-                            input(type="text" class="form-control rounded-0" name="referencia" id="txt_referencia" value="#<@('$input/referencia')>" required="true")
+                            input(type="text" class="form-control rounded-0" name="referencia" id="txt_referencia" value="#<form('referencia','tx',@null)>" required="true")
                         }
                     }
 
@@ -84,7 +96,7 @@ module "cte.bonificacion.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_fdoc"){$"Fecha del documento:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control rounded-0" name="fecha_documento" id="txt_fdoc" value="#<form('fecha_documento','dt',@null)>" required="true")
+                            input(type="date" class="form-control rounded-0" name="fecha" id="txt_fdoc" value="#<form('fecha','dt',@null)>" required="true")
                         }
                     }
 
@@ -92,15 +104,18 @@ module "cte.bonificacion.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_faplicacion"){$"Fecha de aplicación:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control rounded-0" name="fecha_aplicacion" id="txt_faplicacion" value="#<form('fecha_aplicacion','dt',@null)>" required="true")
+                            input(type="date" class="form-control rounded-0" name="faplicacion" id="txt_faplicacion" value="#<form('faplicacion','dt',@null)>" required="true")
                         }
                     }
 
-                    div(class="row mt-2 d-flex justify-content-end align-items-center")
+                    div(class="row mt-2 d-flex justify-content-end align-items-center" id="div_tcambio")
                     {
                         label(class="col-auto col-form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
+                            div(class="input-group") {
+                                input(type="number" class="form-control rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<form('tcambio','nm',cliente)>" required="true")
+                                span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(cliente,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -108,7 +123,10 @@ module "cte.bonificacion.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
+                            div(class="input-group") {
+                                input(type="number" class="form-control rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<form('importe','nm',@null)>")
+                                span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -117,42 +135,24 @@ module "cte.bonificacion.dk"
                         label(class="col-auto col-form-label" "for"="txt_notas"){$"Notas:"}
                         div(class="col-6") {
                             textarea(class="form-control rounded-0" name="notas" id="txt_notas" required="true")
-                            { $"#<@('$input/notas')>" }
+                            { $"#<form('notas','tx',@null)>" }
                         }
                     }
                 }
             }
-
-            /* div(class="row")
-            {
-                div(class="col-lg-8")
-                {
-                    div(class="mt-2 d-flex gap-1 justify-content-end")
-                    {
-                        button(type="submit" class="btn btn-primary"){$"Aceptar"}
-                        button(type="reset" class="btn btn-danger"){$"Cancelar"}
-                    }
-                }
-            } */
         }
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            window.onload = function(){
-                let form_bonificacion = document.getElementById("form_bonificacion");
-                let btnSave = document.getElementById("btn_save");
-
-                btnSave.addEventListener("click", () => {
-                    if (!form_bonificacion.reportValidity()) return;
-                    form_bonificacion.submit();
+        div
+        {
+            script(src="#<@JS_CLIENTES>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    cliente.bonificacion.init();
                 });
-
-                form_bonificacion.addEventListener("reset", () => {
-                    window.location.href = "#<@CXC_CLIENTES>";
-                });
-            }
-        '}
+            '}
+        }
     }
 }

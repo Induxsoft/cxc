@@ -4,7 +4,7 @@ section(class="" id="")
 {
     label(class="form-label" "for"="ik_contacto1"){$"Contacto1:"}
     "input-key"(id="ik_contacto1" name="contacto1" "data-key"="sys_pk" "data-search"="nombre" "data-text"="apellidos"
-        "data-value"="{}" "data-source"="#<@URL_BUSCAR_CONTACTO>"
+        "data-value"="{}" "data-source"="#<@CXC_BUSCAR_CONTACTO>"
         columns="nombre,apellidos,tratamiento"
         colcaptions="Nombre,Apellidos,Tratamiento"
         "box-title-text"="Seleccione un contacto"
@@ -23,7 +23,7 @@ section(class="" id="")
 
     label(class="form-label" "for"="txt_contacto2"){$"Contacto2:"}
     "input-key"(id="ik_contacto2" name="contacto2" "data-key"="sys_pk" "data-search"="nombre" "data-text"="apellidos"
-        "data-value"="{}" "data-source"="#<@URL_BUSCAR_CONTACTO>"
+        "data-value"="{}" "data-source"="#<@CXC_BUSCAR_CONTACTO>"
         columns="nombre,apellidos,tratamiento"
         colcaptions="Nombre,Apellidos,Tratamiento"
         "box-title-text"="Seleccione un contacto"
@@ -42,7 +42,7 @@ section(class="" id="")
 
     label(class="form-label" "for"="txt_contacto3"){$"Contacto3:"}
     "input-key"(id="ik_contacto3" name="contacto3" "data-key"="sys_pk" "data-search"="nombre" "data-text"="apellidos"
-        "data-value"="{}" "data-source"="#<@URL_BUSCAR_CONTACTO>"
+        "data-value"="{}" "data-source"="#<@CXC_BUSCAR_CONTACTO>"
         columns="nombre,apellidos,tratamiento"
         colcaptions="Nombre,Apellidos,Tratamiento"
         "box-title-text"="Seleccione un contacto"

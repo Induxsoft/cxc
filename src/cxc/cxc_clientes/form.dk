@@ -258,8 +258,8 @@ module "form.dk"
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {
-                    cliente.form.url_buscar_edoprov = "#<@URL_BUSCAR_EDOPROV>";
-                    cliente.form.url_buscar_ciudad = "#<@URL_BUSCAR_CIUDAD>";
+                    cliente.form.url_buscar_edoprov = "#<@CXC_BUSCAR_EDOPROV>";
+                    cliente.form.url_buscar_ciudad = "#<@CXC_BUSCAR_CIUDAD>";
                     cliente.form.init();
                 });
             '}

@@ -1,0 +1,556 @@
+#include "dkli.dkh"
+#!
+module ":erp.cxc.movimientos"
+{
+    saveCxC::&db,&data
+    {
+        if trim(@@(data,"$referencia")) == "" { do rise_error(500,"Debe indicar una referencia.") }
+        if @@(data,"#documento") <= 0 { do rise_error(500,"Debe indicar el tipo de documento `documento`.") }
+        if @@(data,"#icliente") <= 0 { do rise_error(500,"No se ha indicado un cliente `icliente`.") }
+
+        new dcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_info": ""
+            @"sys_user": ""
+            @"sys_lastuser": ""
+            @"sys_exported": @false
+            @"sys_dtexported*": @null
+            @"sys_recver": 0
+            @"sys_deleted": @false
+            @"sys_lock": 0
+            @"aplicable": @true
+            @"aplicacion*": now()
+            @"auditado": @false
+            @"basecm*": @null
+            @"bonificaciones": 0.0
+            @"contabilizado": @false
+            @"debe": 0.0
+            @"documento*": @null
+            @"fecha*": now()
+            @"fultmoratorios*": @null
+            @"haber": 0.0
+            @"intfinancieros": 0.0
+            @"intmoratorios": 0.0
+            @"notas": ""
+            @"pagos": 0.0
+            @"partida": ""
+            @"poliza": ""
+            @"porimpuestocap": 0.0
+            @"porimpuestofin": 0.0
+            @"porimpuestomor": 0.0
+            @"referencia": ""
+            @"relacionadoa": 0
+            @"tasamoratorios": 0.0
+            @"tipocambio": 0.0
+            @"xaplicar": 0.0
+            @"icliente*": @null
+            @"imovcuenta*": @null
+        }
+
+        new col_type
+        {
+            @"sys_pk": "int"
+            @"sys_guid": "str"
+            @"sys_dtcreated": "date"
+            @"sys_timestamp": "date"
+            @"sys_info": "str"
+            @"sys_user": "str"
+            @"sys_lastuser": "str"
+            @"sys_exported": "bool"
+            @"sys_dtexported": "date"
+            @"sys_recver": "int"
+            @"sys_deleted": "bool"
+            @"sys_lock": "int"
+            @"aplicable": "bool"
+            @"aplicacion": "date"
+            @"auditado": "bool"
+            @"basecm": "int"
+            @"bonificaciones": "dec"
+            @"contabilizado": "bool"
+            @"debe": "dec"
+            @"documento": "int"
+            @"fecha": "date"
+            @"fultmoratorios": "date"
+            @"haber": "dec"
+            @"intfinancieros": "dec"
+            @"intmoratorios": "dec"
+            @"notas": "str"
+            @"pagos": "dec"
+            @"partida": "str"
+            @"poliza": "str"
+            @"porimpuestocap": "dec"
+            @"porimpuestofin": "dec"
+            @"porimpuestomor": "dec"
+            @"referencia": "str"
+            @"relacionadoa": "int"
+            @"tasamoratorios": "dec"
+            @"tipocambio": "dec"
+            @"xaplicar": "dec"
+            @"icliente": "int"
+            @"imovcuenta": "int"
+        }
+
+        ref fields = list.create_from_fields(data)
+        for i = 0; i < list.count(fields)
+        {
+            field = tolower(trim(list.str(fields,i)))
+            if field.exist(dcxc,field)
+            {
+                switch @@(col_type,field)
+                {
+                    case "str"
+                    {
+                        dcxc<field> : trim(@@(data,"$"+field))
+                        break
+                    }
+                    case "int"
+                    {
+                        dcxc<field> : trun(@@(data,"#"+field))
+                        break
+                    }
+                    case "dec"
+                    {
+                        dcxc<field> : @@(data,"#"+field)
+                        break
+                    }
+                    case "bool"
+                    {
+                        dcxc<field> : parse.bool(trim(@@(data,"$"+field)))
+                        break
+                    }
+                    case "date"
+                    {
+                        dcxc<field+"*"> : str2dt(trim(@@(data,"$"+field)))
+                        break
+                    }
+                }
+            }
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+        
+        do dbr.insert(db,"dcxc",dcxc)
+        
+        if start_transaction { do dbr.commit(db) }
+        return dbr.num(db,"select last_insert_id();",@null)
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    determinarImporteCxC::&cxc,importe
+    {
+        doc = @@(cxc,"#documento")
+        /**
+        * 3: cRemision
+        * 4: cFactura
+        * 5: cNota_de_crédito
+        * 6: cTickets
+        * 17: cNota_de_cargo
+        * 18: cPagaré
+        * 19: cRecibo
+        */
+        
+        afecta_debe = (doc==3 || doc==4 || doc==6 || doc==17 || doc==18)
+        afecta_haber = (doc==5 || doc==19)
+
+        if afecta_debe
+        {
+            cxc<"debe"> : importe
+            cxc<"haber"> : 0
+        }
+        else if afecta_haber
+        {
+            cxc<"debe"> : 0
+            cxc<"haber"> : importe
+        }
+        else
+        {
+            cxc<"haber"> : 0
+            cxc<"debe"> : 0
+        }
+    }
+
+    crearCxC::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        new dcxc
+        {
+            @"aplicable": @@(data,"$aplicable")
+            @"aplicacion": @@(data,"$flimite")
+            @"basecm": 0
+            @"documento": @@(data,"#documento")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$flimite")
+            @"notas": @@(data,"$concepto")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": @@(data,"#tcambio")
+            @"icliente": @@(data,"#icliente")
+        }
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        // Generar documento por cobrar (dcxc).
+        lastId = saveCxC(db,dcxc)
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
+
+        if start_transaction { do dbr.commit(db) }
+        return lastId
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cobrarCxC::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        tcambio_doc = @@(data,"#tipocambio")
+        tcambio_dep = @@(data,"#tcambio_deposito")
+        
+        importe_doc = @@(data,"#importe")
+        importe_dep = (importe_doc * tcambio_doc)
+        importe_dep = (importe_dep / tcambio_dep)
+
+        new deposito
+        {
+            @"faplicacion": @@(data,"$faplicacion")
+            @"conciliado": @@(data,"$conciliado")
+            @"fecha": @@(data,"$fecha")
+            @"importe": importe_dep
+            @"concepto": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"documento": @@(data,"#documento_deposito")
+            @"icategoria": @@(data,"#categoria_deposito")
+            @"icuenta": @@(data,"cuenta_deposito")
+        }
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento_cobro")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": tcambio_doc
+            @"icliente": @@(data,"#icliente")
+        }
+
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"destino": @CXC_DESTINO_APLICACION_PAGOS
+            @"fecha": @@(data,"$fecha")
+            @"importe": importe_doc
+            @"aplicadoa": @@(data,"#pkparent")
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new p
+        {
+            @"pkparent": @@(data,"#pkparent")
+            @"importe_doc": importe_doc
+            @"icliente": @@(data,"#icliente")
+        }
+
+        // Realizar deposito a la cuenta.
+        dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
+        // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,importe_doc)
+        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        // Aplicar cobro.
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql_aplicar_cobro = "UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @importe_doc) WHERE sys_pk = @pkparent 
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe_doc) >= 0);"
+        if not(dbr.execute(db,sql_aplicar_cobro,p)) { do rise_error(500,"Documento destino no encontrado o el importe es mayor al saldo.") }
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe_doc) WHERE sys_pk = @icliente;",p)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    bonificarCxC::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": @@(data,"#tipocambio")
+            @"icliente": @@(data,"#icliente")
+        }
+
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"destino": @CXC_DESTINO_APLICACION_BONIFICACIONES
+            @"fecha": @@(data,"$fecha")
+            @"importe": @@(data,"#importe")
+            @"aplicadoa": @@(data,"#pkparent")
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new p
+        {
+            @"pkparent": @@(data,"#pkparent")
+            @"importe": @@(data,"#importe")
+            @"icliente": @@(data,"#icliente")
+        }
+
+        // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
+        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        // Aplicar bonificacion.
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql_aplicar_bonific = "UPDATE dcxc SET bonificaciones = (IFNULL(bonificaciones,0) + @importe) WHERE sys_pk = @pkparent 
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0);"
+        if not(dbr.execute(db,sql_aplicar_bonific,p)) { do rise_error(500,"Documento destino no encontrado o la bonificación es mayor al saldo.") }
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",p)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    aplicarIntMor::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": @@(data,"#tipocambio")
+            @"icliente": @@(data,"#icliente")
+        }
+
+        new aplcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            @"sys_recver": 0
+            @"destino": @CXC_DESTINO_APLICACION_INT_MORATORIOS
+            @"fecha": @@(data,"$fecha")
+            @"importe": @@(data,"#importe")
+            @"aplicadoa": @@(data,"#pkparent")
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new p
+        {
+            @"pkparent": @@(data,"#pkparent")
+            @"importe": @@(data,"#importe")
+            @"icliente": @@(data,"#icliente")
+        }
+
+        // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
+        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        // Aplicar IntMor.
+        do dbr.insert(db,"aplcxc",aplcxc)
+
+        sql_aplicar_intmor = "UPDATE dcxc SET intmoratorios = (IFNULL(intmoratorios,0) + @importe) WHERE sys_pk = @pkparent 
+        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0);"
+        if not(dbr.execute(db,sql_aplicar_intmor,p)) { do rise_error(500,"Documento destino no encontrado o el importe es mayor al saldo.") }
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",p)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    cobrarCliente::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        tcambio_cte = @@(data,"#tcambio")
+        tcambio_dep = @@(data,"#tcambio_deposito")
+
+        importe_cte = @@(data,"#importe")
+        importe_dep = (importe_cte * tcambio_cte)
+        importe_dep = (importe_dep / tcambio_dep)
+
+        new deposito
+        {
+            @"faplicacion": @@(data,"$faplicacion")
+            @"conciliado": @@(data,"$conciliado")
+            @"fecha": @@(data,"$fecha")
+            @"importe": importe_dep
+            @"concepto": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"documento": @@(data,"#documento_deposito")
+            @"icategoria": @@(data,"#categoria_deposito")
+            @"icuenta": @@(data,"cuenta_deposito")
+        }
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento_cobro")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": tcambio_cte
+            @"xaplicar": importe_cte
+            @"icliente": @@(data,"#icliente")
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        new p
+        {
+            @"icliente": @@(data,"#icliente")
+            @"importe_cte": importe_cte
+        }
+
+        // Realizar deposito a la cuenta.
+        dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
+        // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,importe_cte)
+        do saveCxC(db,dcxc)
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe_cte) WHERE sys_pk = @icliente;",p)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
+    bonificarCliente::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": @@(data,"#tcambio")
+            @"xaplicar": @@(data,"#importe")
+            @"icliente": @@(data,"#icliente")
+        }
+
+        start_transaction = @false
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
+        do saveCxC(db,dcxc)
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
+
+        if start_transaction { do dbr.commit(db) }
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+}

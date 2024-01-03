@@ -12,7 +12,11 @@ module "cxc.crear.dk"
     do @context.begin(@crud_context)
 
     ref cliente = ifnull(@("&./infoCliente"),record.create())
+    ref infoDoc = ifnull(@("&./infoDoc"),record.create())
     ref documentos = ifnull(@('&./documentos'),list.create())
+
+    // do rise_error(0,to.json(@("&.")))
+    enable_editing = (@("$parameters/_entity_id") == "_new")
 
     new sel_documento
     {
@@ -26,24 +30,26 @@ module "cxc.crear.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": form("documento","nm",@null)
+        @"selected": form("documento","nm",infoDoc)
     }
 
     #$
     div(class="container")
     {
+        link(href="#<@CSS_MAIN>" rel="stylesheet")
+
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
         {
             div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Agregar documento por cobrar"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action #<ifstr(enable_editing,'','disable-ctrl')>" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
                 a(href="#<@CXC_DOCUMENTOS>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
             }
         }
 
-        form(action="." method="post" enctype="multipart/form-data" id="form_crear_cxc")
+        form(action="." method="POST" enctype="multipart/form-data" id="form_cxc" class="#<ifstr(enable_editing,'','disable-form')>")
         {
             label(class="form-label" "for"="sel_cliente"){$"Cliente:"}
             "input-key"(
@@ -64,7 +70,7 @@ module "cxc.crear.dk"
             {
                 div(class="col-lg-4") {
                     label(class="form-label" "for"="txt_divisa"){$"Divisa:"}
-                    input(type="text" class="form-control rounded-0" name="divisa" id="txt_divisa" value="#<@@(cliente,'$divisa')>" disabled="true" readonly="true")
+                    input(type="text" class="form-control rounded-0" name="divisa" id="txt_divisa" value="#<form('divisa','tx',cliente)>" disabled="true" readonly="true")
                 }
                 div(class="col-lg-4") {
                     label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
@@ -79,71 +85,72 @@ module "cxc.crear.dk"
 
                 div(class="col-lg-4") {
                     label(class="form-label" "for"="txt_ref"){$"Referencia:"}
-                    input(type="text" class="form-control rounded-0" name="referencia" id="txt_ref" value="#<form('referencia','tx',@null)>" required="true")
+                    input(type="text" class="form-control rounded-0" name="referencia" id="txt_ref" value="#<form('referencia','tx',infoDoc)>" required="true")
                 }
                 div(class="col-lg-4") {
+                    #!
+                    fecha_documento = form("fecha","dt",@null)
+                    if @("$parameters/_entity_id") != "_new" { fecha_documento = @@(infoDoc,"$emision") }
+                    #$
                     label(class="form-label" "for"="txt_fdoc"){$"Fecha del documento:"}
-                    input(type="date" class="form-control rounded-0" name="fecha_documento" id="txt_fdoc" value="#<form('fecha_documento','dt',@null)>" required="true")
+                    input(type="date" class="form-control rounded-0" name="fecha" id="txt_fdoc" value="#<fecha_documento>" required="true")
                 }
                 div(class="col-lg-4") {
+                    #!
+                    fecha_limite = form("flimite","dt",@null)
+                    if @("$parameters/_entity_id") != "_new" { fecha_limite = @@(infoDoc,"$fultmoratorios") }
+                    #$
                     label(class="form-label" "for"="txt_flimite"){$"Fecha límite de pago:"}
-                    input(type="date" class="form-control rounded-0" name="fecha_limite_pago" id="txt_flimite" value="#<form('fecha_limite_pago','dt',@null)>" required="true")
+                    input(type="date" class="form-control rounded-0" name="flimite" id="txt_flimite" value="#<fecha_limite>" required="true")
                 }
 
                 div(class="col-12")
                 {
                     label(class="form-label" "for"="txt_concepto"){$"Concepto:"}
                     textarea(class="form-control rounded-0" name="concepto" id="txt_concepto" required="true")
-                    { $"#<form('concepto','tx',@null)>" }
+                    {
+                        #!
+                        concepto = form("concepto","tx",@null)
+                        if concepto == "" && @("$parameters/_entity_id") != "_new" { concepto = @@(infoDoc,"$notas") }
+                        #$
+                        $"#<concepto>"
+                    }
 
-                    /* div(class="form-check") {
-                        input(class="form-check-input" type="checkbox" name="aplicable" id="ch_aplicable" checked="checked")
+                    div(class="form-check") {
+                        #!
+                        checked = "checked"
+                        if @("$parameters/_entity_id") != "_new" { checked = form("aplicable","ch",infoDoc) }
+                        #$
+                        input(class="form-check-input" type="checkbox" name="aplicable" id="ch_aplicable" "#<checked>"="")
                         label(class="form-check-label" "for"="ch_aplicable"){$"Marcar como aplicable"}
-                    } */
+                    }
                 }
 
-                div(class="mt-2 d-flex gap-1 justify-content-end align-items-center")
+                div(class="col-lg-4 col-md-6 col-sm-6 offset-lg-8 offset-md-6 offset-sm-6")
                 {
                     label(class="form-label" "for"="txt_importe"){$"Importe:"}
-                    input(type="number" class="form-control rounded-0 w-25" name="importe" min="1" step="0.000001" id="txt_importe" value="#<form('importe','nm',@null)>" required="true")
+                    #!
+                    importe = form('importe','nm',@null)
+                    if importe == 0 && @("$parameters/_entity_id") != "_new" {
+                        importe = (@@(infoDoc,"#debe") + @@(infoDoc,"#haber"))
+                    }
+                    #$
+                    input(type="number" class="form-control rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<importe>" required="true")
                 }
             }
-
-            /* div(class="mt-2 d-flex gap-1 justify-content-end")
-            {
-                button(type="submit" class="btn btn-primary"){$"Aceptar"}
-                button(type="reset" class="btn btn-danger"){$"Cancelar"}
-            } */
         }
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            window.onload = function(){
-                let ik_cliente = document.getElementById("sel_cliente");
-                let form_crear_cxc = document.getElementById("form_crear_cxc");
-                let btnSave = document.getElementById("btn_save");
-                
-                ik_cliente.addEventListener("change",function(data) {
-                    let dtCte = ik_cliente.getValue();
-
-                    let txt_divisa = document.getElementById("txt_divisa");
-                    let txt_tcambio = document.getElementById("txt_tcambio");
-
-                    txt_divisa.value = dtCte.divisa;
-                    txt_tcambio.value = dtCte.tcambio;
+        div
+        {
+            script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    documento.crear.init();
                 });
-
-                btnSave.addEventListener("click", () => {
-                    if (!form_crear_cxc.reportValidity()) return;
-                    form_crear_cxc.submit();
-                });
-
-                form_crear_cxc.addEventListener("reset", () => {
-                    window.location.href = "#<@CXC_DOCUMENTOS>";
-                });
-            }
-        '}
+            '}
+        }
     }
 }

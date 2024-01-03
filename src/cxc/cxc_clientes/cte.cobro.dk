@@ -39,7 +39,7 @@ module "cte.cobro.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "nombre"
-        @"selected": @("$input/cuenta_deposito")
+        @"selected": form("cuenta_deposito","nm",@null)
     }
 
     new sel_categoria_deposito
@@ -54,7 +54,7 @@ module "cte.cobro.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "descripcion"
-        @"selected": @("$input/categoria_deposito")
+        @"selected": form("categoria_deposito","nm",@null)
     }
 
     new sel_documento_deposito
@@ -68,7 +68,7 @@ module "cte.cobro.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("$input/documento_deposito")
+        @"selected": form("documento_deposito","nm",@null)
     }
 
     new sel_documento_cobro
@@ -83,7 +83,7 @@ module "cte.cobro.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("$input/documento_cobro")
+        @"selected": form("documento_cobro","nm",@null)
     }
 
     #$
@@ -106,19 +106,26 @@ module "cte.cobro.dk"
 
             div(class="row")
             {
-                div(class="col-lg-8 col-12 d-flex gap-2") {
-                    p(class="") {
-                        b{$"Cliente: "}
-                        $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
-                    }
-                }
-                div(class="col-lg-4"){$""}
-            }
-
-            div(class="row")
-            {
                 div(class="col-lg-8")
                 {
+                    div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label"){$"Cliente:"}
+                        div(class="col-6") {
+                            $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
+                        }
+                    }
+
+                    div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label"){$"Divisa:"}
+                        div(class="col-6") {
+                            $"#<@@(cliente,'$divisa')>"
+                        }
+                    }
+
+                    hr{}
+
                     h6(class="text-primary position-absolute"){$"Información bancaria"}
 
                     div(class="row d-flex justify-content-end align-items-center")
@@ -175,7 +182,6 @@ module "cte.cobro.dk"
 
                     div(class="row d-flex justify-content-end align-items-center")
                     {
-                        // label(class="col-auto col-form-label" "for"=""){$""}
                         div(class="col-6") {
                             div(class="form-check") {
                                 input(class="form-check-input" type="checkbox" name="conciliado" id="ch_conciliado" checked="checked")
@@ -200,7 +206,7 @@ module "cte.cobro.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_referencia"){$"Referencia:"}
                         div(class="col-6") {
-                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" value="#<@('$input/referencia')>" required="true")
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" value="#<form('referencia','tx',@null)>" required="true")
                         }
                     }
 
@@ -208,7 +214,7 @@ module "cte.cobro.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_fdoc"){$"Fecha del documento:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_documento" id="txt_fdoc" value="#<form('fecha_documento','dt',@null)>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fdoc" value="#<form('fecha','dt',@null)>" required="true")
                         }
                     }
 
@@ -216,7 +222,7 @@ module "cte.cobro.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_faplicacion"){$"Fecha de aplicación:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_aplicacion" id="txt_faplicacion" value="#<form('fecha_aplicacion','dt',@null)>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="faplicacion" id="txt_faplicacion" value="#<form('faplicacion','dt',@null)>" required="true")
                         }
                     }
 
@@ -236,7 +242,7 @@ module "cte.cobro.dk"
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
                             div(class="input-group input-group-sm") {
-                                input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
+                                input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<form('importe','nm',@null)>")
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }
                         }
@@ -247,7 +253,7 @@ module "cte.cobro.dk"
                         label(class="col-auto col-form-label" "for"="txt_notas"){$"Notas:"}
                         div(class="col-6") {
                             textarea(class="form-control rounded-0" name="notas" id="txt_notas" required="true")
-                            { $"#<@('$input/notas')>" }
+                            { $"#<form('notas','tx',@null)>" }
                         }
                     }
                 }

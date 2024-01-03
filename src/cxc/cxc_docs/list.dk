@@ -19,16 +19,17 @@ module "list.dk"
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
                 a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_INTMORATORIOS>')"){$"IntMoratorios"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="documento.goTo('#<@DOC_CONSULTAR>')"){"Consultar"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="documento.goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="documento.goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="documento.goTo('#<@DOC_INTMORATORIOS>')"){$"Int. Moratorios"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="documento.goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
             }
         }
 
         div
         {
-            "edit-table"(class="w-100" id="tbl_dcxc" data="#<to.json(@('&.'))>")
+            "edit-table"(class="w-100" id="tbl_cxc" data="#<to.json(@('&.'))>")
             {
                 "edit-thead"
                 {
@@ -54,20 +55,16 @@ module "list.dk"
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            var table = document.getElementById("tbl_dcxc");
-
-            function goTo(url)
-            {
-                if (!url) { alert("No se ha indicado un destino."); return; }
-                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-                var data = table.DataArray[table.CurrentRowIndex()];
-
-                var url = url.replace("_documento",data.sys_pk);
-                window.location.href = url;
-            }
-        '}
+        div
+        {
+            script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    documento.tableId = "tbl_cxc";
+                    documento.init();
+                });
+            '}
+        }
     }
 }

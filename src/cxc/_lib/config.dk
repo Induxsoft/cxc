@@ -10,16 +10,24 @@ module
     @CXC_DESTINO_APLICACION_PAGOS = 4
 	//#endregion
 
+	// Formato de presentación
+	@THOUSANDS_SEPARATOR = ","
+	@DECIMAL_SEPARATOR = "."
+	@DECIMAL_PRECISION = 2
+
 	/**
 	* Clave Primaria (PK) de la divisa predeterminada
 	* 0 : Se obtiene la divisa de las variables globales (glovalbar), 1 por defecto si no existe.
 	*/
-	@IDIVISA_PREDETERMINADA = 1
+	@IDIVISA_PREDETERMINADA = 0
 
 	// Ubicacion predeterminada
 	@PAIS = "México"
 	@ESTADO = "Chiapas"
 	@CIUDAD = "Tuxtla Gutiérrez"
+
+	// Formato de moneda (dkl)
+	@FMT_MONEY = "$ "+"#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
 
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_MAIN = "/$/cxc/css/main.css"
@@ -28,6 +36,13 @@ module
 
 	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
+
+	//#region services
+	@CXC_BUSCAR_CLIENTE = "/!/cxc/clientes/?_view=buscar-cliente&search=@search"
+	@CXC_BUSCAR_CONTACTO = "/!/cxc/clientes/?_view=buscar-contacto&search=@search"
+	@CXC_BUSCAR_EDOPROV = "/!/cxc/clientes/?_view=buscar-edoprov&search=@search"
+	@CXC_BUSCAR_CIUDAD = "/!/cxc/clientes/?_view=buscar-ciudad&search=@search"
+	//#endregion
 
 	//#region cxc_clientes
 	@CXC_CLIENTES = "/!/cxc/clientes/"
@@ -39,17 +54,13 @@ module
 	@CTE_BONIFICACIONES = "/!/cxc/clientes/{_cliente}/bonificacion/"
 	//#endregion
 
-	@CXC_BUSCAR_CLIENTE = "/!/cxc/clientes/?_view=buscar-cliente&search=@search"
-	@URL_BUSCAR_CONTACTO = "/!/cxc/clientes/?_view=buscar-contacto&search=@search"
-	@URL_BUSCAR_EDOPROV = "/!/cxc/clientes/?_view=buscar-edoprov&search=@search"
-	@URL_BUSCAR_CIUDAD = "/!/cxc/clientes/?_view=buscar-ciudad&search=@search"
-
 	//#region cxc_docs
 	@CXC_DOCUMENTOS = "/!/cxc/documentos/"
 	@DOC_AGREGAR = "/!/cxc/documentos/_new/"
-	@DOC_COBROS = "/!/cxc/documentos/_documento/cobrar/"
-	@DOC_BONIFICACIONES = "/!/cxc/documentos/_documento/bonificacion/"
-	@DOC_INTMORATORIOS = "/!/cxc/documentos/_documento/intmoratorios/"
-	@DOC_APLICAR_ABONOS = "/!/cxc/documentos/_documento/aplicar/"
+	@DOC_CONSULTAR = "/!/cxc/documentos/{_documento}/"
+	@DOC_COBROS = "/!/cxc/documentos/{_documento}/cobrar/"
+	@DOC_BONIFICACIONES = "/!/cxc/documentos/{_documento}/bonificacion/"
+	@DOC_INTMORATORIOS = "/!/cxc/documentos/{_documento}/intmoratorios/"
+	@DOC_APLICAR_ABONOS = "/!/cxc/documentos/{_documento}/aplicar/"
 	//#endregion
 }

@@ -11,9 +11,13 @@ module "cxc.intmor.dk"
 
     do @context.begin(@crud_context)
     
-    fmoneda = "$ #,0.00"
+    ref formData = ifnull(@("&./form"),record.create())
     ref infoDoc = ifnull(@("&./infoDoc"),record.create())
     ref documentos = ifnull(@('&./documentos'),list.create())
+    ref dvsPred = ifnull(@("&./dvs_pred"),record.create())
+
+    cDIVISA_PRED = field.dstr(dvsPred,"codigo","MXN")
+    tCAMBIO_PRED = field.dnum(dvsPred,"tcambio",1)
 
     new sel_documento
     {
@@ -27,7 +31,7 @@ module "cxc.intmor.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("$input/documento")
+        @"selected": form("documento","nm",@null)
     }
 
     #$
@@ -44,44 +48,46 @@ module "cxc.intmor.dk"
             }
         }
 
-        form(action="." method="post" id="form_aplintmor")
+        form(action="." method="POST" id="form_intmor")
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
             input(type="hidden" name="icliente" value="#<@@(infoDoc,'#icliente')>")
-            input(type="hidden" name="destino" value="#<@CXC_DESTINO_APLICACION_INT_MORATORIOS>")
 
             div(class="row")
             {
-                div(class="col-lg-8 col-12 d-flex gap-2") {
-                    p(class="mb-0") {
-                        b{$"Cliente: "}
-                        $"#<@@(infoDoc,'$cliente')>"
-                    }
-                }
-                div(class="col-lg-4"){$""}
-                div(class="col-lg-4 col-md-6 col-sm-12") {
-                    p(class="mb-0") {
-                        b{$"Referencia del documento: "}
-                        $"#<@@(infoDoc,'$referencia')>"
-                    }
-                }
-                div(class="col-lg-4 col-md-6 col-sm-12") {
-                    p(class="mb-0") {
-                        b{$"Vencimiento: "}
-                        $"#<@@(infoDoc,'$fultmoratorios')>"
-                    }
-                }
-                div(class="col-lg-4"){$""}
-                div(class="col-lg-4 col-md-6 col-sm-12") {
-                    p(class="mb-0") {
-                        b{$"Divisa: "}
-                        $"#<@@(infoDoc,'$divisa')>"
-                    }
-                }
-                div(class="col-lg-4 col-md-6 col-sm-12") {
-                    p(class="mb-0") {
-                        b{$"Tipo de cambio: "}
-                        $"#<@@(infoDoc,'$tipocambio')>"
+                div(class="col-lg-8") {
+                    div(class="row")
+                    {
+                        div(class="col-lg-4 col-md-4") {
+                            p(class="mb-0") {
+                                b{$"Cliente: "}
+                                $"#<@@(infoDoc,'$cliente')>"
+                            }
+                        }
+                        div(class="col-lg-4 col-md-4") {
+                            p(class="mb-0") {
+                                b{$"Divisa: "}
+                                $"#<@@(infoDoc,'$divisa')>"
+                            }
+                        }
+                        div(class="col-lg-4 col-md-4") {
+                            p(class="mb-0") {
+                                b{$"Tipo de cambio: "}
+                                $"#<@@(infoDoc,'$tipocambio')>"
+                            }
+                        }
+                        div(class="col-lg-6 col-md-6 col-sm-12") {
+                            p(class="mb-0") {
+                                b{$"Referencia del documento: "}
+                                $"#<@@(infoDoc,'$referencia')>"
+                            }
+                        }
+                        div(class="col-lg-6 col-md-6 col-sm-12") {
+                            p(class="mb-0") {
+                                b{$"Vencimiento: "}
+                                $"#<@@(infoDoc,'$fultmoratorios')>"
+                            }
+                        }
                     }
                 }
             }
@@ -94,7 +100,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Capital:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#haber'),fmoneda)>"
+                            $"#<format(@@(infoDoc,'#haber'),@FMT_MONEY)>"
                         }
                     }
 
@@ -102,7 +108,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Financieros:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intereses_financieros'),fmoneda)>"
+                            $"#<format(@@(infoDoc,'#intfinancieros'),@FMT_MONEY)>"
                         }
                     }
 
@@ -110,7 +116,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Moratorios:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intereses_moratorios'),fmoneda)>"
+                            $"#<format(@@(infoDoc,'#intmoratorios'),@FMT_MONEY)>"
                         }
                     }
 
@@ -118,7 +124,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Bonificaciones:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#bonificaciones'),fmoneda)>"
+                            $"#<format(@@(infoDoc,'#bonificaciones'),@FMT_MONEY)>"
                         }
                     }
 
@@ -126,7 +132,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#saldo'),fmoneda)>"
+                            $"#<format(@@(infoDoc,'#saldo'),@FMT_MONEY)>"
                         }
                     }
                     
@@ -152,7 +158,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_referencia"){$"Referencia:"}
                         div(class="col-6") {
-                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" value="#<@('$input/referencia')>" required="true")
+                            input(type="text" class="form-control form-control-sm rounded-0" name="referencia" id="txt_referencia" value="#<form('referencia','tx',@null)>" required="true")
                         }
                     }
 
@@ -160,7 +166,7 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_fdoc"){$"Fecha del documento:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_documento" id="txt_fdoc" value="#<form('fecha_documento','dt',@null)>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha" id="txt_fdoc" value="#<form('fecha','dt',@null)>" required="true")
                         }
                     }
 
@@ -168,15 +174,18 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_faplicacion"){$"Fecha de aplicación:"}
                         div(class="col-6") {
-                            input(type="date" class="form-control form-control-sm rounded-0" name="fecha_aplicacion" id="txt_faplicacion" value="#<form('fecha_aplicacion','dt',@null)>" required="true")
+                            input(type="date" class="form-control form-control-sm rounded-0" name="faplicacion" id="txt_faplicacion" value="#<form('faplicacion','dt',@null)>" required="true")
                         }
                     }
 
-                    div(class="row d-flex justify-content-end align-items-center")
+                    div(class="row d-flex justify-content-end align-items-center" id="div_tcambio")
                     {
                         label(class="col-auto col-form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control form-control-sm rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<@('#input/tcambio')>" required="true")
+                            div(class="input-group input-group-sm") {
+                                input(type="number" class="form-control form-control-sm rounded-0" name="tipocambio" min="1" step="0.000001" id="txt_tcambio" value="#<form('tipocambio','nm',infoDoc)>" required="true")
+                                span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(infoDoc,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -184,7 +193,10 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
-                            input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<@('#input/importe')>")
+                            div(class="input-group input-group-sm") {
+                                input(type="number" class="form-control form-control-sm rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<form('importe','nm',@null)>")
+                                span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
+                            }
                         }
                     }
 
@@ -195,8 +207,10 @@ module "cxc.intmor.dk"
                             textarea(class="form-control form-control-sm rounded-0" name="notas" id="txt_notas" required="true")
                             {
                                 #!
-                                if @('$input/notas') == "" {#$ $"Cargos moratorios al documento con referencia #<@@(infoDoc,'$referencia')>" #!}
-                                else {#$ $"#<@('$input/notas')>" }
+                                concepto = form("notas","tx",@null)
+                                if concepto == "" { concepto = "Intereses moratorios al documento con referencia " + @@(infoDoc,'$referencia') }
+                                #$
+                                $"#<concepto>"
                             }
                         }
                     }
@@ -213,44 +227,32 @@ module "cxc.intmor.dk"
                     {
                         label(class="col-auto col-form-label"){$"Nuevo saldo:"}
                         div(class="col-4") {
-                            input(type="number" class="form-control form-control-sm rounded-0" name="nuevo_saldo" id="txt_nuevo_saldo" value="" disabled="disabled" readonly="readonly")
+                            #!
+                            saldo = @@(infoDoc,"#saldo")
+                            importe = form("importe","nm",@null)
+
+                            nuevo_saldo = (saldo + importe)
+                            #$
+                            input(type="number" class="form-control form-control-sm rounded-0" name="nuevo_saldo" id="txt_nuevo_saldo" value="#<nuevo_saldo>" disabled="disabled" readonly="readonly")
                         }
                     }
-
-                    /* div(class="d-flex gap-1 justify-content-end")
-                    {
-                        button(type="submit" class="btn btn-primary"){$"Aceptar"}
-                        A(type="reset" class="btn btn-danger" href="../../"){$"Cancelar"}
-                    } */
                 }
             }
         }
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            window.onload = function(){
-                let txt_importe = document.getElementById("txt_importe");
-                let form_aplintmor = document.getElementById("form_aplintmor");
-                let btnSave = document.getElementById("btn_save");
-                
-                txt_importe.addEventListener("input",function(data) {
-                    let saldo = #<@@(infoDoc,"#saldo")>;
-                    let txt_nvosaldo = document.getElementById("txt_nuevo_saldo");
-                    
-                    txt_nvosaldo.value = Math.add(saldo,Number(txt_importe.value));
+        div
+        {
+            script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(type="text/javascript")
+            {$'
+                document.addEventListener("DOMContentLoaded", () => {
+                    documento.intmor.dtCxC = #<to.json(infoDoc)>;
+                    documento.intmor.dvsPred = #<to.json(dvsPred)>;
+                    documento.intmor.init();
                 });
-
-                btnSave.addEventListener("click", () => {
-                    if (!form_aplintmor.reportValidity()) return;
-                    form_aplintmor.submit();
-                });
-
-                form_aplintmor.addEventListener("reset", () => {
-                    window.location.href = "#<@CXC_DOCUMENTOS>";
-                });
-            }
-        '}
+            '}
+        }
     }
 }

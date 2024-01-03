@@ -161,6 +161,9 @@ module "model"
 
     cte.prepareView::&db,&params,&data
     {
+        params<"pk_dvs"> : get_idivisa_predeterminada()
+        sql_divisa_predeterminada = "SELECT sys_pk, codigo, tcambio FROM divisa WHERE sys_pk = @pk_dvs;"
+
         switch @@(params,"$_view")
         {
             case "bonificacion"
@@ -168,17 +171,15 @@ module "model"
                 data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
                 sql = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
                 data<"documentos*"> : dbr.list(db,sql,@null)
+                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case "cobrar"
             {
-                params<"pk_dvs"> : @IDIVISA_PREDETERMINADA //parse.num(dbr.vars.get(db,"FXCA013"))
-
                 sql_cuentas = "SELECT c.sys_pk, d.codigo AS divisa, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
                 sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
-                sql_divisa_predeterminada = "SELECT sys_pk, codigo, tcambio FROM divisa WHERE sys_pk = @pk_dvs;"
 
                 data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
                 data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
@@ -354,147 +355,33 @@ module "model"
 
         return data
     }
-
-    fieldDebeHaberByDoc::doc,&obj,total
+    
+    cte.cobrarCliente::&db,&params,&data
     {
-        switch doc
-        {
-            case 4{ obj<"debe">:total }//cfactura
-            case 3{ obj<"debe">:total }//cremision
-            case 6{ obj<"debe">:total }//ctickets
-            case 5{ obj<"haber">:total}//cnota_de_credito
-            case 17{obj<"debe">:total}//cnota_de_cargo
-            case 19{obj<"haber">:total}//crecibo
-            default
-            {
-               obj<"haber">:0
-               obj<"debe">:0
-            }
-        }
-    }
-
-    cte.bonificarCliente::&db,&params,&data
-    {
-        new bonificacion
-        {
-            @"sys_pk": 0
-            @"sys_guid": uuid()
-            @"sys_dtcreated*": now()
-            @"sys_timestamp*": now()
-            @"aplicable": @false
-            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
-            @"auditado": @false
-            @"basecm": 0
-            @"bonificaciones": 0.0
-            @"contabilizado": @false
-            @"debe": 0.00
-            @"documento": @@(data,"#documento")
-            @"fecha*": str2dt(@@(data,"$fecha_documento"))
-            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
-            @"haber": 0.0
-            @"intfinancieros": 0.0
-            @"intmoratorios": 0.0
-            @"notas": @@(data,"$notas")
-            @"pagos": 0.0
-            @"porimpuestocap": 0.0
-            @"porimpuestofin": 0.0
-            @"porimpuestomor": 0.0
-            @"referencia": @@(data,"$referencia")
-            @"relacionadoa": 0
-            @"tasamoratorios": 0.0
-            @"tipocambio": @@(data,"#tcambio")
-            @"xaplicar": @@(data,"#importe")
-            @"icliente": @@(data,"#icliente")
-            @"sys_recver": 0
-        }
-        do fieldDebeHaberByDoc(@@(data,"#documento"),bonificacion,@@(data,"#importe"))
-
-        do dbr.begin(db)
-        do dbr.insert(db,"dcxc",bonificacion)
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
-        do dbr.commit(db)
-
+        do errordet(@false)
+        do erp.cxc.movimientos.cobrarCliente(db,data)
         @url_redir = @CXC_CLIENTES
 
         exception
         {
             if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref formData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : formData
+            
             do cte.prepareView(db,params,data)
-            do rise_error(last_error_code(),last_error())
+            do rise_error(code,error)
         }
     }
 
-    cte.cobrarCliente::&db,&params,&data
+    cte.bonificarCliente::&db,&params,&data
     {
-        new p{@"referencia":@@(data,"$referencia")}
-        if trim(@@(data,"$referencia"))==""{do rise_error(500,"Debe indicar una referencia")}
-        if trim(@@(data,"$referencia"))!=""
-        {
-            ref rec=dbr.rec(db,"select * from movcuenta where referencia=@referencia",p)
-            if not(isnull(rec)){do rise_error(500,"El valor de la referencia ya existe")}
-        }
-        
-        new deposito
-        {
-            @"sys_pk": 0
-            @"sys_guid": uuid()
-            @"sys_dtcreated*": now()
-            @"sys_timestamp*": now()
-            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
-            @"auditado": @true
-            @"cancelado": @false
-            @"conciliado": parse.bool(@@(data,"$conciliado"))
-            @"contabilizado": @false
-            @"egreso": 0.0
-            @"fecha*": str2dt(@@(data,"$fecha_documento"))
-            @"ingreso": @@(data,"#importe")
-            @"notas": @@(data,"$notas")
-            @"referencia": @@(data,"$referencia")
-            @"tipo": @@(data,"#documento_deposito")
-            @"icategoria": @@(data,"#categoria_deposito")
-            @"icuenta": @@(data,"#cuenta_deposito")
-        }
-
-        new cobro
-        {
-            @"sys_pk": 0
-            @"sys_guid": uuid()
-            @"sys_dtcreated*": now()
-            @"sys_timestamp*": now()
-            @"aplicable": @false
-            @"aplicacion*": str2dt(@@(data,"$fecha_aplicacion"))
-            @"auditado": @false
-            @"basecm": 0
-            @"bonificaciones": 0.0
-            @"contabilizado": @false
-            @"debe": 0.00
-            @"documento": @@(data,"#documento_cobro")
-            @"fecha*": str2dt(@@(data,"$fecha_documento"))
-            @"fultmoratorios*": str2dt(@@(data,"$fecha_documento"))
-            @"haber": 0.0
-            @"intfinancieros": 0.0
-            @"intmoratorios": 0.0
-            @"notas": @@(data,"$notas")
-            @"pagos": 0.0
-            @"porimpuestocap": 0.0
-            @"porimpuestofin": 0.0
-            @"porimpuestomor": 0.0
-            @"referencia": @@(data,"$referencia")
-            @"relacionadoa": 0
-            @"tasamoratorios": 0.0
-            @"tipocambio": @@(data,"#tcambio")
-            @"xaplicar": @@(data,"#importe")
-            @"icliente": @@(data,"#icliente")
-            @"sys_recver": 0
-        }
-        do fieldDebeHaberByDoc(@@(data,"#documento_cobro"),cobro,@@(data,"#importe"))
-
-        do dbr.begin(db)
-        do dbr.insert(db,"movcuenta",deposito)
-        do dbr.insert(db,"dcxc",cobro)
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
-        do dbr.commit(db)
-
+        do errordet(@false)
+        do erp.cxc.movimientos.bonificarCliente(db,data)
         @url_redir = @CXC_CLIENTES
 
         exception
@@ -559,18 +446,6 @@ module "model"
         return data
     }
 
-    rec.init::
-    {
-        new record
-        {
-            @"sys_pk": 0
-            @"sys_dtcreated*": now()
-            @"sys_timestamp*": now()
-            @"sys_recver": 0
-        }
-        return record
-    }
-
     cleanFormData::&fields,&data,&output
     {
         for i = 0; i < list.count(fields)
@@ -607,7 +482,7 @@ module "model"
 
         ref fieldsCliente = split("codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
 
-        ref cliente = rec.init()
+        ref cliente = new_rec()
         ref domicilio1 = @null
         ref domicilio2 = @null
         ref domicilio3 = @null
@@ -628,7 +503,7 @@ module "model"
         // Datos de domicilios
         if chq_domicilio1
         {
-            ref domicilio1 = rec.init()
+            ref domicilio1 = new_rec()
             using domicilio1
             {
                 @"codpos": trim(@@(data,"$codpos"))
@@ -643,7 +518,7 @@ module "model"
         }
         if chq_domicilio2
         {
-            ref domicilio2 = rec.init()
+            ref domicilio2 = new_rec()
             using domicilio2
             {
                 @"codpos": trim(@@(data,"$codpos2"))
@@ -658,7 +533,7 @@ module "model"
         }
         if chq_domicilio3
         {
-            ref domicilio3 = rec.init()
+            ref domicilio3 = new_rec()
             using domicilio3
             {
                 @"codpos": trim(@@(data,"$codpos3"))

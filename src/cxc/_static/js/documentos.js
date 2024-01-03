@@ -30,7 +30,7 @@ var documento =
         if (this.table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
 
         var data = this.table.DataArray[this.table.CurrentRowIndex()];
-        window.location.href = url.replace("@doc",data.sys_pk);
+        window.location.href = url.replace("{_documento}",data.sys_pk);
     },
 
     list: {},
@@ -38,13 +38,13 @@ var documento =
     form: {},
 
     crear: {
-        formcxp: null,
+        form: null,
         elements: null,
         btnSave: null,
 
         init()
         {
-            this.formcxp = document.getElementById("form_cxp");
+            this.form = document.getElementById("form_cxc");
             this.btnSave = document.getElementById("btn_save");
             this.setEvents();
         },
@@ -52,11 +52,11 @@ var documento =
         setEvents()
         {
             if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
-            if (this.formcxp) {
-                this.elements = this.formcxp.elements;
+            if (this.form) {
+                this.elements = this.form.elements;
 
-                let ik_proveedor = document.getElementById("sel_proveedor");
-                ik_proveedor.addEventListener("change",function(data) {
+                let ik_cliente = document.getElementById("sel_cliente");
+                ik_cliente.addEventListener("change",function(data) {
                     let txt_divisa = document.getElementById("txt_divisa");
                     let txt_tcambio = document.getElementById("txt_tcambio");
 
@@ -67,8 +67,8 @@ var documento =
         },
 
         saveForm(){
-            if (!this.formcxp.reportValidity()) return;
-            this.formcxp.submit();
+            if (!this.form.reportValidity()) return;
+            this.form.submit();
         },
     },
 
@@ -236,7 +236,7 @@ var documento =
     },
 
     bonificacion: {
-        formBonificacionCXP: null,
+        formBonificacion: null,
         elements: null,
         btnSave: null,
         dtCxC: {},
@@ -244,7 +244,7 @@ var documento =
 
         init()
         {
-            this.formBonificacionCXP = document.getElementById("form_bonificacion_cxp");
+            this.formBonificacion = document.getElementById("form_bonificacion");
             this.btnSave = document.getElementById("btn_save");
             this.setEvents();
         },
@@ -252,8 +252,8 @@ var documento =
         setEvents()
         {
             if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
-            if (this.formBonificacionCXP) {
-                this.elements = this.formBonificacionCXP.elements;
+            if (this.formBonificacion) {
+                this.elements = this.formBonificacion.elements;
 
                 this.elements["txt_importe"].addEventListener("input", (event) => {
                     let importe = Number(event.target.value);
@@ -265,8 +265,8 @@ var documento =
         },
 
         saveForm(){
-            if (!this.formBonificacionCXP.reportValidity()) return;
-            this.formBonificacionCXP.submit();
+            if (!this.formBonificacion.reportValidity()) return;
+            this.formBonificacion.submit();
         },
     },
 

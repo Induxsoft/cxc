@@ -18,6 +18,7 @@ module "cte.poraplicar.dk"
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar"}
                 a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
             }
         }
@@ -30,7 +31,7 @@ module "cte.poraplicar.dk"
                 h6(class=""){$"#<@('$./divisa')>"}
             }
 
-            table(class="table table-bordered")
+            table(class="table table-sm table-bordered")
             {
                 thead
                 {
@@ -52,7 +53,7 @@ module "cte.poraplicar.dk"
                 }
             }
 
-            // button(class="btn btn-outline-primary" onclick="aplicarPago('#<@APLICAR_PAGOS>')"){"Aplicar"}
+            // 
 
             "edit-table"(class="w-100" id="tbl_poraplicar" data="#<to.json(@('&./docs'))>")
             {
@@ -88,7 +89,7 @@ module "cte.poraplicar.dk"
 
                 var data = table.DataArray[table.CurrentRowIndex()];
 
-                var url = url.replace("@id",data.sys_pk);
+                var url = url.replace("{_documento}",data.sys_pk);
                 window.location.href = url;
             }
         '}
