@@ -22,9 +22,9 @@ module
 	@IDIVISA_PREDETERMINADA = 0
 
 	// Ubicacion predeterminada
-	@PAIS = "México"
-	@ESTADO = "Chiapas"
-	@CIUDAD = "Tuxtla Gutiérrez"
+	@IPAIS = 1 //"México"
+	@IESTADO = 7 //"Chiapas"
+	@ICIUDAD = 396//"Tuxtla Gutiérrez"
 
 	// Formato de moneda (dkl)
 	@FMT_MONEY = "$ "+"#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
@@ -46,7 +46,8 @@ module
 
 	//#region cxc_clientes
 	@CXC_CLIENTES = "/!/cxc/clientes/"
-	@CTE_NEW = "/!/cxc/clientes/_new/"
+	@CTE_AGREGAR = "/!/cxc/clientes/_new/"
+	@CTE_CONSULTAR = "/!/cxc/clientes/{_cliente}/"
 	@CTE_EDO_CTA = "/!/cxc/clientes/{_cliente}/balance/"
 	@CTE_DOCS_XCOBRAR = "/!/cxc/clientes/{_cliente}/pendientes/"
 	@CTE_COBROS_XAPLICAR = "/!/cxc/clientes/{_cliente}/xaplicar/"

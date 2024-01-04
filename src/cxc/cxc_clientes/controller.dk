@@ -63,6 +63,8 @@ module "controller"
             point @blank to cte.blank
 
             point @create to cte.create
+            point @update to cte.update
+            point @delete to cte.delete
             break
         }
     }

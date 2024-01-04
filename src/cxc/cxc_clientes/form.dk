@@ -19,6 +19,10 @@ module "form.dk"
     ref listZona = ifnull(@("&./list_zona"),list.create())
     ref listStatus = ifnull(@("&./list_status"),list.create())
     ref formData = ifnull(@("&./form"),record.create())
+    ref cliente = ifnull(@("&./cliente"),record.create())
+    ref domicilio1 = ifnull(@("&./domicilio1"),record.create())
+    ref domicilio2 = ifnull(@("&./domicilio2"),record.create())
+    ref domicilio3 = ifnull(@("&./domicilio3"),record.create())
 
     // do rise_error(0,to.json(@("&.")))
 
@@ -34,7 +38,7 @@ module "form.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
-        @"selected": form("tipo","nm",@null)
+        @"selected": form("tipo","nm",cliente)
     }
 
     new sel_pais
@@ -110,7 +114,7 @@ module "form.dk"
             @"data-codigo": "#<@@(row,'codigo')>"
             @"data-tcambio": "#<@@(row,'tcambio')>"
         }
-        @"selected": form("idivisa","nm",@null)
+        @"selected": form("idivisa","nm",cliente)
     }
 
     new sel_agente
@@ -124,7 +128,7 @@ module "form.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
-        @"selected": form("agente","nm",@null)
+        @"selected": form("agente","nm",cliente)
     }
 
     new sel_zona
@@ -138,7 +142,7 @@ module "form.dk"
         }
         @"value_field": "sys_pk"
         @"text_field": "text"
-        @"selected": form("izona","nm",@null)
+        @"selected": form("izona","nm",cliente)
     }
 
     new sel_status
@@ -152,7 +156,7 @@ module "form.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": form("status","nm",@null)
+        @"selected": form("status","nm",cliente)
     }
 
     /**
@@ -198,8 +202,11 @@ module "form.dk"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": form("precio","nm",@null)
+        @"selected": form("precio","nm",cliente)
     }
+
+    form_title = "Nuevo cliente"
+    if @("$parameters/_entity_id") != "_new" { form_title = "Editar cliente" }
     
     #$
     div(class="container")
@@ -208,7 +215,7 @@ module "form.dk"
 
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Nuevo cliente"} }
+            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"#<form_title>"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
@@ -232,8 +239,9 @@ module "form.dk"
 
             form(class="" action="./" method="POST" id="form_cliente")
             {
-                input(type="hidden" name="sys_pk" value="")
-                Input(type="hidden" name="sys_recver" value="")
+                input(type="hidden" name="sys_pk" value="#<@@(cliente,'#sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@@(cliente,'#sys_recver')>")
+                input(type="hidden" name="shortcut" value="F6")
 
                 div(class="overflow-auto"){ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
 
@@ -244,7 +252,7 @@ module "form.dk"
                     div(class="tab-pane fade" id="nav-adicionales" role="tabpanel" "aria-labelledby"="nav-adicionales-tab"){#! #include "./includes/form.nav.adicionales.dk" #$}
                     div(class="tab-pane fade" id="nav-notas" role="tabpanel" "aria-labelledby"="nav-notas-tab")
                     {
-                        textarea(class="form-control" maxlength="32000" name="notas" id="txt_notas" rows="20"){$""}
+                        textarea(class="form-control" maxlength="32000" name="notas" id="txt_notas" rows="20"){$"#<form('notas','tx',cliente)>"}
                     }
                 }
             }
@@ -260,6 +268,18 @@ module "form.dk"
                 document.addEventListener("DOMContentLoaded", () => {
                     cliente.form.url_buscar_edoprov = "#<@CXC_BUSCAR_EDOPROV>";
                     cliente.form.url_buscar_ciudad = "#<@CXC_BUSCAR_CIUDAD>";
+                    cliente.form.url_buscar_contacto = "#<@CXC_BUSCAR_CONTACTO>";
+                    cliente.form.CXC_CLIENTES = "#<@CXC_CLIENTES>";
+                    cliente.form.CTE_AGREGAR = "#<@CTE_AGREGAR>";
+                    cliente.form.ipais = #<@IPAIS>;
+                    cliente.form.iestado = #<@IESTADO>;
+                    cliente.form.iciudad = #<@ICIUDAD>;
+                    
+                    cliente.form._GET = #<to.json(@("&parameters"))> ?? {};
+                    cliente.form.dtCliente = #<to.json(cliente)> ?? {};
+                    cliente.form.domicilio1 = #<to.json(domicilio1)> ?? {};
+                    cliente.form.domicilio2 = #<to.json(domicilio2)> ?? {};
+                    cliente.form.domicilio3 = #<to.json(domicilio3)> ?? {};
                     cliente.form.init();
                 });
             '}

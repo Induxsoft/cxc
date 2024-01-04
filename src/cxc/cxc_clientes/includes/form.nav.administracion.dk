@@ -33,7 +33,7 @@ section(class="" id="")
         div(class="col-lg-6 col-md-6 col-sm-6")
         {
             label(class="form-label" "for"="txt_descuento"){$"%Descuento:"}
-            input(class="form-control form-control-sm rounded-0" type="number" name="descuento" min="0" value="" id="txt_descuento")
+            input(class="form-control form-control-sm rounded-0" type="number" name="descuento" min="0" value="#<form('descuento','nm',cliente)>" id="txt_descuento")
         }
 
         div(class="col-lg-6 col-md-6 col-sm-6")
@@ -61,20 +61,20 @@ section(class="" id="")
                 }
                 div(class="form-check form-check-inline ps-0")
                 {
-                    input(type="hidden" class="form-control form-control-sm rounded-0" name="limitecredito" min="0" value="" id="txt_limite_credito" placeholder="0.00")
+                    input(type="hidden" class="form-control form-control-sm rounded-0" name="limitecredito" min="0" value="#<form('limitecredito','nm',cliente)>" id="txt_limite_credito" placeholder="0.00")
                 }
             }
         }
         div(class="col-lg-6 col-md-6 col-sm-6")
         {
             label(class="form-label" "for"="txt_dias_credito"){$"Dias de crédito:"}
-            input(class="form-control form-control-sm rounded-0" type="number" name="diascredito" min="0" value="" id="txt_dias_credito")
+            input(class="form-control form-control-sm rounded-0" type="number" name="diascredito" min="0" value="#<form('diascredito','nm',cliente)>" id="txt_dias_credito")
         }
 
         div(class="col-lg-4 col-md-4 col-sm-4")
         {
             label(class="form-label" "for"="txt_cuenta_contable"){$"Cuenta contable:"}
-            input(class="form-control form-control-sm rounded-0" type="text" name="codcuenta" maxlength="50" value="" id="txt_cuenta_contable")
+            input(class="form-control form-control-sm rounded-0" type="text" name="codcuenta" maxlength="50" value="#<form('codcuenta','tx',cliente)>" id="txt_cuenta_contable")
         }
         div(class="col-lg-4 col-md-4 col-sm-4")
         {
@@ -94,23 +94,27 @@ section(class="" id="")
         div(class="col-lg-4 col-md-4 col-sm-4")
         {
             label(class="form-label" "for"="txt_saldo_xcobrar"){$"Saldo por cobrar:"}
-            input(class="form-control form-control-sm rounded-0" type="number" name="saldo" value="" id="txt_saldo_xcobrar" readonly="")
+            input(class="form-control form-control-sm rounded-0" type="number" name="saldo" value="#<form('saldo','nm',cliente)>" id="txt_saldo_xcobrar" readonly="")
         }
         div(class="col-lg-4 col-md-4 col-sm-4")
         {
             label(class="form-label" "for"="txt_saldo_monedero"){$"Saldo en monedero:"}
-            input(class="form-control form-control-sm rounded-0" type="number" name="monedero" value="" id="txt_saldo_monedero" readonly="")
+            input(class="form-control form-control-sm rounded-0" type="number" name="monedero" value="#<form('monedero','nm',cliente)>" id="txt_saldo_monedero" readonly="")
         }
         div(class="col-lg-4 col-md-4 col-sm-4")
         {
             label(class="form-label" "for"="txt_puntos_disponibles"){$"Puntos disponibles:"}
-            input(class="form-control form-control-sm rounded-0" type="number" name="puntos" value="" id="txt_puntos_disponibles" readonly="")
+            input(class="form-control form-control-sm rounded-0" type="number" name="puntos" value="#<form('puntos','nm',cliente)>" id="txt_puntos_disponibles" readonly="")
         }
 
         div(class="col-12")
         {
+            #!
+            checked = form("chq_addenda","ch",@null)
+            if @("$parameters/_entity_id") != "_new" { checked = ifstr(parse.bool(@@(cliente,"#uf_addenda")),"checked","") }
+            #$
             div(class="form-check") {
-                input(type="checkbox" class="form-check-input" name="chq_addenda" id="chq_addenda")
+                input(type="checkbox" class="form-check-input" name="chq_addenda" id="chq_addenda" "#<checked>"="")
                 label(class="form-check-label" "for"="chq_addenda"){$"Incluir addenda en comprobante fiscal digital"}
             }
         }
