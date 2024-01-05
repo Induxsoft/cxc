@@ -1,0 +1,59 @@
+#include "dkli.dkh"
+#!
+module "modals.dk"
+{
+    bs_modal_base::url,id,title
+    {
+        #$
+        div(class="modal fade" id="mdl_#<id>" tabindex="-1" "aria-labelledby"="mdl_#<id>Label" "aria-hidden"="true" "data-bs-backdrop"="false")
+        {
+            div(class="modal-dialog modal-dialog-centered modal-dialog-scrollable")
+            {
+                div(class="modal-content rounded-0 p-0 border-0 shadow")
+                {
+                    div(class="modal-header p-3")
+                    {
+                        h6(class="modal-title"){$"#<title>"}
+                        button(type="button" class="btn-close btn-sm" "data-bs-dismiss"="modal" "aria-label"="Close"){$""}
+                    }
+                    div(class="modal-body p-4 bg-white" id="mdl_#<id>_body")
+                    {
+                        form(action="#<url>" method="POST" enctype="multipart/form-data" id="mdl_#<id>_form" class="")
+                        {
+                            #!
+                            that
+                            #$
+                        }
+                    }
+                    div(class="modal-footer")
+                    {
+                        button(type="button" class="btn btn-sm btn-primary rounded-0" id="btn_save_mdl_#<id>"){$"Aceptar"}
+                        button(type="button" class="btn btn-sm btn-light rounded-0" id="btn_cancel_mdl_#<id>"){$"Cancelar"}
+                    }
+                }
+            }
+        }
+        #!
+    }
+
+    create_modal_tipo_cliente::
+    {
+        go bs_modal_base with(@CTE_AGREGAR_TIPO,"tcliente","Tipos de cliente")
+        {
+            #$
+            label(class="form-label text-primary w-100"){
+                $"Código:"
+                input(type="text" class="form-control form-control-sm rounded-0" name="codigo" maxlength="15" id="txt_tcliente_codigo" value="" placeholder="<A>" required="")
+            }
+            label(class="form-label text-primary w-100"){
+                $"Descripción:"
+                input(type="text" class="form-control form-control-sm rounded-0" name="descripcion" maxlength="50" id="txt_tcliente_descripcion" value="" required="")
+            }
+            label(class="form-label w-100"){
+                $"Notas:"
+                textarea(class="form-control rounded-0" name="notas" maxlength="2048" id="txt_tcliente_notas"){$""}
+            }
+            #!
+        }
+    }
+}

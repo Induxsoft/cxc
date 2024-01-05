@@ -161,6 +161,29 @@ module "model"
         return list.create()
     }
 
+    cte.buscarTipos::&db,&params
+    {
+        sql = "
+        SELECT
+            sys_pk,
+            sys_guid,
+            codigo,
+            descripcion,
+            IFNULL(notas,'') notas
+        FROM tipocliente
+        WHERE #<condition>
+        "
+        if trim(@@(params,"$id")) != "" {
+            condition = "(sys_pk = @id OR sys_guid = @id)"
+            return dbr.rec(db,ftext(sql),params)
+        }
+        if trim(@@(params,"$search")) != "" {
+            condition = "(codigo LIKE CONCAT('%',@search,'%') OR descripcion LIKE CONCAT('%',@search,'%'))"
+            return dbr.list(db,ftext(sql),params)
+        }
+        return list.create()
+    }
+
     cte.obtenerCliente::&db,id
     {
         new params { @"id": id }
@@ -739,5 +762,10 @@ module "model"
     cte.delete::&db,&params
     {
         do rise_error(500,"Acción no implementada.")
+    }
+
+    cte.createTipo::&db,&params,&data
+    {
+        return data
     }
 }

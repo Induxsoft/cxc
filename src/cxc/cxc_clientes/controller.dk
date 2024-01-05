@@ -24,6 +24,11 @@ module "controller"
             point @list to cte.buscarCiudad
             break
         }
+        case "buscar-tcliente"
+        {
+            point @list to cte.buscarTipos
+            break
+        }
         case "bonificacion"
         {
             point @read to cte.blank
@@ -54,6 +59,11 @@ module "controller"
         {
             point @read to cte.obtenerCobrosPorAplicar
             @form_view = "cte.poraplicar.dk"
+            break
+        }
+        case "tipo"
+        {
+            point @create to cte.createTipo
             break
         }
         case ""

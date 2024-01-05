@@ -19,23 +19,12 @@ module "list.dk"
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
                 a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-
-                div(class="dropdown")
-                {
-                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action dropdown-toggle" id="btn_menu_add" "data-bs-toggle"="dropdown" "aria-expanded"="false"){$"Agregar"}
-                    ul(class="dropdown-menu" "aria-labelledby"="btn_menu_add")
-                    {
-                        li{ a(class="dropdown-item" href="#<@CTE_AGREGAR>"){$"Cliente"} }
-                        li{ a(class="dropdown-item" href="#"){$"Tipo de cliente"} }
-                    }
-                }
-
+                a(href="#<@CTE_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action"){$"Agregar"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
-
                 a(href="/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir" target="_top"){$"#<@ICON_X_LG>"}
             }
         }
@@ -47,8 +36,8 @@ module "list.dk"
                 div(class="input-group")
                 {
                     input(type="text" class="form-control form-control-sm" id="txt_search_cliente" "data-url-search"="#<@CXC_BUSCAR_CLIENTE>" placeholder="Código, Nombre, RFC")
-                    a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm border" type="button" id="btn_new_cliente" title="Nuevo cliente"){$"#<@ICON_USER_ADD>"}
                     button(class="btn btn-primary btn-sm" type="button" id="btn_search_cliente"){$"Buscar #<@ICON_SEARCH>"}
+                    a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm border" type="button" id="btn_new_cliente" title="Nuevo cliente"){$"#<@ICON_USER_ADD>"}
                 }
             }
 

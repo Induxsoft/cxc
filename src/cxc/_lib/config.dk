@@ -33,6 +33,7 @@ module
 	@CSS_MAIN = "/$/cxc/css/main.css"
 	@JS_CLIENTES = "/$/cxc/js/clientes.js"
 	@JS_DOCUMENTOS = "/$/cxc/js/documentos.js"
+	@JS_BS_MODALS = "/$/cxc/js/modals.js"
 
 	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
@@ -42,6 +43,7 @@ module
 	@CXC_BUSCAR_CONTACTO = "/!/cxc/clientes/?_view=buscar-contacto&search=@search"
 	@CXC_BUSCAR_EDOPROV = "/!/cxc/clientes/?_view=buscar-edoprov&search=@search"
 	@CXC_BUSCAR_CIUDAD = "/!/cxc/clientes/?_view=buscar-ciudad&search=@search"
+	@CXC_BUSCAR_TCLIENTE = "/!/cxc/clientes/?_view=buscar-tcliente&search=@search"
 	//#endregion
 
 	//#region cxc_clientes
@@ -54,6 +56,8 @@ module
 	@CTE_COBROS = "/!/cxc/clientes/{_cliente}/cobrar/"
 	@CTE_BONIFICACIONES = "/!/cxc/clientes/{_cliente}/bonificacion/"
 	//#endregion
+
+	@CTE_AGREGAR_TIPO = "/!/cxc/clientes/_new/tipo"
 
 	//#region cxc_docs
 	@CXC_DOCUMENTOS = "/!/cxc/documentos/"
