@@ -34,6 +34,7 @@ module
 	@JS_CLIENTES = "/$/cxc/js/clientes.js"
 	@JS_DOCUMENTOS = "/$/cxc/js/documentos.js"
 	@JS_BS_MODALS = "/$/cxc/js/modals.js"
+	@JS_FILTER = "/$/cxc/js/filter.js"
 
 	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
@@ -68,4 +69,11 @@ module
 	@DOC_INTMORATORIOS = "/!/cxc/documentos/{_documento}/intmoratorios/"
 	@DOC_APLICAR_ABONOS = "/!/cxc/documentos/{_documento}/aplicar/"
 	//#endregion
+
+	// Número máximo de filas a mostrar en lista
+	@default_max_rows=250
+
+	// Rutas estáticas (using include)
+	@PATH_DATE_FILTER = ""
+	@PATH_PRINT_LIST = "compras/_lib/print_list.dk"
 }

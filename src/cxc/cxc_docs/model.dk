@@ -2,6 +2,7 @@
 #!
 module "model"
 {
+    #include "../_lib/config.dk"
     @table_name = "dcxc"
     @read_query = "
     SELECT
@@ -379,12 +380,22 @@ module "model"
             )"
         }
         
-        if fi_emision != "" && ff_emision != "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " AND DATE(cxc.fecha) BETWEEN @fie AND @ffe" }
-        if fi_emision == "" && ff_emision == "" && fi_aplicacion != "" && ff_aplicacion != "" { sql = sql + " AND DATE(cxc.aplicacion) BETWEEN @fia AND @ffa" }
+        // if fi_emision != "" && ff_emision != "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " AND DATE(cxc.fecha) BETWEEN @fie AND @ffe" }
+        // if fi_emision == "" && ff_emision == "" && fi_aplicacion != "" && ff_aplicacion != "" { sql = sql + " AND DATE(cxc.aplicacion) BETWEEN @fia AND @ffa" }
 
-        if orderby != "" { sql = sql + " ORDER BY "+orderby+" "+direction }
+        // if orderby != "" { sql = sql + " ORDER BY "+orderby+" "+direction }
 
-        if fi_emision == "" && ff_emision == "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " LIMIT "+str(recent)+";" }
+        // if fi_emision == "" && ff_emision == "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " LIMIT "+str(recent)+";" }
+
+        sql = sql + ftext("
+                AND IF(IFNULL(@year,'')='', true, YEAR(cxc.fecha)=@year)
+                AND IF(IFNULL(@month,'')='', true, (YEAR(cxc.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(cxc.fecha)=@month))
+                AND IF(IFNULL(@s,'')='', true, (cxc.referencia LIKE CONCAT('%',@s,'%') OR cte.nombre LIKE CONCAT('%',@s,'%') OR cte.codigo LIKE CONCAT('%',@s,'%')))
+                AND IF(IFNULL(@range,'-99')='-99', true, (DATE(cxc.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+                AND IF(IFNULL(@datefrom,'')='' AND IFNULL(@dateto,'')='', true, (DATE(cxc.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            ORDER BY cxc.fecha
+            LIMIT #<@default_max_rows>;
+        ")
 
         query = trim(sql)
         return dbr.list(db,query,params)

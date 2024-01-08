@@ -2,6 +2,7 @@
 #!
 module "model"
 {
+    #include "../_lib/config.dk"
     @table_name = "cliente"
     @read_query = "
     SELECT
@@ -69,7 +70,11 @@ module "model"
             return dbr.rec(db,ftext(sql),params)
         }
         if trim(@@(params,"$search")) != "" {
-            condition = "(cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%') OR cte.rfc LIKE CONCAT('%',@search,'%'))"
+            condition = ftext("IF(IFNULL(@search,'')='',true,(cte.codigo LIKE CONCAT('%',@search,'%') OR cte.nombre LIKE CONCAT('%',@search,'%') OR cte.rfc LIKE CONCAT('%',@search,'%')))
+                ORDER BY cte.codigo
+                LIMIT #<@default_max_rows>;
+
+            ")
             return dbr.list(db,ftext(sql),params)
         }
         return list.create()
@@ -448,7 +453,7 @@ module "model"
     {
         buscar = trim(@@(params,"$buscar"))
         tipo = trim(@@(params,"$tipo"))
-
+        
         sql = "
         SELECT
             cte.sys_pk,
@@ -467,11 +472,14 @@ module "model"
         WHERE TRUE
         "
         if buscar != "" {
-            sql = sql + " AND (
+            sql = sql + ftext(" 
+                AND IF(IFNULL(@buscar,'')='', true, (
                 cte.codigo LIKE CONCAT('%',@buscar,'%')
                 OR cte.nombre LIKE CONCAT('%',@buscar,'%')
                 OR cte.rfc LIKE CONCAT('%',@buscar,'%')
-            )"
+            ))
+            ORDER BY cte.codigo
+            LIMIT #<@default_max_rows>;")
         }
         if tipo != "" {
             sql = sql + " AND (
@@ -480,7 +488,7 @@ module "model"
                 OR tpc.descripcion LIKE CONCAT('%',@tipo,'%')
             )"
         }
-
+    
         return dbr.list(db,sql,params)
     }
 
