@@ -6,101 +6,136 @@ module "list.dk"
     #include "serialize.dkh"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
-    #include "../_lib/date_filter.dk"
+    #include "uielements.v12.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
-    ref docs = ifnull(@("&."),list.create())
+    ref docs = ifnull(@("&./docs"),list.create())
 
-    tf::
+    get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
+    get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
+    get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
+
+    new def_doc
     {
-        #$ h6(class="pt-2 pe-2"){$"Fecha de emisión"} #!
+        @"datatable*": @('&./cdocumentos')
+        member "attributes"
+        {
+            @"name": "cdoc"
+            @"class": "induxsoft-form-select"
+            @"onchange": "document.querySelector('#form_filter').submit();"
+        }
+        @"text_field": "const"
+        @"value_field": "id"
+        @"selected": field.dstr(get, "cdoc", "-1")
     }
 
-    point title_filter to tf
+    new table_definition
+    {
+        @"datatable*": docs
+        @"leyend": "Mostrando los primeros # documentos ordenados por fecha de emisión"
+        member @"columns"
+        {
+            member @"ccliente" { @"caption":"Código" }
+            member @"cliente" { @"caption":"Cliente" }
+            member @"documento" { @"caption":"Documento" }
+            member @"referencia" { @"caption":"Referencia" }
+            member @"emision" { @"caption":"Emisión" }
+            member @"aplicacion" { @"caption":"Aplicación" }
+            member @"debe" { @"caption":"Debe" }
+            member @"haber" { @"caption":"Haber" }
+            member @"divisa" { @"caption":"Divisa" }
+        }
+    }
+
+    header_act::
+    { 
+        #$ a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_CONSULTAR>')"){"Consultar"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_INTMORATORIOS>')"){$"Int. Moratorios"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
+    }
+
+    #! point general_act to header_act
     
     #$
-    div(class="container p-0")
+    div(class="container-fluid p-0")
     {
-        div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
-        {
-            div(class="col-4 d-flex align-items-center p-0")
-            {
-                h5(class="tex-no-break m-0"){$"Documentos por cobrar"}
-            }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-            {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_CONSULTAR>')"){"Consultar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_INTMORATORIOS>')"){$"Int. Moratorios"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
-                button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
-                a(href="/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir" target="_top"){$"#<@ICON_X_LG>"}
-            }
-        }
-        div(id="work_area" class="container-section mt-1")
+        #! do uie.printMainBar(general_act, "Documentos por cobrar", @true, "")
+
+        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {
             p{$"#<@('$error/message')>"}
-            #! do print_date_filter(get, title_filter, @null)
-            #$ form(action="./" method="GET" id="form_search" class="d-flex mb-2 no-print")
+
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
-                input(class="induxsoft-form-control flex-grow-1" type="text" name="s" placeholder="Buscar" id="input_search" value='#<@@(get,"$s")>')
-                button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
-                    $"Buscar"
-                    $"#<@ICON_SEARCH>"
-                }
-            }
-            div
-            {
-                div(style="overflow-y:auto;max-height: 75vh;" class="mb-2" id="list_table_container")
+                div(class="d-flex align-items-center")
                 {
-                    "edit-table"(class="w-100" id="tbl_cxc" data='#<to.json(docs)>' "html-encode"="true")
+                    div
                     {
-                        "edit-thead"
+                        select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
                         {
-                            "edit-tr"
-                            {
-                                "edit-th"(type="NoEditable" field="ccliente"){$"Código"}
-                                "edit-th"(type="NoEditable" field="cliente"){$"Cliente"}
-                                "edit-th"(type="NoEditable" field="documento"){$"Documento"}
-                                "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
-                                "edit-th"(type="NoEditable" field="emision"){$"Emisión"}
-                                "edit-th"(type="NoEditable" field="aplicacion"){$"Aplicación"}
-                                "edit-th"(type="NoEditable" field="debe"){$"Debe"}
-                                "edit-th"(type="NoEditable" field="haber"){$"Haber"}
-                                "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
-                            }
+                            option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
+                            option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Aplicación"}
                         }
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-date-range"(
+                            "mode-field"="filter-mode"
+                            "year-field"="year"
+                            "month-field"="month"
+                            "range-field"="range"
+                            "from-field"="datefrom"
+                            "to-field"="dateto"
+                            "selection"='#<to.json(get)>'
+                            "lastdays-options"="15,30,45,60,90"
+                            "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                            "custom-range"="true"
+                            "form"="#form_filter"
+                            "auto-submit"="true"
+                            "label-months"="Ver por cada mes"
+                            "label-days"="Últ. @lastdays días"
+                            "label-custom"="Personalizado"
+                            "label-from"="Desde:"
+                            "label-to"="Hasta:"
+                            "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                        ){$""}
+                    }
+                }
+                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div
+                        {
+                            #! do uie.dbSelect(def_doc) 
+                            #$
+                        }
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(
+                            "id"="ft_search"
+                            "text-field"="s"
+                            "placeholder"="Referencia del documento, nombre, código o RFC del cliente"
+                            "form"="#form_filter"
+                            "value"="#<@@(get,'$s')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
                     }
                 }
             }
-            #! lenght = @count(docs)
-                
-            if lenght <= 0
-            {
-                message = ""
-                if field.exist(get,"s") && @@(get,"$s") == "" { message = "Sin registros." }
-                else { message = "Sin resultados." }
-                
-                #$ div(class="text-center") {
-                    h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
-                }
-            }
-            #! else 
-            {
-                txt = ftext("Mostrando los primeros #<lenght> Documentos ordenados por fecha de emisión.")
-                #$ small(class="text-secondary"){$"#<a1>"}
-            }
+            #! do uie.dbeditable(table_definition, "tbl_cxc")
         }
 
-        div
+        #$ div
         {
             script(src="#<@JS_DOCUMENTOS>"){$""}
-            script(src="#<@JS_FILTER>"){$""}
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {

@@ -246,9 +246,16 @@ module "model"
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @icliente
-            AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+            AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
+            AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
+            AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
+            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+            AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            ;
         "
-        ref pendientes = dbr.list(db,sql,xaplicar)
+        params<"icliente">: @@(xaplicar, "icliente")
+        ref pendientes = dbr.list(db,sql,params)
 
         new result
         {
@@ -332,6 +339,9 @@ module "model"
 
     cxc.list::&db,&params
     {
+        params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
+        params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
+
         fformat = "yyyy-MM-dd"
 
         cliente = trim(@@(params,"$cliente"))
@@ -388,17 +398,28 @@ module "model"
         // if fi_emision == "" && ff_emision == "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " LIMIT "+str(recent)+";" }
 
         sql = sql + ftext("
-                AND IF(IFNULL(@year,'')='', true, YEAR(cxc.fecha)=@year)
-                AND IF(IFNULL(@month,'')='', true, (YEAR(cxc.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(cxc.fecha)=@month))
                 AND IF(IFNULL(@s,'')='', true, (cxc.referencia LIKE CONCAT('%',@s,'%') OR cte.nombre LIKE CONCAT('%',@s,'%') OR cte.codigo LIKE CONCAT('%',@s,'%')))
-                AND IF(IFNULL(@range,'-99')='-99', true, (DATE(cxc.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
-                AND IF(IFNULL(@datefrom,'')='' AND IFNULL(@dateto,'')='', true, (DATE(cxc.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+                AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=@year)
+                AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=@month))
+                AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+                AND IF(IFNULL(@datefrom,'')='' AND IFNULL(@dateto,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+                AND IF(IFNULL(@cdoc,'-1')='-1', true, doc.id = @cdoc)
             ORDER BY cxc.fecha
             LIMIT #<@default_max_rows>;
         ")
 
         query = trim(sql)
-        return dbr.list(db,query,params)
+
+        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d ORDER BY d.id;"
+        ref cdocumentos = dbr.list(db, sql_cdocumentos, @null)
+
+        new response
+        {
+            @"docs*": dbr.list(db, ftext(query), params)
+            @"cdocumentos*": prepare_filter(cdocumentos)
+        }
+
+        return response
     }
 
     cxc.read::&db,&params
@@ -423,5 +444,15 @@ module "model"
     cxc.delete::&db,&params
     {
         do rise_error(500,"Acción no implementada")
+    }
+    prepare_filter::list
+    {
+        new record
+        {
+            @"id": "-1"
+            @"const": "Todos"
+        }
+        do list.ins(list, 0, record)
+        return list
     }
 }
