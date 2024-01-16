@@ -398,7 +398,7 @@ module "model"
         // if fi_emision == "" && ff_emision == "" && fi_aplicacion == "" && ff_aplicacion == "" { sql = sql + " LIMIT "+str(recent)+";" }
 
         sql = sql + ftext("
-                AND IF(IFNULL(@s,'')='', true, (cxc.referencia LIKE CONCAT('%',@s,'%') OR cte.nombre LIKE CONCAT('%',@s,'%') OR cte.codigo LIKE CONCAT('%',@s,'%')))
+                AND IF(IFNULL(@s,'')='', true, (cxc.referencia LIKE CONCAT('%',@s,'%') OR cte.nombre LIKE CONCAT('%',@s,'%') OR cte.codigo LIKE CONCAT('%',@s,'%') OR cte.rfc LIKE CONCAT('%',@s,'%')))
                 AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=@year)
                 AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion))=@month))
                 AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0', cxc.fecha, cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
@@ -410,7 +410,7 @@ module "model"
 
         query = trim(sql)
 
-        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d ORDER BY d.id;"
+        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_cxp_docs cd ON d.id=cd.documento ORDER BY d.id;"
         ref cdocumentos = dbr.list(db, sql_cdocumentos, @null)
 
         new response
