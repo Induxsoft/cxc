@@ -336,6 +336,25 @@ module "model"
 
     cte.obtenerBalance::&db,&params
     {
+        // sql = "
+        // SELECT
+        //     cxc.sys_pk,
+        //     cxc.sys_guid,
+        //     cxc.referencia,
+        //     DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+        //     DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+        //     doc.const AS documento,
+        //     IFNULL(cxc.debe,0) AS debe,
+        //     IFNULL(cxc.haber,0) AS haber,
+        //     IFNULL(cxc.notas,'') AS notas
+        // FROM dcxc AS cxc
+        //     INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        // WHERE cxc.icliente = @_entity_id 
+        //     AND DATE(cxc.aplicacion) BETWEEN @fd AND LAST_DAY(@fd);
+        // "
+        params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
+        params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
+    
         sql = "
         SELECT
             cxc.sys_pk,
@@ -350,17 +369,44 @@ module "model"
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @_entity_id 
-            AND DATE(cxc.aplicacion) BETWEEN @fd AND LAST_DAY(@fd);
+            AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
+            AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
+            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+            AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            AND IF(IFNULL(@fd,'')='', true, DATE(cxc.aplicacion) BETWEEN @fd AND LAST_DAY(@fd))
+        ORDER BY cxc.fecha
+        LIMIT #<@default_max_rows>;
         "
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
-        data<"docs*"> : dbr.list(db,sql,params)
+        data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
     }
 
     cte.obtenerDocsPorCobrar::&db,&params
     {
+        // sql = "
+        // SELECT
+        //     cxc.sys_pk,
+        //     cxc.sys_guid,
+        //     cxc.referencia,
+        //     DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+        //     DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+        //     IFNULL(cxc.bonificaciones,0) AS bonificaciones,
+        //     doc.const AS documento,
+        //     IFNULL(cxc.debe,0) AS debe,
+        //     IFNULL(cxc.haber,0) AS haber,
+        //     IFNULL(cxc.intmoratorios,0) AS int_moratorios,
+        //     IFNULL(cxc.pagos,0) AS pagos,
+        //     (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo
+        // FROM dcxc AS cxc
+        //     INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        // WHERE cxc.icliente = @_entity_id
+        //     AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+        // "
+
         sql = "
         SELECT
             cxc.sys_pk,
@@ -378,37 +424,71 @@ module "model"
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @_entity_id
-            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
+            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
+            AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
+            AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
+            AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
+            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+            AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+        ORDER BY cxc.fecha
+        LIMIT #<@default_max_rows>;
         "
+
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
-        data<"docs*"> : dbr.list(db,sql,params)
+        data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
     }
 
     cte.obtenerCobrosPorAplicar::&db,&params
     {
+        // sql = "
+        // SELECT
+        //     cxc.sys_pk,
+        //     cxc.sys_guid,
+        //     cxc.referencia,
+        //     DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+        //     doc.id AS idocumento,
+        //     doc.const AS documento,
+        //     IFNULL(cxc.debe,0) AS debe,
+        //     IFNULL(cxc.haber,0) AS haber,
+        //     (IFNULL(cxc.debe,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
+        //     IFNULL(cxc.xaplicar,0) AS xaplicar
+        // FROM dcxc AS cxc
+        //     INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+        // WHERE cxc.icliente = @_entity_id
+        //     AND IFNULL(cxc.xaplicar,0) > 0;
+        // "
         sql = "
-        SELECT
-            cxc.sys_pk,
-            cxc.sys_guid,
-            cxc.referencia,
-            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
-            doc.id AS idocumento,
-            doc.const AS documento,
-            IFNULL(cxc.debe,0) AS debe,
-            IFNULL(cxc.haber,0) AS haber,
-            (IFNULL(cxc.debe,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
-            IFNULL(cxc.xaplicar,0) AS xaplicar
-        FROM dcxc AS cxc
-            INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
-        WHERE cxc.icliente = @_entity_id
-            AND IFNULL(cxc.xaplicar,0) > 0;
+            SELECT
+                cxc.sys_pk,
+                cxc.sys_guid,
+                cxc.referencia,
+                DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
+                doc.id AS idocumento,
+                doc.const AS documento,
+                IFNULL(cxc.debe,0) AS debe,
+                IFNULL(cxc.haber,0) AS haber,
+                (IFNULL(cxc.debe,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
+                IFNULL(cxc.xaplicar,0) AS xaplicar
+            FROM dcxc AS cxc
+                INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+            WHERE cxc.icliente = @_entity_id
+                AND IFNULL(cxc.xaplicar,0) > 0
+                AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
+                AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
+                AND IF(IFNULL(@year,'')='', true, YEAR(cxc.fecha)=@year)
+                AND IF(IFNULL(@month,'')='', true, (YEAR(cxc.fecha)=IFNULL(@year,YEAR(NOW())) AND MONTH(cxc.fecha)=@month))
+                AND IF(IFNULL(@range,'-99')='-99', true, (DATE(cxc.fecha) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+                AND IF(IFNULL(@datefrom,'')='', true, (DATE(cxc.fecha) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            ORDER BY cxc.fecha
+            LIMIT #<@default_max_rows>;
         "
+
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
-        data<"docs*"> : dbr.list(db,sql,params)
+        data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
     }

@@ -6,87 +6,129 @@ module "list.dk"
     #include "serialize.dkh"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
+    #include "uielements.v12.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
     ref listClientes = ifnull(@("&."),list.create())
 
+    new table_definition
+    {
+        @"datatable*": listClientes
+        @"leyend": "Mostrando los primeros # clientes ordenados por código"
+        member @"columns"
+        {
+            member @"codigo" { @"caption":"Código" }
+            member @"nombre" { @"caption":"Nombre" }
+            member @"rfc" { @"caption":"RFC" }
+            member @"saldo" { @"caption":"Saldo" }
+            member @"tipo" { @"caption":"Tipo de cliente" }
+            member @"divisa" { @"caption":"Divisa" }
+            member @"zona" { @"caption":"Zona" }
+        }
+    }
+
+    header_act::
+    { 
+        #$
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
+    }
+
+    #! point general_act to header_act
+
     #$
     div(class="container p-0")
     {
-        div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
-        {
-            div(class="col-4 d-flex align-items-center p-0")
-            {
-                h5(class="tex-no-break m-0"){$"Clientes"}
-            }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-            {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                a(href="#<@CTE_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
-                button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
-                a(href="/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir" target="_top"){$"#<@ICON_X_LG>"}
-            }
-        }
+        #! do uie.printMainBar(general_act, "Clientes", @true, "")
 
+        // div(id="main_bar" class="row container-section my-2 px-0 py-2 border-bottom")
+        // {
+        //     div(class="col-4 d-flex align-items-center p-0")
+        //     {
+        //         h5(class="tex-no-break m-0"){$"Clientes"}
+        //     }
+        //     div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+        //     {
+        //         a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+        //         a(href="#<@CTE_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
+        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
+        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
+        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
+        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
+        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
+        //         button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Imprimir" onclick="window.print()"){$"#<@ICON_PRINTER>"}
+        //         a(href="/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Salir" target="_top"){$"#<@ICON_X_LG>"}
+        //     }
+        // }
+        #$
         div(id="work_area" class="container-section mt-1")
         {
             p{$"#<@('$error/message')>"}
-            form(action="./" method="GET" id="form_search" class="d-flex mb-2 no-print")
+
+            form(action="./" method="GET" id="form_search" class="no-print my-1 d-flex")
             {
-                input(class="induxsoft-form-control flex-grow-1" type="text" name="buscar" placeholder="Buscar" id="input_search" value='#<@@(get,"$buscar")>')
-                button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
-                    $"Buscar"
-                    $"#<@ICON_SEARCH>"
-                }
-                a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm border" type="button" id="btn_new_cliente" title="Nuevo cliente"){$"#<@ICON_USER_ADD>"}
+                // input(class="induxsoft-form-control flex-grow-1" type="text" name="buscar" placeholder="Buscar" id="input_search" value='#<@@(get,"$buscar")>')
+                // button(class="btn btn-sm btn-primary induxsoft-corners d-flex gap-2 align-items-center") {
+                //     $"Buscar"
+                //     $"#<@ICON_SEARCH>"
+                // }
+                #$ "filter-text"(
+                    "id"="ft_search"
+                    "text-field"="buscar"
+                    "placeholder"="Buscar por código, nombre o RFC"
+                    "form"="#form_search"
+                    "value"="#<@@(get,'$buscar')>"
+                    "auto-submit"="true"
+                    "class"="w-100"
+                ){$""}
+                a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm induxsoft-corners" type="button" id="btn_new_cliente" title="Nuevo cliente" style="outline: 1px solid #DDD;"){$"#<@ICON_USER_ADD>"}
             }
-            div
-            {
-                div(style="overflow-y:auto;max-height: 75vh;" class="mb-2" id="list_table_container")
-                {
-                    "edit-table"(class="w-100" id="tbl_clientes" data='#<to.json(listClientes)>' "html-encode"="true")
-                    {
-                        "edit-thead"
-                        {
-                            "edit-tr"
-                            {
-                                "edit-th"(type="NoEditable" field="codigo"){$"Código"}
-                                "edit-th"(type="NoEditable" field="nombre"){$"Nombre"}
-                                "edit-th"(type="NoEditable" field="rfc"){$"RFC"}
-                                "edit-th"(type="NoEditable" field="saldo"){$"Saldo"}
-                                "edit-th"(type="NoEditable" field="tipo"){$"Tipo de cliente"}
-                                "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
-                                "edit-th"(type="NoEditable" field="zona"){$"Zona"}
-                            }
-                        }
-                    }
-                }
+            #! do uie.dbeditable(table_definition, "tbl_clientes")
+            // div
+            // {
+            //     div(style="overflow-y:auto;max-height: 75vh;" class="mb-2" id="list_table_container")
+            //     {
+            //         "edit-table"(class="w-100" id="tbl_clientes" data='#<to.json(listClientes)>' "html-encode"="true")
+            //         {
+            //             "edit-thead"
+            //             {
+            //                 "edit-tr"
+            //                 {
+            //                     "edit-th"(type="NoEditable" field="codigo"){$"Código"}
+            //                     "edit-th"(type="NoEditable" field="nombre"){$"Nombre"}
+            //                     "edit-th"(type="NoEditable" field="rfc"){$"RFC"}
+            //                     "edit-th"(type="NoEditable" field="saldo"){$"Saldo"}
+            //                     "edit-th"(type="NoEditable" field="tipo"){$"Tipo de cliente"}
+            //                     "edit-th"(type="NoEditable" field="divisa"){$"Divisa"}
+            //                     "edit-th"(type="NoEditable" field="zona"){$"Zona"}
+            //                 }
+            //             }
+            //         }
+            //     }
                 
-                #! lenght = @count(listClientes)
+            //     #! lenght = @count(listClientes)
                 
-                if lenght <= 0
-                {
-                    message = ""
-                    if field.exist(get,"buscar") && @@(get,"$buscar") == "" { message = "Sin registros." }
-                    else { message = "Sin resultados." }
+            //     if lenght <= 0
+            //     {
+            //         message = ""
+            //         if field.exist(get,"buscar") && @@(get,"$buscar") == "" { message = "Sin registros." }
+            //         else { message = "Sin resultados." }
                     
-                    #$ div(class="text-center") {
-                        h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
-                    }
-                }
-                #! else 
-                {
-                    txt = ftext("Mostrando los primeros #<lenght> Clientes ordenados por código.")
-                    #$ small(class="text-secondary"){$"#<a1>"}
-                }
-            }
+            //         #$ div(class="text-center") {
+            //             h6(style="background-color: #F5F5F5; padding: 10rem 0;"){"#<message>"}
+            //         }
+            //     }
+            //     #! else 
+            //     {
+            //         txt = ftext("Mostrando los primeros #<lenght> Clientes ordenados por código.")
+            //         #$ small(class="text-secondary"){$"#<a1>"}
+            //     }
+            // }
 
             
             // #!
@@ -96,7 +138,7 @@ module "list.dk"
             // div(class="text-center bg-light" style="padding: 10rem 0;" id="div_spnmsg"){ h6(class="" id="spnmsg"){$"#<spnmsg>"} }
         }
 
-        div
+        #$ div
         {
             script(src="#<@JS_CLIENTES>"){$""}
             script(type="text/javascript")

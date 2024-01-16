@@ -6,24 +6,82 @@ module "cte.balance.dk"
     #include "serialize.dkh"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
+    #include "uielements.v12.dkl"
     
     do @context.begin(@crud_context)
+    ref @http_context = @('&http')
+    ref get = @@(@http_context,"&request/get")
+
+    get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
+    get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
+    get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
     
     #$
-    div(class="container")
+    div(class="container p-0")
     {
-        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
-        {
-            div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Balance"} }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-            {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
-            }
-        }
+        // div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+        // {
+        //     div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Balance"} }
+        //     div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
+        //     {
+        //         a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+        //         a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+        //     }
+        // }
 
-        div
+        #! do uie.printMainBar(@null, "Balance", @false, @CXC_CLIENTES)
+
+        #$ div
         {
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            {
+                div(class="d-flex align-items-center")
+                {
+                    div
+                    {
+                        select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
+                        {
+                            option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
+                            option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Aplicación"}
+                        }
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-date-range"(
+                            "mode-field"="filter-mode"
+                            "year-field"="year"
+                            "month-field"="month"
+                            "range-field"="range"
+                            "from-field"="datefrom"
+                            "to-field"="dateto"
+                            "selection"='#<to.json(get)>'
+                            "lastdays-options"="15,30,45,60,90"
+                            "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                            "custom-range"="true"
+                            "form"="#form_filter"
+                            "auto-submit"="true"
+                            "label-months"="Ver por cada mes"
+                            "label-days"="Últ. @lastdays días"
+                            "label-custom"="Personalizado"
+                            "label-from"="Desde:"
+                            "label-to"="Hasta:"
+                            "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
+                        ){$""}
+                    }
+                }
+                div(class="flex-grow-1 py-1")
+                {
+                    #$ "filter-text"(
+                        "id"="ft_search"
+                        "text-field"="s"
+                        "placeholder"="Buscar por referencia"
+                        "form"="#form_filter"
+                        "value"="#<@@(get,'$s')>"
+                        "auto-submit"="true"
+                        "class"="w-100"
+                    ){$""}
+                }
+            }
             // a(class="btn btn-outline-primary induxsoft-corners" href="#<@ADD_DOCS_POR_PAGAR>"){"Agregar"}
             // a(class="btn btn-outline-success induxsoft-corners" href="#<replace(@DOCS_POR_PAGAR_PROVEEDOR,'@proveedor',@('$parameters/_entity_id'))>"){"Documentos por pagar"}
             // a(class="btn btn-outline-secondary induxsoft-corners" href="#<replace(@PAGOS_POR_APLICAR,'@proveedor',@('$parameters/_entity_id'))>"){"Pagos por aplicar"}
