@@ -4,7 +4,7 @@ module ":erp.cxc.movimientos"
 {
     saveCxC::&db,&data
     {
-        if trim(@@(data,"$referencia")) == "" { do rise_error(500,"Debe indicar una referencia.") }
+        if trim(@@(data,"$referencia")) == "" { do rise_error(500,"Debe indicar una referencia `referencia`.") }
         if @@(data,"#documento") <= 0 { do rise_error(500,"Debe indicar el tipo de documento `documento`.") }
         if @@(data,"#icliente") <= 0 { do rise_error(500,"No se ha indicado un cliente `icliente`.") }
 
@@ -23,14 +23,14 @@ module ":erp.cxc.movimientos"
             @"sys_deleted": @false
             @"sys_lock": 0
             @"aplicable": @true
-            @"aplicacion*": now()
+            @"aplicacion*": @null
             @"auditado": @false
             @"basecm*": @null
             @"bonificaciones": 0.0
             @"contabilizado": @false
             @"debe": 0.0
             @"documento*": @null
-            @"fecha*": now()
+            @"fecha*": @null
             @"fultmoratorios*": @null
             @"haber": 0.0
             @"intfinancieros": 0.0
@@ -48,7 +48,14 @@ module ":erp.cxc.movimientos"
             @"tipocambio": 0.0
             @"xaplicar": 0.0
             @"icliente*": @null
+            @"ifolio*": @null
+            @"ifolioifin*": @null
+            @"imovcaja*": @null
+            @"iventa*": @null
             @"imovcuenta*": @null
+            @"fechaproxcobro*": @null
+            @"poracuerdopago": @false
+            @"acuerdodepago": 0
         }
 
         new col_type
@@ -91,7 +98,14 @@ module ":erp.cxc.movimientos"
             @"tipocambio": "dec"
             @"xaplicar": "dec"
             @"icliente": "int"
+            @"ifolio": "int"
+            @"ifolioifin": "int"
+            @"imovcaja": "int"
+            @"iventa": "int"
             @"imovcuenta": "int"
+            @"fechaproxcobro": "date"
+            @"poracuerdopago": "bool"
+            @"acuerdodepago": "int"
         }
 
         ref fields = list.create_from_fields(data)

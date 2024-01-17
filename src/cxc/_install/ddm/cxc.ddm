@@ -8,6 +8,18 @@ model "erp.cxc"
 
     #include "induxsoft.abstracts.ddm"
 
+    //* ======================================== [ DEPENDENCIAS (FK) ]
+    // Base de cálculo para intereses moratorios
+    entity "cbcimoratorios" : "EnumModel" {}
+    // Tipos de documentos comerciales
+    entity "cdocumentos" : "EnumModel" {}
+    // Estados posibles para un cliente, proveedor u organización
+    entity "cstatusorg" : "EnumModel" {}
+    // Enumeración de tipos de categorías de propósito general
+    entity "ctiposcategorias" : "EnumModel" {}
+    // Enumeración de formas de pago
+    entity "cformaspago" : "EnumModel" {}
+
     //#region Domicilio
     entity "pais" : "TableModel"
     {
@@ -19,14 +31,14 @@ model "erp.cxc"
     {
         @"codigo" string(8) unique required
         @"nombre" string(50) required
-        @"ipais" int ref:"pais" ["sys_pk"] required
+        @"ipais" ref:"pais" required
     }
     entity "ciudad" : "TableModel"
     {
         @"codigo" string(8) unique required
         @"codigotel" string(5)
         @"nombre" string(100) required
-        @"estado" int ref:"edoprov" ["sys_pk"] required
+        @"estado" ref:"edoprov" required
     }
     entity "domicilio" : "TableModel"
     {
@@ -35,12 +47,11 @@ model "erp.cxc"
         @"direccion" string(1024)
         @"notas" string(150)
         @"telefonos" string(150)
-        @"iciudad" int ref:"ciudad" ["sys_pk"]
+        @"iciudad" ref:"ciudad"
         @"numint" string(1024)
         @"numext" string(1024)
     }
     //#endregion
-    // agente
     entity "agente" : "TableModel"
     {
         @"codigo" string(50) unique required
@@ -50,13 +61,12 @@ model "erp.cxc"
         @"notas" memo
         @"pcomision" decimal(18,8)
         @"telefono" string(150)
-        @"domicilio1" int ref:"domicilio" ["sys_pk"]
+        @"domicilio1" ref:"domicilio"
         @"uf_capitan" bool
         @"uf_sys_baja" bool
         @"uf_iuser" int
 
     }
-    // contacto
     entity "contacto" : "TableModel"
     {
         @"apellidos" string(50) required
@@ -73,34 +83,55 @@ model "erp.cxc"
         @"tel3" string(50)
         @"tratamiento" string(5)
         @"website" string(150)
-        @"domicilio1" int ref:"domicilio" ["sys_pk"]
-        @"domicilio2" int ref:"domicilio" ["sys_pk"]
+        @"domicilio1" ref:"domicilio"
+        @"domicilio2" ref:"domicilio"
     }
-    // Detalle de cobros aplicados
-    entity "aplcxc" : "TableModel"
+    // Catálogo de monedas o divisas
+    entity "divisa" : "TableModel"
     {
-        @"destino" int required
+        @"codigo" string(5) unique required
+        @"descripcion" string(30) unique required
+        @"tcambio" decimal(18,8)
+    }
+    // Tipo (clasificación) del cliente
+    entity "tipocliente" : "TableModel"
+    {
+        @"codigo" string(15) unique required
+        @"descripcion" string(50) unique required
+        @"notas" string(4096) 
+    }
+    entity "zona" : "TableModel"
+    {
+        @"nombre" string(30) unique required
+        @"notas" string(255) 
+    }
+    entity "blockdocumentos" : "TableModel"
+    {
+        @"activo" bool required
+        @"datos" string(255)
+        @"documento" ref:"cdocumentos" required
+        @"finicial" int required
+        @"fiscal" bool required
+        @"fultimo" int required
+        @"idcontrol" string(32)
+        @"numcontrol" int
+        @"serie" string(10)
+        @"uf_cfdfolio" int
+        @"uf_cfdi_info" int
+    }
+    entity "foliosdocumentos" : "TableModel"
+    {
+        @"cancelado" bool required
         @"fecha" date required
-        @"importe" decimal(18,8)
-        @"aplicadoa" int ref:"dcxc" ["sys_pk"] required
-        @"fk_dcxc_aplicadoa" int ref:"dcxc" ["sys_pk"] required
-        @"uf_cfdi" string(50)
+        @"folio" int required
+        @"block" ref:"blockdocumentos" required
+
+        index "idx_foliodoc" unique
+        {
+            field "folio"
+            field "block"
+        }
     }
-    // Datos de una institución financiera
-    entity "banco" : "TableModel"
-    {
-        @"nombre" string(50) unique required
-        @"notas" string(2048)
-        @"website" string(150)
-    }
-    // Base de cálculo para intereses moratorios
-    entity "cbcimoratorios" : "EnumModel" {}
-    // Tipos de documentos comerciales
-    entity "cdocumentos" : "EnumModel" {}
-    // Estados posibles para un cliente, proveedor u organización
-    entity "cstatusorg" : "EnumModel" {}
-    // Enumeración de tipos de categorías de propósito general
-    entity "ctiposcategorias" : "EnumModel" {}
     // Categorías de propósito general para clasificar operaciones
     entity "categoria" : "TableModel"
     {
@@ -108,28 +139,121 @@ model "erp.cxc"
         @"codigo" string(5) unique required
         @"descripcion" string(50) unique required
         @"pmensual" decimal(18,8)
-        @"tipo" int ref:"ctiposcategorias" ["id"]
-        @"padre" int ref:"categoria" ["sys_pk"]
+        @"tipo" ref:"ctiposcategorias"
+        @"padre" ref:"categoria"
         @"uf_inhabilitado" bool
         @"uf_fechainhabilitacion" datetime
     }
-    // Configuración de documentos por pagar
-    entity "cfg_cxp_docs"
+    entity "almacen" : "TableModel"
     {
-        @"documento" ref: "cdocumentos" key
-        @"pagable" bool     // Si es true, puede agregarse como documento por pagar al que se le pueden aplicar cargos, bonificaciones y pagos
-        @"apl_int_fin" bool // Si es true, puede usarse para aplicarse como intereses financieros
-        @"apl_int_mor" bool // si es true, puede usarse para aplicarse como intereses moratorios
-        @"apl_bonific" bool // si es true, puede usarse para aplicarse como bonificación
-        @"apl_pago" bool    // si es true, puede usarse para aplicarse como pago
+        @"codcuenta" string(50) unique
+        @"codigo" string(10) unique required
+        @"descripcion" string(50) unique required
+        @"email" string(50)
+        @"fax" string(150)
+        @"telefonos" string(150)
+        @"website" string(150)
+        @"domicilio1" ref:"domicilio"
+        @"uf_movremoto" bool
+        @"uf_inhabilitado" bool
+        @"uf_fechainhabilitacion" datetime
+        @"uf_formaproduccion" int
     }
-    // Configuración de documentos por pagar
-    entity "cfg_chq_docs"
+    entity "cconsumo" : "TableModel"
     {
-        @"documento" ref: "cdocumentos" key
-        @"depositos" bool
-        @"retiros" bool
-        @"traspasos" bool
+        @"codigo" string(5) unique required
+        @"descripcion" string(50) unique required
+        @"notas" string(2048)
+        @"precio" int
+        @"ialmacen" ref:"almacen"
+        @"porcentaje_esperado" decimal(19,8)
+        @"uf_domiciliocfd" int
+        @"uf_expedicioncxc" int
+        @"uf_inhabilitado" bool
+        @"uf_fechainhabilitacion" datetime
+        @"uf_grupoprod" int
+    }
+    entity "caja" : "TableModel"
+    {
+        @"codcuenta" string(50) unique
+        @"codigo" string(5) unique required
+        @"descripcion" string(50) unique
+        @"notas" string(2048)
+        @"centroconsumo" ref:"cconsumo" required
+        @"uf_limefectivo" decimal(18,8)
+        @"uf_lime_vntadic" int
+        @"uf_lime_aviso" decimal(18,8)
+        @"uf_lime_alerta" string(500)
+        @"uf_lime_pkprimerventa" int
+        @"uf_corte_req" bool
+        @"uf_horacorte1" time
+        @"uf_horacorte2" time
+        @"uf_horacorte3" time
+        @"uf_horacorte4" time
+        @"uf_horacorte5" time
+        @"uf_cortereq_vntadic" int
+        @"uf_lim_vntliber" int
+    }
+    entity "cajero" : "TableModel"
+    {
+        @"codigo" string(10) unique required
+        @"codnomina" string(50) unique
+        @"contrasena" string(32) required
+        @"email" string(50)
+        @"nombre" string(50) unique required
+        @"notas" string(2048)
+        @"telefono" string(25)
+        @"domicilio1" ref:"domicilio"
+        @"uf_sys_baja" bool
+    }
+    entity "corte" : "TableModel"
+    {
+        @"cerrado" bool
+        @"fapertura" date required
+        @"fcierre" date
+        @"hapertura" datetime required
+        @"hcierre" datetime
+        @"icaja" ref:"caja" required
+        @"icajero" ref:"cajero"
+    }
+    entity "movcaja" : "TableModel"
+    {
+        @"auditado" bool
+        @"cheques" decimal(18,8)
+        @"contabilizado" bool
+        @"depositos" decimal(18,8)
+        @"documento" ref:"cdocumentos" required
+        @"efectivo" decimal(18,8)
+        @"fecha" date required
+        @"hora" datetime required
+        @"notas" string(255)
+        @"partida" string(32)
+        @"poliza" string(32)
+        @"referencia" string(50) required
+        @"tarjetas" decimal(18,8)
+        @"tipocambio" decimal(18,8)
+        @"vales" decimal(18,8)
+        @"icategoria" ref:"categoria" required
+        @"icorte" ref:"corte" required
+        @"idivisa" ref:"divisa" required
+
+        index "idx_movcaja" unique
+        {
+            field "cheques"
+            field "efectivo"
+            field "fecha"
+            field "notas"
+            field "referencia"
+            field "tarjetas"
+            field "vales"
+        }
+    }
+    // Datos de una institución financiera
+    entity "banco" : "TableModel"
+    {
+        @"nombre" string(50) unique required
+        @"notas" string(2048)
+        @"website" string(150)
     }
     // Datos de una cuenta en una institución financiera
     entity "chequera" : "TableModel"
@@ -139,9 +263,50 @@ model "erp.cxc"
         @"nombre" string(25) unique required
         @"notas" string(4096)
         @"numcuenta" string(25) unique
-        @"ibanco" int ref:"banco" ["sys_pk"]
-        @"idivisa" int ref:"divisa" ["sys_pk"] required
+        @"ibanco" ref:"banco"
+        @"idivisa" ref:"divisa" required
     }
+    // Movimientos de una cuenta en una institución financiera
+    entity "movcuenta" : "TableModel"
+    {
+        @"aplicacion" date
+        @"auditado" bool
+        @"beneficiario" string(150)
+        @"cancelado" bool
+        @"conciliado" bool
+        @"contabilizado" bool
+        @"egreso" decimal(18,8)
+        @"fecha" date
+        @"ingreso" decimal(18,8)
+        @"notas" string(4096) required
+        @"partida" string(32)
+        @"poliza" string(32)
+        @"referencia" string(50) required
+        @"tipo" ref:"cdocumentos" required
+        @"icategoria" ref:"categoria" required
+        @"icuenta" ref:"chequera" required
+        @"uf_color" int
+        @"uf_fechacancelacion" datetime
+
+        index "movcuenta_id" unique
+        {
+            field "icuenta"
+            field "referencia"
+        }
+    }
+    entity "venta" : "TableModel"
+    {
+        @"documento" ref:"cdocumentos" required
+        @"fecha" date required
+        @"formapago" ref:"cformaspago" required
+        @"referencia" string(25) unique required
+        @"icconsumo" ref:"cconsumo" required
+        @"icliente" ref:"cliente" required
+        @"idivisa" ref:"divisa" required
+        @"ifolio" ref:"foliosdocumentos" required
+    }
+
+    //* ======================================== [ ENTIDADES PRINCIPALES ]
     // Datos de un cliente
     entity "cliente" : "TableModel"
     {
@@ -161,29 +326,22 @@ model "erp.cxc"
         @"rfc" string(15)
         @"saldo" decimal(19,8)
         @"saldopuntos" decimal(19,8)
-        @"status" int ref:"cstatusorg" ["id"]
+        @"status" ref:"cstatusorg"
         @"telefonos" string(150)
         @"website" string(150)
-        @"agente" int ref:"agente" ["sys_pk"]
-        @"contacto1" int ref:"contacto" ["sys_pk"]
-        @"contacto2" int ref:"contacto" ["sys_pk"]
-        @"contacto3" int ref:"contacto" ["sys_pk"]
-        @"domicilio1" int ref:"domicilio" ["sys_pk"]
-        @"domicilio2" int ref:"domicilio" ["sys_pk"]
-        @"domicilio3" int ref:"domicilio" ["sys_pk"]
-        @"idivisa" ref:"divisa"  required
-        @"tipo" int ref:"tipocliente" ["sys_pk"] required
-        @"zona" int ref:"zona" ["sys_pk"]
+        @"agente" ref:"agente"
+        @"contacto1" ref:"contacto"
+        @"contacto2" ref:"contacto"
+        @"contacto3" ref:"contacto"
+        @"domicilio1" ref:"domicilio"
+        @"domicilio2" ref:"domicilio"
+        @"domicilio3" ref:"domicilio"
+        @"idivisa" ref:"divisa" required
+        @"tipo" ref:"tipocliente" required
+        @"zona" ref:"zona"
         @"uf_sys_baja" bool
         @"uf_addenda" bool
         @"regfiscal" string(3)
-    }
-    // Catálogo de monedas o divisas
-    entity "divisa" : "TableModel"
-    {
-        @"codigo" string(5) unique required
-        @"descripcion" string(30) unique required
-        @"tcambio" decimal(18,8)
     }
     // Documentos comerciales que afectan la cuenta por cobrar de un cliente
     entity "dcxc" : "TableModel"
@@ -191,11 +349,11 @@ model "erp.cxc"
         @"aplicable" bool
         @"aplicacion" date
         @"auditado" bool
-        @"basecm" int ref:"cbcimoratorios" ["id"]
+        @"basecm" ref:"cbcimoratorios"
         @"bonificaciones" decimal(18,8)
         @"contabilizado" bool
         @"debe" decimal(18,8)
-        @"documento" int ref:"cdocumentos" ["id"] required
+        @"documento" ref:"cdocumentos" required
         @"fecha" date
         @"fultmoratorios" date
         @"haber" decimal(18,8)
@@ -214,35 +372,44 @@ model "erp.cxc"
         @"tipocambio" decimal(18,8)
         @"xaplicar" decimal(18,8)
         @"icliente" ref:"cliente" required
+        @"ifolio" ref:"foliosdocumentos"
+        @"ifolioifin" ref:"foliosdocumentos"
+        @"imovcaja" ref:"movcaja"
+        @"iventa" ref:"venta"
         @"imovcuenta" ref:"movcuenta"
+        @"fechaproxcobro" date
+        @"poracuerdopago" bool
+        @"acuerdodepago" int
     }
-    // Movimientos de una cuenta en una institución financiera
-    entity "movcuenta" : "TableModel"
-    {
-        @"aplicacion" date
-        @"auditado" bool
-        @"beneficiario" string(150)
-        @"cancelado" bool
-        @"conciliado" bool
-        @"contabilizado" bool
-        @"egreso" decimal(18,8)
-        @"fecha" date
-        @"ingreso" decimal(18,8)
-        @"notas" string(4096) required
-        @"partida" string(32)
-        @"poliza" string(32)
-        @"referencia" string(50) required
-        @"tipo" int ref:"cdocumentos" ["id"] required
-        @"icategoria" int ref:"categoria" ["sys_pk"] required
-        @"icuenta" int ref:"chequera" ["sys_pk"] required
-        @"uf_color" int
-        @"uf_fechacancelacion" datetime
 
-        index "movcuenta_id" unique
-        {
-            field "icuenta"
-            field "referencia"
-        }
+    //* ======================================== [ ... ]
+    // Detalle de cobros aplicados
+    entity "aplcxc" : "TableModel"
+    {
+        @"destino" int required
+        @"fecha" date required
+        @"importe" decimal(18,8)
+        @"aplicadoa" ref:"dcxc" required
+        @"fk_dcxc_aplicadoa" ref:"dcxc" required
+        @"uf_cfdi" string(50)
+    }
+    // Configuración de documentos por pagar
+    entity "cfg_cxp_docs"
+    {
+        @"documento" ref:"cdocumentos" key
+        @"pagable" bool     // Si es true, puede agregarse como documento por pagar al que se le pueden aplicar cargos, bonificaciones y pagos
+        @"apl_int_fin" bool // Si es true, puede usarse para aplicarse como intereses financieros
+        @"apl_int_mor" bool // si es true, puede usarse para aplicarse como intereses moratorios
+        @"apl_bonific" bool // si es true, puede usarse para aplicarse como bonificación
+        @"apl_pago" bool    // si es true, puede usarse para aplicarse como pago
+    }
+    // Configuración de documentos por pagar
+    entity "cfg_chq_docs"
+    {
+        @"documento" ref:"cdocumentos" key
+        @"depositos" bool
+        @"retiros" bool
+        @"traspasos" bool
     }
     // Información de la aplicación
     entity "sys_app_catalog"
@@ -267,20 +434,7 @@ model "erp.cxc"
         @"icon96x96" string(1024) required
         @"src" string(1024) required
         @"_blank" bool
-        @"appid" ref : "sys_app_catalog"
-        @"cat" ref :"sys_app_category"
-    }
-    // Tipo (clasificación) del cliente
-    entity "tipocliente" : "TableModel"
-    {
-        @"codigo" string(15) unique required
-        @"descripcion" string(50) unique required
-        @"notas" string(4096) 
-    }
-
-    entity "zona" : "TableModel"
-    {
-        @"nombre" string(30) unique required
-        @"notas" string(255) 
+        @"appid" ref:"sys_app_catalog"
+        @"cat" ref:"sys_app_category"
     }
 }
