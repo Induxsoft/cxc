@@ -206,6 +206,7 @@ var cliente =
                 });
                 this.elements["rd_credito_ilimitado"].addEventListener("change", (event) => {
                     this.elements["limitecredito"].type = "hidden";
+                    this.elements["limitecredito"].value = 0;
                 });
                 this.elements["rd_credito_limitado"].addEventListener("change", (event) => {
                     this.elements["limitecredito"].type = "number";

@@ -95,18 +95,18 @@ module "cte.pendientes.dk"
                 {
                     tr
                     {
-                        th{$"Saldo total"}
-                        th{$"Saldo docs"}
-                        th{$"Por aplicar"}
+                        th(class="text-center"){$"Saldo total"}
+                        th(class="text-center"){$"Saldo docs"}
+                        th(class="text-center"){$"Por aplicar"}
                     }
                 }
                 tbody
                 {
                     tr
                     {
-                        td{$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
-                        td{$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
-                        td{$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
                     }
                 }
             }
@@ -125,11 +125,11 @@ module "cte.pendientes.dk"
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Fecha"}
                         "edit-th"(type="NoEditable" field="aplicacion"){$"Vencimiento"}
-                        "edit-th"(type="NoEditable" field="haber"){$"Importe"}
-                        "edit-th"(type="NoEditable" field="int_moratorios"){$"IntMoratorios"}
-                        "edit-th"(type="NoEditable" field="bonificaciones"){$"Bonificaciones"}
-                        "edit-th"(type="NoEditable" field="pagos"){$"Pagos"}
-                        "edit-th"(type="NoEditable" field="saldo"){$"Saldo"}
+                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Importe"}
+                        "edit-th"(type="NoEditable" field="int_moratorios" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"IntMoratorios"}
+                        "edit-th"(type="NoEditable" field="bonificaciones" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Bonificaciones"}
+                        "edit-th"(type="NoEditable" field="pagos" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Pagos"}
+                        "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Saldo"}
                     }
                 }
                 /* "edit-tbody"
