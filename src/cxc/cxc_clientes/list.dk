@@ -7,16 +7,20 @@ module "list.dk"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "uielements.v12.dkl"
+    #include "dbr.apps.dkl"
+    #include "dbr.dkh"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
     ref listClientes = ifnull(@("&."),list.create())
 
+    context = to.json(@null)
+
     new table_definition
     {
         @"datatable*": listClientes
-        @"leyend": "Mostrando los primeros # clientes ordenados por código"
+        @"table_footer": "Mostrando los primeros # clientes ordenados por código"
         member @"columns"
         {
             member @"codigo" { @"caption":"Código" }
@@ -41,10 +45,28 @@ module "list.dk"
 
     #! point general_act to header_act
 
+    new nav_config
+    {
+        @"title": "Clientes"
+        member @"hidden"
+        {
+            @"print": @false
+        }
+        @"buttons*": general_act
+        @"urlexit": "/"
+        @"actions*": dbr.apps.itemactions(@('&database'),"cliente","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"cliente","report","",0)
+        //@"main": "add_cliente"
+        @"jscurrentcontext": "cliente.getCurrentContext"
+    }
+
+    //dbr.apps.itemactions(db, iditemtype, acttype, text, req)
+
     #$
     div(class="container-fluid p-0")
     {
-        #! do uie.printMainBar(general_act, "Clientes", @true, "")
+        //#! do uie.printMainBar(general_act, "Clientes", @true, "")
+        #! do uie.printV12FormBar(nav_config)
         
         #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {
@@ -76,6 +98,7 @@ module "list.dk"
                     cliente.tableId = "tbl_clientes";
                     cliente.init();
                     cliente.list.init();
+                    cliente.encode = #<context>;
                 });
             '}
         }

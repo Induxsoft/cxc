@@ -24,6 +24,12 @@ var cliente =
         window.location.href = url.replace("{_cliente}",data.sys_pk);
     },
 
+    getCurrentContext()
+    {
+        const id = (this.table?.DataArray[this.table.CurrentRowIndex()]?.sys_pk ?? "");
+        return { item_id:id, context: {} }
+    },
+
     list: {
         tbl_clientes: null,
         tEvents: {},
