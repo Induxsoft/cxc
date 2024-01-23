@@ -30,9 +30,15 @@ module "list.dk"
             member @"tipo" { @"caption":"Tipo de cliente" }
             member @"divisa" { @"caption":"Divisa" }
             member @"zona" { @"caption":"Zona" }
+            member @"_actions" 
+            { 
+                @"caption":"Acciones" 
+                @"template":'<a href="./${DataRow.sys_pk}/" class="no-print">Editar</a>'
+                @"no-print":@true
+            }
         }
     }
-
+    
     header_act::
     { 
         #$
@@ -56,7 +62,6 @@ module "list.dk"
         @"urlexit": "/"
         @"actions*": dbr.apps.itemactions(@('&database'),"cliente","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"cliente","report","",0)
-        //@"main": "add_cliente"
         @"jscurrentcontext": "cliente.getCurrentContext"
     }
 
