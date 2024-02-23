@@ -1,3 +1,3 @@
 "id","title","icon96x96","src","_blank","appid","cat"
-"cxc.documentos.list","Documentos por cobrar","/$/cxc/img/icons/documentos-96x96.png","/!/cxc/documentos/","0","cxc.documentos.v1","0020"
-"cxc.clientes.list","Clientes y CxC","/$/cxc/img/icons/clientes-96x96.png","/!/cxc/clientes/","0","cxc.clientes.v1","0020"
+"cxc.documentos","Documentos por cobrar","/$/cxc/img/icons/documentos-96x96.png","/!/cxc/documentos/","0","documentos","0020"
+"cxc.clientes","Clientes y CxC","/$/cxc/img/icons/clientes-96x96.png","/!/cxc/clientes/","0","clientes","0020"
