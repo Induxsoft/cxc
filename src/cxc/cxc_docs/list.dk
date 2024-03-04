@@ -60,11 +60,19 @@ module "list.dk"
     }
 
     #! point general_act to header_act
+
+    new nav_config
+    {
+        @"title": "Documentos por cobrar"
+        @"buttons*": general_act
+        @"urlexit": "/"
+    }
     
     #$
     div(class="container-fluid p-0")
     {
-        #! do uie.printMainBar(general_act, "Documentos por cobrar", @true, "")
+        //#! do uie.printMainBar(general_act, "Documentos por cobrar", @true, "")
+        #! do uie.printV12FormBar(nav_config)
 
         #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
         {
@@ -72,7 +80,7 @@ module "list.dk"
 
             form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
-                div(class="d-flex align-items-center")
+                div(class="d-flex align-items-center flex-wrap gap-1")
                 {
                     div
                     {
@@ -97,7 +105,7 @@ module "list.dk"
                             "custom-range"="true"
                             "form"="#form_filter"
                             "auto-submit"="true"
-                            "label-months"="Ver por cada mes"
+                            "label-months"="Por mes"
                             "label-days"="Últ. @lastdays días"
                             "label-custom"="Personalizado"
                             "label-from"="Desde:"
@@ -106,15 +114,12 @@ module "list.dk"
                         ){$""}
                     }
                 }
-                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                div(class="py-1 w-100 d-flex gap-1 flex-wrap align-items-center")
                 {
-                    div(class="d-flex gap-2")
+                    div(class="d-flex gap-2 flex-grow-1")
                     {
-                        div
-                        {
-                            #! do uie.dbSelect(def_doc) 
-                            #$
-                        }
+                        #! do uie.dbSelect(def_doc) 
+                        #$
                     }
                     div(class="flex-grow-1")
                     {
