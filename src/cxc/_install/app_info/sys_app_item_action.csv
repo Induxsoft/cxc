@@ -1,0 +1,16 @@
+"id","title","shorttitle","icon16x16","href","_blank","appid","itemtype","req_context_item_id","act_type"
+
+"GB11","Nuevo CxC","Agregar","","/!/cxc/documentos/_new/","0","cxc.documentos","docxc","0","action"
+"GB12","Consultar CxC","Consultar","","/!/cxc/documentos/@_src_context_item_id/","0","cxc.documentos","docxc","1","action"
+"GB13","Cobrar CxC","Cobrar","","/!/cxc/documentos/@_src_context_item_id/cobrar/","0","cxc.documentos","docxc","1","action"
+"GB14","Bonificar CxC","Bonificaciones","","/!/cxc/documentos/@_src_context_item_id/bonificacion/","0","cxc.documentos","docxc","1","action"
+"GB15","Aplicar intereses moratorios a CxC","Int. Moratorios","","/!/cxc/documentos/@_src_context_item_id/intmoratorios/","0","cxc.documentos","docxc","1","action"
+"GB16","Aplicar abonos de CxC","Aplicar abonos","","/!/cxc/documentos/@_src_context_item_id/aplicar/","0","cxc.documentos","docxc","1","action"
+
+"GB21","Nuevo cliente","Agregar","","/!/cxc/clientes/_new/","0","cxc.clientes","cliente","0","action"
+"GB22","Editar cliente","Editar","","/!/cxc/clientes/@_src_context_item_id/","0","cxc.clientes","cliente","1","action"
+"GB23","Estado de cuenta del cliente","Edo. Cuenta","","/!/cxc/clientes/@_src_context_item_id/balance/","0","cxc.clientes","cliente","1","action"
+"GB24","CxC del cliente","Documentos por cobrar","","/!/cxc/clientes/@_src_context_item_id/pendientes/","0","cxc.clientes","cliente","1","action"
+"GB25","Cobros por aplicar del cliente","Cobros por aplicar","","/!/cxc/clientes/@_src_context_item_id/xaplicar/","0","cxc.clientes","cliente","1","action"
+"GB26","Cobro a cliente","Cobro a cliente","","/!/cxc/clientes/@_src_context_item_id/cobrar/","0","cxc.clientes","cliente","1","action"
+"GB27","Bonificación a cliente","Bonificaciones","","/!/cxc/clientes/@_src_context_item_id/bonificacion/","0","cxc.clientes","cliente","1","action"

@@ -1,3 +1,3 @@
 "pack_id","app_id","app_title","created","app_info"
-"cxc","documentos","Documentos por cobrar",2023-12-05T23:59:59,"Administración de documentos por cobrar"
-"cxc","clientes","Clientes y cuentas por cobrar",2023-12-05T23:59:59,"Administración de cuentas por cobrar"
+"cxc","cxc.documentos","Documentos por cobrar",2023-12-05T23:59:59,"Administración de documentos por cobrar"
+"cxc","cxc.clientes","Clientes y cuentas por cobrar",2023-12-05T23:59:59,"Administración de cuentas por cobrar"
