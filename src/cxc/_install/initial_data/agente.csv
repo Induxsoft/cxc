@@ -1,2 +1,2 @@
 ﻿"Sys_PK","Sys_TimeStamp","Sys_GUID","Sys_DTCreated","Sys_User","Sys_LastUser","Sys_Exported","Sys_DTExported","Sys_Info","Codigo","CodNomina","eMail","Nombre","Notas","PComision","Telefono","Domicilio1","Uf_Sys_Baja","sys_recver","sys_deleted","sys_lock","uf_iuser"
-"1","2017-05-13 12:23:43","d56472c1380011e7914274d4358c78ac","2017-05-13 12:23:43",\N,\N,"0","2017-05-13 12:23:43",\N,"000001",\N,\N,"Agente predeterminado",\N,\N,\N,\N,"0","0","0","0","1"
+"1","2017-05-13 12:23:43","d56472c1380011e7914274d4358c78ac","2017-05-13 12:23:43",\N,\N,"0","2017-05-13 12:23:43",\N,"000001",\N,\N,"Agente predeterminado",\N,\N,\N,\N,\N,"0",\N,"0","1"
