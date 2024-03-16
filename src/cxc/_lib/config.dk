@@ -76,4 +76,7 @@ module
 	// Rutas estáticas (using include)
 	@PATH_DATE_FILTER = ""
 	@PATH_PRINT_LIST = "compras/_lib/print_list.dk"
+
+	//json
+	@REGIMEN_FISCAL="./cxc/_static/json/sat.c_RegimenFiscal.json"
 }

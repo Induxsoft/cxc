@@ -38,7 +38,8 @@ module "model"
         idivisa,
         tipo,
         zona,
-        uf_addenda
+        uf_addenda,
+        regfiscal
     FROM cliente
     WHERE #<@keyfield> = @_entity_id
     "
@@ -620,8 +621,7 @@ module "model"
         do errordet(@false)
         @use_transaction = @false
 
-        ref fieldsCliente = split("codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
-
+        ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
         chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
@@ -689,6 +689,7 @@ module "model"
         ref entity = @@(entity.create(db,params,cliente),"&cliente")
         do dbr.commit(db)
 
+        encript_url_exit=@false
         switch toupper(trim(@@(data,"$shortcut")))
         {
             case "F6"
@@ -699,6 +700,8 @@ module "model"
             case "F8"
             {
                 @url_redir = @CXC_CLIENTES
+                encript_url_exit=@true
+                if trim(@@(params,"$url_exit"))!=""{@url_redir=url_dcode(@@(params,"$url_exit"))}
                 break
             }
             case "F9"
@@ -706,6 +709,11 @@ module "model"
                 @url_redir = @CTE_AGREGAR
                 break
             }
+        }
+        
+        if trim(@@(params,"$url_exit"))!="" && @url_redir!="" && not(encript_url_exit)
+        {
+            @url_redir=@url_redir + ifstr(contains(@url_redir,"?"),"&","?")+"url_exit="+ifstr(encript_url_exit,url_encode(@@(params,"$url_exit")),@@(params,"$url_exit"))
         }
 
         exception
@@ -729,7 +737,7 @@ module "model"
         do errordet(@false)
         @use_transaction = @false
 
-        ref fieldsCliente = split("codcuenta,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
+        ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
 
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
@@ -812,23 +820,32 @@ module "model"
         ref entity = @@(entity.update(db,params,cliente),"&cliente")
         do dbr.commit(db)
 
+        encript_url_exit=@false
         switch toupper(trim(@@(data,"$shortcut")))
         {
-            case "F6"
+            case "F6" //guardar
             {
                 @url_redir = replace(@CTE_CONSULTAR,"{_cliente}",@@(entity,"$sys_pk"))
+                
                 break
             }
-            case "F8"
+            case "F8" //guardar y salir
             {
                 @url_redir = @CXC_CLIENTES
+                encript_url_exit=@true
+                if trim(@@(params,"$url_exit"))!=""{@url_redir=url_dcode(@@(params,"$url_exit"))}
                 break
             }
-            case "F9"
+            case "F9" //guardar y nuevo
             {
                 @url_redir = @CTE_AGREGAR
                 break
             }
+        }
+
+        if trim(@@(params,"$url_exit"))!="" && @url_redir!="" && not(encript_url_exit)
+        {
+            @url_redir=@url_redir + ifstr(contains(@url_redir,"?"),"&","?")+"url_exit="+ifstr(encript_url_exit,url_encode(@@(params,"$url_exit")),@@(params,"$url_exit"))
         }
 
         exception

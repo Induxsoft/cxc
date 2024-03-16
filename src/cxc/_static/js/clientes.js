@@ -142,6 +142,7 @@ var cliente =
         {
             this.formCliente = document.getElementById("form_cliente");
             this.btnSave = document.getElementById("btn_save");
+            this.btn_reload_regimens=document.getElementById("reload_regimens");
             this.setEvents();
             this.setKeyboardShortcuts();
         },
@@ -237,6 +238,16 @@ var cliente =
                         this.setContacto(ikContacto3,contacto3);
                     }
                 }
+                this.elements["txt_rfc"].addEventListener("change",()=>
+                {
+                    this.FilterRegimenFiscal();
+                }); 
+                this.elements["txt_rfc"].addEventListener("blur",()=>
+                {
+                    this.FilterRegimenFiscal();
+                });
+                this.FilterRegimenFiscal();
+                if(this.btn_reload_regimens)this.btn_reload_regimens.addEventListener("click",()=>{this.FilterRegimenFiscal();});
             }
         },
 
@@ -306,7 +317,30 @@ var cliente =
             let onFailure = (error) => { console.error(error) }
             InduxsoftCrudlModel.InvokeService(url,null,onSuccess,onFailure,"GET",false,false);
         },
+        FilterRegimenFiscal()
+        {
+            var txt_rfc=this.elements["txt_rfc"];
+            if(!txt_rfc) return;
 
+            var select_regimen=this.elements["regfiscal"];
+            if(!select_regimen)return;
+            
+            var html="";
+
+            if(txt_rfc.value.trim()==""){select_regimen.innerHTML=html;return;}
+            
+            for (let i = 0; i < this.regimenes.length; i++) 
+            {
+                const regimen = this.regimenes[i];
+                var options=false;
+                
+                if(txt_rfc.value.trim().length<13 && (regimen.moral??"").toLowerCase().includes("s")){options=true;}
+                else if(txt_rfc.value.trim().length>12 && (regimen.fisica??"").toLowerCase().includes("s")){options=true;}
+
+                if(options)html+=`<option value="${regimen.clave}" ${regimen.clave==this.regimen_selected?"selected":""}="true">${regimen.clave+" - "+regimen.valor}</option>`;;
+            }
+            select_regimen.innerHTML=html;
+        },
         fillCiudades(ref,out){
             let url = this.url_buscar_ciudad.replace("search","iestado");
             url = InduxsoftCrudlModel.UrlReplace(url,{iestado:ref.value});

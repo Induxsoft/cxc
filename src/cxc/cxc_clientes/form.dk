@@ -208,21 +208,25 @@ module "form.dk"
     form_title = "Nuevo cliente"
     if @("$parameters/_entity_id") != "_new" { form_title = "Editar cliente" }
     
+    url_exit=@CXC_CLIENTES
+    if @("$parameters/url_exit") != ""{url_exit=url_dcode(@("$parameters/url_exit"))} 
+
+    ref data_regimen=list.create()
+    if file.exists(@REGIMEN_FISCAL){ref data_regimen=from.json(file.rtext(@REGIMEN_FISCAL))}
+    
     #$
     div(class="container")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
-
-        
 
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
         {
             div(class="col-4 d-flex align-items-center p-0") { h5(class="tex-no-break m-0"){$"#<form_title>"} }
             div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
             {
-                a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
+                a(href="./?url_exit=#<@('$parameters/url_exit')>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
                 button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
-                a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
+                a(href="#<url_exit>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
             }
         }
 
@@ -239,7 +243,7 @@ module "form.dk"
                 }
             }
 
-            form(class="" action="./" method="POST" id="form_cliente")
+            form(class="" action="./?url_exit=#<@('$parameters/url_exit')>" method="POST" id="form_cliente")
             {
                 input(type="hidden" name="sys_pk" value="#<@@(cliente,'#sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@@(cliente,'#sys_recver')>")
@@ -271,7 +275,7 @@ module "form.dk"
                     cliente.form.url_buscar_edoprov = "#<@CXC_BUSCAR_EDOPROV>";
                     cliente.form.url_buscar_ciudad = "#<@CXC_BUSCAR_CIUDAD>";
                     cliente.form.url_buscar_contacto = "#<@CXC_BUSCAR_CONTACTO>";
-                    cliente.form.CXC_CLIENTES = "#<@CXC_CLIENTES>";
+                    cliente.form.CXC_CLIENTES = "#<url_exit>";
                     cliente.form.CTE_AGREGAR = "#<@CTE_AGREGAR>";
                     cliente.form.ipais = #<@IPAIS>;
                     cliente.form.iestado = #<@IESTADO>;
@@ -282,6 +286,8 @@ module "form.dk"
                     cliente.form.domicilio1 = #<to.json(domicilio1)> ?? {};
                     cliente.form.domicilio2 = #<to.json(domicilio2)> ?? {};
                     cliente.form.domicilio3 = #<to.json(domicilio3)> ?? {};
+                    cliente.form.regimenes=#<to.json(data_regimen)> ?? [];
+                    cliente.form.regimen_selected="#<@("$./cliente/regfiscal")>";
                     cliente.form.init();
                 });
             '}
