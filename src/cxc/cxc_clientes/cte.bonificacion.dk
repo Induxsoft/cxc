@@ -58,7 +58,7 @@ module "cte.bonificacion.dk"
                 {
                     div(class="row d-flex justify-content-end align-items-center")
                     {
-                        label(class="col-auto col-form-label"){$"Proveedor:"}
+                        label(class="col-auto col-form-label"){$"Cliente:"}
                         div(class="col-6") {
                             $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
                         }
@@ -113,7 +113,17 @@ module "cte.bonificacion.dk"
                         label(class="col-auto col-form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                         div(class="col-6") {
                             div(class="input-group") {
-                                input(type="number" class="form-control rounded-0" name="tcambio" min="1" step="0.000001" id="txt_tcambio" value="#<form('tcambio','nm',cliente)>" required="true")
+                                input(
+                                    class="form-control rounded-0 induxsoft-num-field mw-100"
+                                    type="number"
+                                    name="tcambio"
+                                    value="#<form('tcambio','nm',cliente)>"
+                                    min="1"
+                                    step="0.000001"
+                                    id="txt_tcambio"
+                                    required="true"
+                                    "num-decs"="6"
+                                )
                                 span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(cliente,'$divisa')>"}
                             }
                         }
@@ -124,7 +134,16 @@ module "cte.bonificacion.dk"
                         label(class="col-auto col-form-label" "for"="txt_importe"){$"Importe:"}
                         div(class="col-6") {
                             div(class="input-group") {
-                                input(type="number" class="form-control rounded-0" name="importe" min="1" step="0.000001" id="txt_importe" value="#<form('importe','nm',@null)>")
+                                input(
+                                    class="form-control rounded-0 induxsoft-num-field mw-100"
+                                    type="number"
+                                    name="importe"
+                                    value="#<form('importe','nm',@null)>"
+                                    min="1"
+                                    step="0.000001"
+                                    id="txt_importe"
+                                    "num-decs"="6"
+                                )
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }
                         }
@@ -135,7 +154,13 @@ module "cte.bonificacion.dk"
                         label(class="col-auto col-form-label" "for"="txt_notas"){$"Notas:"}
                         div(class="col-6") {
                             textarea(class="form-control rounded-0" name="notas" id="txt_notas" required="true")
-                            { $"#<form('notas','tx',@null)>" }
+                            {
+                                #!
+                                concepto = form('notas','tx',@null)
+                                if concepto == "" { concepto = "Bonificación a: [" + @@(cliente,'$codigo') + "] " + @@(cliente,'$nombre') }
+                                #$
+                                $"#<concepto>"
+                            }
                         }
                     }
                 }
@@ -151,6 +176,7 @@ module "cte.bonificacion.dk"
             {$'
                 document.addEventListener("DOMContentLoaded", () => {
                     cliente.bonificacion.init();
+                    InduxsoftNumberFields.Init();
                 });
             '}
         }

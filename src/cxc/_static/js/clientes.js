@@ -406,7 +406,7 @@ var cliente =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { cliente.trigger(this.formCobro,"submit") }); }
             if (this.formCobro) {
                 this.elements = this.formCobro.elements;
 
@@ -538,11 +538,6 @@ var cliente =
             div_importe_dep.classList.toggle("d-none",hide_importe_dep);
             div_tcambio_cte.classList.toggle("d-none",hide_tcambio_cte);
         },
-
-        saveForm(){
-            if (!this.formCobro.reportValidity()) return;
-            this.formCobro.submit();
-        },
     },
 
     bonificacion: {
@@ -559,13 +554,8 @@ var cliente =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { cliente.trigger(this.formBonificacion,"submit") }); }
             if (this.formBonificacion) { this.elements = this.formBonificacion.elements; }
-        },
-
-        saveForm(){
-            if (!this.formBonificacion.reportValidity()) return;
-            this.formBonificacion.submit();
         },
     },
 }

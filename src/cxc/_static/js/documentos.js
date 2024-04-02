@@ -51,7 +51,7 @@ var documento =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { documento.trigger(this.form,"submit") }); }
             if (this.form) {
                 this.elements = this.form.elements;
 
@@ -64,11 +64,6 @@ var documento =
                     txt_tcambio.value = data.tcambio;
                 });
             }
-        },
-
-        saveForm(){
-            if (!this.form.reportValidity()) return;
-            this.form.submit();
         },
     },
 
@@ -88,7 +83,7 @@ var documento =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { documento.trigger(this.formCobro,"submit") }); }
             if (this.formCobro) {
                 this.elements = this.formCobro.elements;
 
@@ -228,11 +223,6 @@ var documento =
             div_importe_dep.classList.toggle("d-none",hide_importe_dep);
             div_tcambio_cte.classList.toggle("d-none",hide_tcambio_cte);
         },
-
-        saveForm(){
-            if (!this.formCobro.reportValidity()) return;
-            this.formCobro.submit();
-        },
     },
 
     bonificacion: {
@@ -251,7 +241,7 @@ var documento =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { documento.trigger(this.formBonificacion,"submit") }); }
             if (this.formBonificacion) {
                 this.elements = this.formBonificacion.elements;
 
@@ -262,11 +252,6 @@ var documento =
                     this.elements["txt_nuevo_saldo"].value = Math.sub(saldo,importe);
                 });
             }
-        },
-
-        saveForm(){
-            if (!this.formBonificacion.reportValidity()) return;
-            this.formBonificacion.submit();
         },
     },
 
@@ -286,7 +271,7 @@ var documento =
 
         setEvents()
         {
-            if (this.btnSave) { this.btnSave.addEventListener("click", () => { this.saveForm(); }); }
+            if (this.btnSave) { this.btnSave.addEventListener("click", () => { documento.trigger(this.formIntMor,"submit") }); }
             if (this.formIntMor) {
                 this.elements = this.formIntMor.elements;
 
@@ -297,11 +282,6 @@ var documento =
                     this.elements["txt_nuevo_saldo"].value = Math.add(saldo,importe);
                 });
             }
-        },
-
-        saveForm(){
-            if (!this.formIntMor.reportValidity()) return;
-            this.formIntMor.submit();
         },
     },
 }
