@@ -38,6 +38,7 @@ module
 
 	//* ======================================== [ _PACKAGE ]
 	@CXC_MENU = "/!/cxc/"
+	@BATCH_TASKMAN="/!/batch/taskman/"
 
 	//#region services
 	@CXC_BUSCAR_CLIENTE = "/!/cxc/clientes/?_view=buscar-cliente&search=@search"

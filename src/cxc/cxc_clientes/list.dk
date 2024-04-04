@@ -4,11 +4,12 @@ module "list.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "../_lib/icons.dk"
-    #include "../_lib/config.dk"
-    #include "uielements.v12.dkl"
-    #include "dbr.apps.dkl"
     #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/icons.dk"
+    #include "../_lib/lib.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -40,12 +41,25 @@ module "list.dk"
     }
     
     header_act::
-    { 
+    {
+        jg = dbr.num(@("&database"),"SELECT sys_pk FROM jobsgroup WHERE name = 'CXC'",@null)
+
+        #! if AppExist(@("&database"),"batch") {
+            #$
+            a(href="#<@BATCH_TASKMAN>#<jg>/importar.cliente?exit_url_encode=#<url_encode(@CXC_CLIENTES)>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Importar clientes") {
+                $"#<@ICON_FILE_CSV>"
+            }
+        }
+
         #$
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
+
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
+
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
+
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
+
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
     }
 

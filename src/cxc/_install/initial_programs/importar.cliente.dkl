@@ -1,0 +1,135 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "batch.v12.dkl"
+
+    ref db = @@(@batch_context,"&database")
+    ref @batchDB = db
+
+    token = @@(@batch_context,"$job/token")
+    steps = @@(@batch_context,"#job/steps")
+    data_file = @@(@batch_context,"$params/archivo")
+
+    if (right(data_file,4) != ".csv") {
+        do file.delete(data_file)
+        do batch.saveLog(token,"Extensión incorrecta del archivo, se esperaba un .csv")
+        return
+    }
+
+    ref lib_csv = _import_library("devkron.serialize.csv.dll")
+    do _map_function(lib_csv,"devkron.serialize.csv.csvHelper","CsvRead","CsvRead","System.String,System.String","*")
+
+    query1 = "SELECT codigo FROM cliente WHERE codigo = @codigo"
+    query2 = "SELECT codigo FROM cliente WHERE nombre = @nombre"
+    query3 = "SELECT sys_pk FROM divisa WHERE codigo = @divisa"
+    query4 = "SELECT sys_pk FROM tipocliente WHERE codigo = @codigo"
+    query5 = "SELECT sys_pk FROM ciudad WHERE nombre = @ciudad"
+    query6 = "SELECT sys_pk FROM domicilio WHERE sys_guid = @sys_guid"
+    query7 = "
+        INSERT INTO domicilio
+        (iciudad, direccion, codpos, sys_guid, sys_dtcreated, sys_timestamp)
+        VALUES (@iciudad, @direccion, @cp, @sys_guid, @sys_dtcreated, @sys_timestamp)
+    "
+    query8 = "
+        INSERT INTO cliente
+        (codigo, nombre, idivisa, tipo, domicilio1, rfc, telefonos, email, website, sys_guid, sys_dtcreated, sys_timestamp)
+        VALUES (@codigo, @nombre, @idivisa, @tipo, @domicilio1, @rfc, @telefono, @email, @website, @sys_guid, @sys_dtcreated, @sys_timestamp)
+    "
+    query9 = "
+        UPDATE cliente
+        SET nombre = @nombre, idivisa = @idivisa, tipo = @tipo, rfc = @rfc, telefonos = @telefonos, email = @email, website = @website
+        WHERE codigo = @codigo
+    "
+
+    if file.exists(data_file) {
+        ref data = CsvRead(data_file,"")
+        do file.delete(data_file)
+
+        list_size = @count(data)
+        contador = 0
+        progreso = 0
+        div = (list_size/steps)
+        
+        for i=0; i<list_size {
+            ref itm = record.caseinsensitive(@item(data,i))
+
+            codigo = length(@@(itm,"codigo"))
+            nombre = length(@@(itm,"nombre"))
+            divisa = length(@@(itm,"divisa"))
+            tipo = length(@@(itm,"tipo"))
+            ciudad = length(@@(itm,"ciudad"))
+            direccion = length(@@(itm,"direccion"))
+            cp = length(@@(itm,"cp"))
+            rfc = length(@@(itm,"rfc"))
+            tel = length(@@(itm,"tel"))
+            email = length(@@(itm,"email"))
+            website = length(@@(itm,"website"))
+
+            if ((codigo < 1 || codigo > 35) || (nombre < 1 || nombre > 150)) {
+                log = "Error al insertar el registro con codigo = '" + @@(itm,"codigo") + "' y nombre = '" + @@(itm,"nombre") + "'"
+                do batch.saveLog(token,log)
+            } else {
+                id_divisa = dbr.str(db,query3,itm)
+
+                if (id_divisa != "") {
+                    itm<"idivisa">: id_divisa
+                    id_tipo = dbr.str(db,query4,itm)
+
+                    if (id_tipo != "") {
+                        itm<"tipo">: id_tipo
+                        id_ciudad = dbr.str(db,query5,itm)
+
+                        if (id_ciudad != "") {
+                            itm<"iciudad">: id_ciudad
+                            duplicated =  dbr.str(db,query1,itm)
+                            nombre_duplicated = dbr.str(db,query2,itm)
+
+                            if (nombre_duplicated == @@(itm,"codigo")) {
+                                if (duplicated != "") {
+                                    do dbr.execute(db,query9,itm)
+                                } else {
+                                    itm<"sys_guid">: uuid()
+                                    itm<"sys_dtcreated*">: now()
+                                    itm<"sys_timestamp*">: now()
+
+                                    do dbr.execute(db,query7,itm)
+
+                                    id_domicilio = dbr.str(db,query6,itm)
+                                    itm<"direccion">: id_domicilio
+
+                                    do dbr.execute(db,query8,itm)
+                                }
+                            } else {
+                                do batch.saveLog(token,"No se pudo insertar-actualizar el registro. Ya existe una marca con descripcion = '" + @@(itm,"descripcion") + "'")
+                            }
+                        } else {
+                            do batch.saveLog(token,"Error al insertar el registro. No existe una ciudad = '" + @@(itm,"ciudad") + "' con ese valor.")
+                        }
+                    } else {
+                        do batch.saveLog(token,"Error al insertar el registro. No existe un tipo = '" + @@(itm,"tipo") + "' con ese valor.")
+                    }
+                } else {
+                    do batch.saveLog(token,"Error al insertar el registro. No existe una divisa = '" + @@(itm,"divisa") + "' con ese valor.")
+                }
+            }
+
+            contador = contador + 1
+
+            if (contador >= div) {
+                contador = contador - div
+                progreso = progreso + steps
+                do batch.saveLog(token,"En proceso... " + str(progreso) + "%")
+            }
+        }
+
+        exception 
+        {
+            do file.delete(data_file)
+            do batch.saveLog(token,last_error())
+        }
+    }
+}
