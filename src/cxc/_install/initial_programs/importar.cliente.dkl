@@ -37,11 +37,11 @@ program
     query8 = "
         INSERT INTO cliente
         (codigo, nombre, idivisa, tipo, domicilio1, rfc, telefonos, email, website, sys_guid, sys_dtcreated, sys_timestamp)
-        VALUES (@codigo, @nombre, @idivisa, @tipo, @domicilio1, @rfc, @telefono, @email, @website, @sys_guid, @sys_dtcreated, @sys_timestamp)
+        VALUES (@codigo, @nombre, @idivisa, @tipo, @direccion, @rfc, @telefono, @email, @website, @sys_guid, @sys_dtcreated, @sys_timestamp)
     "
     query9 = "
         UPDATE cliente
-        SET nombre = @nombre, idivisa = @idivisa, tipo = @tipo, rfc = @rfc, telefonos = @telefonos, email = @email, website = @website
+        SET nombre = @nombre, idivisa = @idivisa, tipo = @tipo, rfc = @rfc, telefonos = @telefono, email = @email, website = @website
         WHERE codigo = @codigo
     "
 
@@ -65,13 +65,32 @@ program
             direccion = length(@@(itm,"direccion"))
             cp = length(@@(itm,"cp"))
             rfc = length(@@(itm,"rfc"))
-            tel = length(@@(itm,"tel"))
+            tel = length(@@(itm,"telefono"))
             email = length(@@(itm,"email"))
             website = length(@@(itm,"website"))
 
-            if ((codigo < 1 || codigo > 35) || (nombre < 1 || nombre > 150)) {
-                log = "Error al insertar el registro con codigo = '" + @@(itm,"codigo") + "' y nombre = '" + @@(itm,"nombre") + "'"
-                do batch.saveLog(token,log)
+            if (codigo < 1 || codigo > 5) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El código (" + @@(itm,"codigo") + ") debe ser de máximo 5 caracteres.")
+            } else if (nombre < 1 || nombre > 150) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El nombre (" + @@(itm,"nombre") + ") debe ser de máximo 150 caracteres.")
+            } else if (divisa < 1 || divisa > 11) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. La divisa (" + @@(itm,"divisa") + ") debe ser de máximo 11 caracteres.")
+            } else if (tipo < 1 || tipo > 11) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El tipo (" + @@(itm,"tipo") + ") debe ser de máximo 11 caracteres.")
+            } else if (ciudad < 1 || ciudad > 100) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. La ciudad (" + @@(itm,"ciudad") + ") debe ser de máximo 100 caracteres.")
+            } else if (direccion < 1 || direccion > 1024) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. La dirección (" + @@(itm,"direccion") + ") debe ser de máximo 1024 caracteres.")
+            } else if (cp < 1 || cp > 10) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El CP (" + @@(itm,"cp") + ") debe ser de máximo 10 caracteres.")
+            } else if (rfc < 1 || rfc > 15) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El RFC (" + @@(itm,"ciudad") + ") debe ser de máximo 15 caracteres.")
+            } else if (tel < 1 || tel > 150) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El teléfono (" + @@(itm,"telefono") + ") debe ser de máximo 150 caracteres.")
+            } else if (email < 1 || email > 80) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El email (" + @@(itm,"email") + ") debe ser de máximo 80 caracteres.")
+            } else if (website < 1 || website > 150) {
+                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El website (" + @@(itm,"website") + ") debe ser de máximo 150 caracteres.")
             } else {
                 id_divisa = dbr.str(db,query3,itm)
 
@@ -88,7 +107,7 @@ program
                             duplicated =  dbr.str(db,query1,itm)
                             nombre_duplicated = dbr.str(db,query2,itm)
 
-                            if (nombre_duplicated == @@(itm,"codigo")) {
+                            if (nombre_duplicated == @@(itm,"codigo") || nombre_duplicated == "") {
                                 if (duplicated != "") {
                                     do dbr.execute(db,query9,itm)
                                 } else {
@@ -104,16 +123,16 @@ program
                                     do dbr.execute(db,query8,itm)
                                 }
                             } else {
-                                do batch.saveLog(token,"No se pudo insertar-actualizar el registro. Ya existe una marca con descripcion = '" + @@(itm,"descripcion") + "'")
+                                do batch.saveLog(token,"No se pudo insertar/actualizar el registro. Ya existe un cliente con nombre = '" + @@(itm,"nombre") + "'")
                             }
                         } else {
-                            do batch.saveLog(token,"Error al insertar el registro. No existe una ciudad = '" + @@(itm,"ciudad") + "' con ese valor.")
+                            do batch.saveLog(token,"No se pudo insertar/actualizar el registro. No existe una ciudad (" + @@(itm,"ciudad") + ") con ese valor.")
                         }
                     } else {
-                        do batch.saveLog(token,"Error al insertar el registro. No existe un tipo = '" + @@(itm,"tipo") + "' con ese valor.")
+                        do batch.saveLog(token,"No se pudo insertar/actualizar el registro. No existe un tipo (" + @@(itm,"tipo") + ") con ese valor.")
                     }
                 } else {
-                    do batch.saveLog(token,"Error al insertar el registro. No existe una divisa = '" + @@(itm,"divisa") + "' con ese valor.")
+                    do batch.saveLog(token,"No se pudo insertar/actualizar el registro. No existe una divisa (" + @@(itm,"divisa") + ") con ese valor.")
                 }
             }
 
