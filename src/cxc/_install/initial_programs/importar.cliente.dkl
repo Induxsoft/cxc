@@ -145,6 +145,10 @@ program
             }
         }
 
+        if (list_size < steps) {
+            do batch.saveLog(token,"En proceso... 100%")
+        }
+
         exception 
         {
             do file.delete(data_file)
