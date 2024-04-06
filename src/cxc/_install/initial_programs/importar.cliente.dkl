@@ -114,6 +114,7 @@ program
                                     itm<"sys_guid">: uuid()
                                     itm<"sys_dtcreated*">: now()
                                     itm<"sys_timestamp*">: now()
+                                    itm<"direccion">: "||" + @@(itm,"direccion") + "|||"
 
                                     do dbr.execute(db,query7,itm)
 
