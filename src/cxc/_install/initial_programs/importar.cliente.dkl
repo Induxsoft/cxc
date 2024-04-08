@@ -31,13 +31,13 @@ program
     query6 = "SELECT sys_pk FROM domicilio WHERE sys_guid = @sys_guid"
     query7 = "
         INSERT INTO domicilio
-        (iciudad, direccion, codpos, sys_guid, sys_dtcreated, sys_timestamp)
-        VALUES (@iciudad, @direccion, @cp, @sys_guid, @sys_dtcreated, @sys_timestamp)
+        (iciudad, direccion, codpos, sys_guid, sys_dtcreated, sys_timestamp, sys_recver)
+        VALUES (@iciudad, @direccion, @cp, @sys_guid, @sys_dtcreated, @sys_timestamp, @sys_recver)
     "
     query8 = "
         INSERT INTO cliente
-        (codigo, nombre, idivisa, tipo, domicilio1, rfc, telefonos, email, website, sys_guid, sys_dtcreated, sys_timestamp)
-        VALUES (@codigo, @nombre, @idivisa, @tipo, @direccion, @rfc, @telefono, @email, @website, @sys_guid, @sys_dtcreated, @sys_timestamp)
+        (codigo, nombre, idivisa, tipo, domicilio1, rfc, telefonos, email, website, sys_guid, sys_dtcreated, sys_timestamp, sys_recver)
+        VALUES (@codigo, @nombre, @idivisa, @tipo, @direccion, @rfc, @telefono, @email, @website, @sys_guid, @sys_dtcreated, @sys_timestamp, @sys_recver)
     "
     query9 = "
         UPDATE cliente
@@ -126,6 +126,7 @@ program
                                     itm<"sys_guid">: uuid()
                                     itm<"sys_dtcreated*">: now()
                                     itm<"sys_timestamp*">: now()
+                                    itm<"sys_recver">: 0
 
                                     do dbr.execute(db,query7,itm)
 
