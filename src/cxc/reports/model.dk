@@ -17,7 +17,7 @@ module "Reportes de Cuentas por Cobrar"
             z.rfc,
             z.telefonos,
             cdocumentos.const AS documento,
-            DATEDIFF(ifnull(@fil_fcorte,now()), dcxc.aplicacion) AS dias,
+            DATEDIFF(@fil_fcorte, dcxc.aplicacion) AS dias,
             (dcxc.debe + dcxc.intmoratorios - dcxc.bonificaciones - dcxc.pagos) AS saldo
         FROM
             (
@@ -35,6 +35,7 @@ module "Reportes de Cuentas por Cobrar"
         "
 
         conditions = ""
+        if not(field.exist(params,"fil_fcorte")) { params<"fil_fcorte"> : hoy("yyyy-MM-dd") }
         if replace(@@(params,"$fil_tipo"),"*","") != "" { conditions = conditions + " AND z.tipo = @fil_tipo" }
 
         new data

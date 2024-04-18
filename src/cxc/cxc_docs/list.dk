@@ -4,6 +4,8 @@ module "list.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "uielements.v12.dkl"
@@ -49,23 +51,26 @@ module "list.dk"
         }
     }
 
-    header_act::
-    { 
-        #$ a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
-        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_CONSULTAR>')"){"Consultar"}
-        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
-        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
-        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_INTMORATORIOS>')"){$"Int. Moratorios"}
-        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
-    }
-
-    #! point general_act to header_act
+    // header_act::
+    // {
+    //     #$ a(href="#<@DOC_AGREGAR>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){$"Agregar"}
+    //     button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_CONSULTAR>')"){"Consultar"}
+    //     button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_COBROS>')"){$"Cobrar documento"}
+    //     button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_BONIFICACIONES>')"){$"Bonificaciones"}
+    //     button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_INTMORATORIOS>')"){$"Int. Moratorios"}
+    //     button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="documento.goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar abonos"}
+    // }
+    // #! point general_act to header_act
 
     new nav_config
     {
         @"title": "Documentos por cobrar"
-        @"buttons*": general_act
+        @"buttons*": @null //general_act
         @"urlexit": "/"
+        @"main": "GB11,GB12,GB13,GB16"
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
+        @"jscurrentcontext": "documento.getCurrentContext"
     }
     
     #$

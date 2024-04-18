@@ -33,6 +33,12 @@ var documento =
         window.location.href = url.replace("{_documento}",data.sys_pk);
     },
 
+    getCurrentContext()
+    {
+        const id = (this.table?.DataArray[this.table.CurrentRowIndex()]?.sys_pk ?? "");
+        return { item_id:id, context: {} }
+    },
+
     list: {},
 
     form: {},
