@@ -40,26 +40,25 @@ module "list.dk"
         }
     }
     
-    header_act::
-    {
-        jg = dbr.num(@("&database"),"SELECT sys_pk FROM jobsgroup WHERE name = 'CXC'",@null)
+    // header_act::
+    // {
+    //     if AppExist(@("&database"),"batch") {
+    //         ref act = dbr.apps.itemaction.get(@("&database"),"GB28")
+    //         url_act = path.concat(@@(act,"$href"),"?exit_url_encode="+url_encode(@CXC_CLIENTES))
+            
+    //         #$
+    //         a(href="#<url_act>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Importar clientes"){$"Importar"}
+    //     }
 
-        #! if AppExist(@("&database"),"batch") {
-            #$
-            a(href="#<@BATCH_TASKMAN>#<jg>/importar.cliente?exit_url_encode=#<url_encode(@CXC_CLIENTES)>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Importar clientes") {
-                $"#<@ICON_FILE_CSV>"
-            }
-        }
-
-        // #$
-        // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
-        // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
-        // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
-        // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
-        // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
-    }
-
-    #! point general_act to header_act
+    //     // #$
+    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
+    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
+    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
+    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
+    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
+    //     // #!
+    // }
+    // point general_act to header_act
 
     new nav_config
     {
@@ -68,9 +67,9 @@ module "list.dk"
         {
             @"print": @false
         }
-        @"buttons*": general_act
+        @"buttons*": @null
         @"urlexit": "/"
-        @"main": "GB21,GB22,GB23,GB24,GB25,GB26,GB27"
+        @"main": "GB28,GB21,GB22,GB23,GB24,GB25,GB26,GB27"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET014","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET014","report","",0)
         @"jscurrentcontext": "cliente.getCurrentContext"
