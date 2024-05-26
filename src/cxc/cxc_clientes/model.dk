@@ -337,6 +337,8 @@ module "model"
 
     cte.obtenerBalance::&db,&params
     {
+        do dbr.apps.action.grant("GB23")
+
         // sql = "
         // SELECT
         //     cxc.sys_pk,
@@ -384,10 +386,21 @@ module "model"
         data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cte.obtenerDocsPorCobrar::&db,&params
     {
+        do dbr.apps.action.grant("GB24")
+
         // sql = "
         // SELECT
         //     cxc.sys_pk,
@@ -440,10 +453,21 @@ module "model"
         data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cte.obtenerCobrosPorAplicar::&db,&params
     {
+        do dbr.apps.action.grant("GB25")
+
         // sql = "
         // SELECT
         //     cxc.sys_pk,
@@ -492,16 +516,35 @@ module "model"
         data<"docs*"> : dbr.list(db,ftext(sql),params)
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
     
     cte.cobrarCliente::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB26")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.cobrarCliente(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_CLIENTES
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -512,26 +555,42 @@ module "model"
             data<"form*"> : formData
             
             do cte.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     cte.bonificarCliente::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB27")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.bonificarCliente(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_CLIENTES
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            do errordet(@false)
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            code = last_error_code()
+            error = last_error()
             do cte.prepareView(db,params,data)
-            do rise_error(last_error_code(),last_error())
+            do dbr.apps.action.log()
+            do rise_error(code,error)
         }
     }
 
     cte.list::&db,&params
     {
+        do dbr.apps.action.grant("GB20")
+
         buscar = trim(@@(params,"$buscar"))
         tipo = trim(@@(params,"$tipo"))
         
@@ -571,20 +630,51 @@ module "model"
         }
     
         return dbr.list(db,sql,params)
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cte.read::&db,&params
     {
+        do dbr.apps.action.grant("GB20")
+
         new data {}
         do cte.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cte.blank::&db,&params
     {
+        do dbr.apps.action.grant("GB20")
+
         new data {}
         do cte.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cleanFormData::&fields,&data,&output
@@ -618,7 +708,6 @@ module "model"
 
     cte.create::&db,&params,&data
     {
-        do errordet(@false)
         @use_transaction = @false
 
         ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
@@ -635,7 +724,9 @@ module "model"
         do cleanFormData(fieldsCliente,data,cliente)
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
+        do dbr.apps.action.pre("GB21")
         do dbr.begin(db)
+
         // Datos de domicilios
         if chq_domicilio1
         {
@@ -687,7 +778,10 @@ module "model"
         }
 
         ref entity = @@(entity.create(db,params,cliente),"&cliente")
+        
+        do dbr.apps.action.pos(entity)
         do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
 
         encript_url_exit=@false
         switch toupper(trim(@@(data,"$shortcut")))
@@ -718,6 +812,7 @@ module "model"
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -728,13 +823,13 @@ module "model"
             data<"form*"> : formData
             
             do cte.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     cte.update::&db,&params,&data
     {
-        do errordet(@false)
         @use_transaction = @false
 
         ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
@@ -757,7 +852,9 @@ module "model"
         do cleanFormData(fieldsCliente,data,cliente)
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
+        do dbr.apps.action.pre("GB22")
         do dbr.begin(db)
+
         // Datos de domicilios
         if chq_domicilio1
         {
@@ -818,7 +915,10 @@ module "model"
         }
 
         ref entity = @@(entity.update(db,params,cliente),"&cliente")
+        
+        do dbr.apps.action.pos(entity)
         do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
 
         encript_url_exit=@false
         switch toupper(trim(@@(data,"$shortcut")))
@@ -850,6 +950,7 @@ module "model"
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -860,6 +961,7 @@ module "model"
             data<"form*"> : formData
             
             do cte.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }

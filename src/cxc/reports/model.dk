@@ -4,6 +4,8 @@ module "Reportes de Cuentas por Cobrar"
 {
     antiguedadSaldos::&db,&params
     {
+        do dbr.apps.action.grant("GB30")
+
         sql_tiposcliente = "SELECT sys_pk, descripcion FROM tipocliente WHERE NOT IFNULL(sys_deleted,0)"
 
         sql_antiguedad_saldo = "
@@ -45,5 +47,14 @@ module "Reportes de Cuentas por Cobrar"
         }
 
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 }

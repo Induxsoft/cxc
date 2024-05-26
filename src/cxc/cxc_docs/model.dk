@@ -120,12 +120,22 @@ module "model"
 
     cxc.crearDocumento::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB11")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.crearCxC(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -136,18 +146,29 @@ module "model"
             data<"form*"> : formData
             
             do cxc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     cxc.cobrarDocumento::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB13")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.cobrarCxC(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -158,18 +179,29 @@ module "model"
             data<"form*"> : formData
             
             do cxc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     cxc.aplicarBonificacion::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB14")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.bonificarCxC(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -180,18 +212,29 @@ module "model"
             data<"form*"> : formData
             
             do cxc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
 
     cxc.aplicarIntMoratorios::&db,&params,&data
     {
-        do errordet(@false)
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB15")
+        do dbr.begin(db)
+
         do erp.cxc.movimientos.aplicarIntMor(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
         @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
+            do errordet(@false)
             if dbr.in_transaction(db) { do dbr.rollback(db) }
 
             ref formData = record.copy(data,"*")
@@ -202,6 +245,7 @@ module "model"
             data<"form*"> : formData
             
             do cxc.prepareView(db,params,data)
+            do dbr.apps.action.log()
             do rise_error(code,error)
         }
     }
@@ -268,6 +312,11 @@ module "model"
 
     cxc.aplicarCobros::&db,&params,&data
     {
+        @use_transaction = @false
+
+        do dbr.apps.action.pre("GB16")
+        //do dbr.begin(db)
+
         ref aplicacion = ifnull(@@(data,"&aplicacion"),list.create())
 
         go foreach.lobj(value:dst) with(aplicacion)
@@ -307,8 +356,10 @@ module "model"
             "
             if not(dbr.execute(db,sql,dst)) { do rise_error(2,"Documento origen no encontrado o el importe aplicado es mayor al saldo disponible por aplicar.") }
 
-            do dbr.commit(db)
             dst<"aplicado"> : @@(dst,"#aplicar")
+
+            do dbr.apps.action.pos(dst)
+            do dbr.commit(db)
             
             exception
             {
@@ -317,7 +368,21 @@ module "model"
             }
         }
 
+        //do dbr.apps.action.pos(aplicacion)
+        //do dbr.commit(db)
+        do dbr.apps.action.ext(aplicacion)
+
         return aplicacion
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cxc.vFields::field
@@ -339,6 +404,8 @@ module "model"
 
     cxc.list::&db,&params
     {
+        do dbr.apps.action.grant("GB10")
+
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
@@ -420,20 +487,51 @@ module "model"
         }
 
         return response
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cxc.read::&db,&params
     {
+        do dbr.apps.action.grant("GB10")
+
         ref data = entity.read(db,params)
         do cxc.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cxc.blank::&db,&params
     {
+        do dbr.apps.action.grant("GB10")
+
         new data {}
         do cxc.prepareView(db,params,data)
         return data
+
+        exception
+        {
+            do errordet(@false)
+            code = last_error_code()
+            error = last_error()
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
     }
 
     cxc.update::&db,&params,&data
