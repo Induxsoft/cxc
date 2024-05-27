@@ -1,0 +1,22 @@
+﻿itemid,description,itemparent
+cxc,Cuentas por cobrar,\0
+cxc.clientes,Clientes y cuentas por cobrar,cxc
+GB20,Clientes y CxC,cxc.clientes
+GB21,Nuevo cliente,cxc.clientes
+GB22,Editar cliente,cxc.clientes
+GB23,Estado de cuenta del cliente,cxc.clientes
+GB24,Documentos por cobrar del cliente,cxc.clientes
+GB25,Cobros por aplicar del cliente,cxc.clientes
+GB26,Cobro a cliente,cxc.clientes
+GB27,Bonificación a cliente,cxc.clientes
+GB28,Importar clientes,cxc.clientes
+cxc.documentos,Documentos por cobrar,cxc
+GB10,Documentos por cobrar,cxc.documentos
+GB11,Nuevo documento por cobrar,cxc.documentos
+GB12,Consultar documento por cobrar,cxc.documentos
+GB13,Cobrar documento,cxc.documentos
+GB14,Bonificar documento por cobrar,cxc.documentos
+GB15,Aplicar intereses moratorios a documento por cobrar,cxc.documentos
+GB16,Aplicar abonos a documento por cobrar,cxc.documentos
+cxc.reports,Reportes,cxc
+GB30,Informe de antigüedad de saldos por cobrar,cxc.reports
