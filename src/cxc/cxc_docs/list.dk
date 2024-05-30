@@ -6,9 +6,9 @@ module "list.dk"
     #include "serialize.dkh"
     #include "dbr.dkh"
     #include "dbr.apps.dkl"
+    #include "uielements.v12.dkl"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
-    #include "uielements.v12.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -140,7 +140,7 @@ module "list.dk"
                     }
                 }
             }
-            #! do uie.dbeditable(table_definition, "tbl_cxc")
+            #! do uie.dbeditable(table_definition,"tbl_cxc")
         }
 
         #$ div

@@ -4,9 +4,11 @@ module "cte.pendientes.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "../_lib/icons.dk"
-    #include "../_lib/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
     #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/icons.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -16,20 +18,22 @@ module "cte.pendientes.dk"
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
 
-    #$
-    div(class="container p-0")
+    new nav_config
     {
-        // div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
-        // {
-        //     div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Documentos por cobrar"} }
-        //     div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-        //     {
-        //         a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-        //         a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
-        //     }
-        // }
+        @"title": "Documentos por cobrar"
+        @"buttons*": @null //general_act
+        @"urlexit": @CXC_CLIENTES
+        @"main": "GB11,GB12,GB13,GB16"
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
+        @"jscurrentcontext": "getCurrentContext"
+    }
 
-        #! do uie.printMainBar(@null, "Documentos por cobrar", @false, @CXC_CLIENTES)
+    #$
+    div(class="container-fluid")
+    {
+        // #! do uie.printMainBar(@null, "Documentos por cobrar", @false, @CXC_CLIENTES)
+        #! do uie.printV12FormBar(nav_config)
 
         #$ div
         {
@@ -141,20 +145,14 @@ module "cte.pendientes.dk"
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            var table = document.getElementById("tbl_dcxc");
-
-            function goTo(url)
-            {
-                if (!url) { alert("No se ha indicado un destino."); return; }
-                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-                var data = table.DataArray[table.CurrentRowIndex()];
-
-                var url = url.includes("@doc") ? url.replace("@doc",data.sys_pk) : url.replace("@proveedor",data.pkproveedor);
-                window.location.href = url;
-            }
-        '}
+        script(type="text/javascript")
+		{$'
+			function getCurrentContext()
+			{
+				const table = document.getElementById("tbl_dcxc");
+				const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+    			return { item_id:id, context: {} }
+			}
+		'}
     }
 }

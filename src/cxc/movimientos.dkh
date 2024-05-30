@@ -214,7 +214,8 @@ module ":erp.cxc.movimientos"
             @"tipocambio": @@(data,"#tcambio")
             @"icliente": @@(data,"#icliente")
         }
-        do determinarImporteCxC(dcxc,@@(data,"#importe"))
+
+        if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
 
         start_transaction = @false
 
@@ -224,6 +225,7 @@ module ":erp.cxc.movimientos"
         }
 
         // Generar documento por cobrar (dcxc).
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
         lastId = saveCxC(db,dcxc)
         // Afectar saldo del cliente.
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
@@ -307,7 +309,8 @@ module ":erp.cxc.movimientos"
         dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
         // Generar documento por cobrar (dcxc).
         do determinarImporteCxC(dcxc,importe_doc)
-        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        lastId = saveCxC(db,dcxc)
+        aplcxc<"fk_dcxc_aplicadoa"> : lastId
         // Aplicar cobro.
         do dbr.insert(db,"aplcxc",aplcxc)
 
@@ -318,6 +321,7 @@ module ":erp.cxc.movimientos"
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe_doc) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
+        return lastId
 
         exception
         {
@@ -373,7 +377,8 @@ module ":erp.cxc.movimientos"
 
         // Generar documento por cobrar (dcxc).
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
-        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        lastId = saveCxC(db,dcxc)
+        aplcxc<"fk_dcxc_aplicadoa"> : lastId
         // Aplicar bonificacion.
         do dbr.insert(db,"aplcxc",aplcxc)
 
@@ -384,6 +389,7 @@ module ":erp.cxc.movimientos"
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
+        return lastId
 
         exception
         {
@@ -439,7 +445,8 @@ module ":erp.cxc.movimientos"
 
         // Generar documento por cobrar (dcxc).
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
-        aplcxc<"fk_dcxc_aplicadoa"> : saveCxC(db,dcxc)
+        lastId = saveCxC(db,dcxc)
+        aplcxc<"fk_dcxc_aplicadoa"> : lastId
         // Aplicar IntMor.
         do dbr.insert(db,"aplcxc",aplcxc)
 
@@ -450,6 +457,7 @@ module ":erp.cxc.movimientos"
         do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
+        return lastId
 
         exception
         {
@@ -545,6 +553,8 @@ module ":erp.cxc.movimientos"
             @"xaplicar": @@(data,"#importe")
             @"icliente": @@(data,"#icliente")
         }
+
+        if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
 
         start_transaction = @false
 

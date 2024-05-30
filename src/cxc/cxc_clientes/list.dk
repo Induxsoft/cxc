@@ -27,16 +27,21 @@ module "list.dk"
             member @"codigo" { @"caption":"Código" }
             member @"nombre" { @"caption":"Nombre" }
             member @"rfc" { @"caption":"RFC" }
-            member @"saldo" { @"caption":"Saldo" }
             member @"tipo" { @"caption":"Tipo de cliente" }
-            member @"divisa" { @"caption":"Divisa" }
-            member @"zona" { @"caption":"Zona" }
-            member @"_actions" 
-            { 
-                @"caption":"Acciones" 
-                @"template":'<a href="./${DataRow.sys_pk}/" class="no-print">Editar</a>'
-                @"no-print":@true
+            member @"saldo"
+            {
+                @"caption":"Saldo"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
             }
+            member @"divisa"
+            {
+                @"caption":"Divisa"
+                @"align": "center"
+            }
+            member @"zona" { @"caption":"Zona" }
         }
     }
     

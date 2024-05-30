@@ -17,6 +17,7 @@ GB12,Consultar documento por cobrar,cxc.documentos
 GB13,Cobrar documento,cxc.documentos
 GB14,Bonificar documento por cobrar,cxc.documentos
 GB15,Aplicar intereses moratorios a documento por cobrar,cxc.documentos
-GB16,Aplicar abonos a documento por cobrar,cxc.documentos
+GB16,Aplicar abonos a documentos por cobrar,cxc.documentos
+GB17,Desaplicar abonos de documentos por cobrar,cxc.documentos
 cxc.reports,Reportes,cxc
 GB30,Informe de antigüedad de saldos por cobrar,cxc.reports

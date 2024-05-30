@@ -311,7 +311,7 @@ module "model"
         sql_sinicial = "SELECT IFNULL(SUM(IFNULL(debe,0) - IFNULL(haber,0)),0) AS saldo_inicial FROM dcxc WHERE icliente = @_entity_id AND DATE(aplicacion) < @fd;"
         sql_dbe_hbr = "SELECT IFNULL(SUM(IFNULL(haber,0)),0) AS haber, IFNULL(SUM(IFNULL(debe,0)),0) AS debe FROM dcxc WHERE icliente = @_entity_id AND DATE(aplicacion) BETWEEN @fd AND LAST_DAY(@fd);"
         sql_stotal = "SELECT IFNULL(SUM(IFNULL(debe,0) - IFNULL(haber,0)),0) AS saldo_total FROM dcxc WHERE icliente = @_entity_id;"
-        sql_sdocs = "SELECT IFNULL(SUM(IFNULL(haber,0) + IFNULL(intmoratorios,0) - IFNULL(pagos,0) - IFNULL(bonificaciones,0)),0) AS saldo_docs FROM dcxc WHERE icliente = @_entity_id AND aplicable;"
+        sql_sdocs = "SELECT IFNULL(SUM(IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(pagos,0) - IFNULL(bonificaciones,0)),0) AS saldo_docs FROM dcxc WHERE icliente = @_entity_id AND aplicable;"
 
         sInicial = dbr.num(db,sql_sinicial,params)
         ref DebeHaber = dbr.rec(db,sql_dbe_hbr,params)
@@ -339,22 +339,6 @@ module "model"
     {
         do dbr.apps.action.grant("GB23")
 
-        // sql = "
-        // SELECT
-        //     cxc.sys_pk,
-        //     cxc.sys_guid,
-        //     cxc.referencia,
-        //     DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
-        //     DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
-        //     doc.const AS documento,
-        //     IFNULL(cxc.debe,0) AS debe,
-        //     IFNULL(cxc.haber,0) AS haber,
-        //     IFNULL(cxc.notas,'') AS notas
-        // FROM dcxc AS cxc
-        //     INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
-        // WHERE cxc.icliente = @_entity_id 
-        //     AND DATE(cxc.aplicacion) BETWEEN @fd AND LAST_DAY(@fd);
-        // "
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
     
@@ -401,26 +385,6 @@ module "model"
     {
         do dbr.apps.action.grant("GB24")
 
-        // sql = "
-        // SELECT
-        //     cxc.sys_pk,
-        //     cxc.sys_guid,
-        //     cxc.referencia,
-        //     DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
-        //     DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
-        //     IFNULL(cxc.bonificaciones,0) AS bonificaciones,
-        //     doc.const AS documento,
-        //     IFNULL(cxc.debe,0) AS debe,
-        //     IFNULL(cxc.haber,0) AS haber,
-        //     IFNULL(cxc.intmoratorios,0) AS int_moratorios,
-        //     IFNULL(cxc.pagos,0) AS pagos,
-        //     (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo
-        // FROM dcxc AS cxc
-        //     INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
-        // WHERE cxc.icliente = @_entity_id
-        //     AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0;
-        // "
-
         sql = "
         SELECT
             cxc.sys_pk,
@@ -434,11 +398,11 @@ module "model"
             IFNULL(cxc.haber,0) AS haber,
             IFNULL(cxc.intmoratorios,0) AS int_moratorios,
             IFNULL(cxc.pagos,0) AS pagos,
-            (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo
+            (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @_entity_id
-            AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
+            AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
             AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
