@@ -46,6 +46,9 @@ module "Controller configs"
 
 	do crudl.routes.entity("/reports/","reports")
 	
+	do crudl.load_config()
+	do crudl.loadRoutesJSON()
+	
 	@dbmvc_path="crudl/"
 	
 	@auto_crud=@true
