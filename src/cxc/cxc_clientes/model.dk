@@ -678,7 +678,7 @@ module "model"
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
         chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
-
+        
         // Datos del nuevo cliente
         ref cliente = record.create()
         if trim(@@(data,"$codigo")) == "" {
@@ -689,6 +689,15 @@ module "model"
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
         do dbr.apps.action.pre("GB21")
+
+        validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
+        if field.exist(data,'rfc') && parse.bool(validate_rfc)
+        {
+            using params{@"rfc":@@(data,"$rfc")}
+            ref dtrfc=dbr.rec(db,"select * from cliente c where rfc=@rfc and sys_pk<>@_entity_id",params)
+            if not(isnull(dtrfc)){do rise_error(500,"Y existe un cliente con el mismo RFC")}
+        }
+
         do dbr.begin(db)
 
         // Datos de domicilios
@@ -801,6 +810,7 @@ module "model"
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
         chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
+        
 
         // Datos del nuevo cliente
         new cliente
@@ -817,6 +827,15 @@ module "model"
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
         do dbr.apps.action.pre("GB22")
+
+        validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
+        if field.exist(data,'rfc') && parse.bool(validate_rfc)
+        {
+            using params{@"rfc":@@(data,"$rfc")}
+            ref dtrfc=dbr.rec(db,"select * from cliente c where rfc=@rfc and sys_pk<>@_entity_id",params)
+            if not(isnull(dtrfc)){do rise_error(500,"Y existe un cliente con el mismo RFC")}
+        }
+        
         do dbr.begin(db)
 
         // Datos de domicilios
