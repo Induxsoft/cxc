@@ -145,6 +145,8 @@ module ":erp.cxc.movimientos"
             }
         }
 
+        dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0)
+
         start_transaction = @false
 
         if not(dbr.in_transaction(db)) {

@@ -21,21 +21,19 @@ module "cte.balance.dk"
     new nav_config
     {
         @"title": "Balance"
-        @"buttons*": @null //general_act
+        @"buttons*": @null
         @"urlexit": @CXC_CLIENTES
-        @"main": "GB11,GB12,GB13,GB16"
+        @"main": "GB11,GB12,GB13,GB14,GB15,GB16"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
     
-    #$
-    div(class="container-fluid")
+    #$ div(class="container-fluid")
     {
-        // #! do uie.printMainBar(@null, "Balance", @false, @CXC_CLIENTES)
         #! do uie.printV12FormBar(nav_config)
 
-        #$ div
+        #$ div(class="" id="work_area")
         {
             form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
@@ -86,12 +84,6 @@ module "cte.balance.dk"
                     ){$""}
                 }
             }
-            // a(class="btn btn-outline-primary induxsoft-corners" href="#<@ADD_DOCS_POR_PAGAR>"){"Agregar"}
-            // a(class="btn btn-outline-success induxsoft-corners" href="#<replace(@DOCS_POR_PAGAR_PROVEEDOR,'@proveedor',@('$parameters/_entity_id'))>"){"Documentos por pagar"}
-            // a(class="btn btn-outline-secondary induxsoft-corners" href="#<replace(@PAGOS_POR_APLICAR,'@proveedor',@('$parameters/_entity_id'))>"){"Pagos por aplicar"}
-            // a(class="btn btn-outline-primary induxsoft-corners" href="#<replace(@PAGOS_PROVEEDOR,'@proveedor',@('$parameters/_entity_id'))>"){"Pago a proveedor"}
-            // a(class="btn btn-outline-dark induxsoft-corners" href="#<replace(@BONIFICACION_PROVEEDOR,'@proveedor',@('$parameters/_entity_id'))>"){"Bonificación a proveedor"}
-            // a(class="btn btn-outline-dark induxsoft-corners" href="#<@ADD_GASTO>?proveedor=#<@('$parameters/_entity_id')>"){"Agregar gasto"}
             
             div(class="d-flex justify-content-between")
             {
@@ -126,10 +118,6 @@ module "cte.balance.dk"
                     }
                 }
             }
-
-            // button(class="btn btn-outline-primary induxsoft-corners" onclick="aplicar('#<@APLICAR_BONIFICACION>')"){"Aplicar bonificación"}
-            // button(class="btn btn-outline-success induxsoft-corners" onclick="aplicar('#<@APLICAR_PAGO>')"){"Aplicar pago"}
-            // button(class="btn btn-outline-secondary induxsoft-corners" onclick="aplicar('#<@APLICAR_PAGO_MORA>')"){"Aplicar cargos por mora"}
 
             "edit-table"(class="w-100" id="tbl_dcxc" data="#<to.json(@('&./docs'))>")
             {

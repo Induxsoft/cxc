@@ -21,21 +21,19 @@ module "cte.pendientes.dk"
     new nav_config
     {
         @"title": "Documentos por cobrar"
-        @"buttons*": @null //general_act
+        @"buttons*": @null
         @"urlexit": @CXC_CLIENTES
-        @"main": "GB11,GB12,GB13,GB16"
+        @"main": "GB11,GB12,GB13,GB14"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
 
-    #$
-    div(class="container-fluid")
+    #$ div(class="container-fluid")
     {
-        // #! do uie.printMainBar(@null, "Documentos por cobrar", @false, @CXC_CLIENTES)
         #! do uie.printV12FormBar(nav_config)
 
-        #$ div
+        #$ div(class="" id="work_area")
         {
             form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
@@ -114,10 +112,6 @@ module "cte.pendientes.dk"
                     }
                 }
             }
-            
-            // button(class="btn btn-outline-primary induxsoft-corners" onclick="aplicar('#<@APLICAR_BONIFICACION>')"){"Aplicar bonificación"}
-            // button(class="btn btn-outline-success induxsoft-corners" onclick="aplicar('#<@APLICAR_PAGO>')"){"Aplicar pago"}
-            // button(class="btn btn-outline-secondary induxsoft-corners" onclick="aplicar('#<@APLICAR_PAGO_MORA>')"){"Aplicar cargos por mora"}
 
             "edit-table"(class="w-100" id="tbl_dcxc" data="#<to.json(@('&./docs'))>")
             {

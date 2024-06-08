@@ -4,9 +4,11 @@ module "cte.poraplicar.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "../_lib/icons.dk"
-    #include "../_lib/config.dk"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
     #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/icons.dk"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -16,30 +18,22 @@ module "cte.poraplicar.dk"
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
 
-    header_act::
-    { 
-        #$ button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar"}
+    new nav_config
+    {
+        @"title": "Cobros y bonificaciones por aplicar"
+        @"buttons*": @null
+        @"urlexit": @CXC_CLIENTES
+        @"main": "GB11,GB12,GB16"
+        @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
+        @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
+        @"jscurrentcontext": "getCurrentContext"
     }
 
-    #! point general_act to header_act
-
-    #$
-    div(class="container p-0")
+    #$ div(class="container-fluid")
     {
-        // div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
-        // {
-        //     div(class="col-4 d-flex align-items-center p-0") { h1(class="h5 text-primary tex-no-break m-0"){$"Cobros y bonificaciones por aplicar"} }
-        //     div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-        //     {
-        //         a(href="./" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-        //         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="goTo('#<@DOC_APLICAR_ABONOS>')"){$"Aplicar"}
-        //         a(href="#<@CXC_CLIENTES>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
-        //     }
-        // }
+        #! do uie.printV12FormBar(nav_config)
 
-        #! do uie.printMainBar(general_act, "Cobros y bonificaciones por aplicar", @false, @CXC_CLIENTES)
-
-        #$ div
+        #$ div(class="" id="work_area")
         {
             form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
@@ -104,14 +98,12 @@ module "cte.poraplicar.dk"
                 {
                     tr
                     {
-                        td{$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
-                        td{$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
-                        td{$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
                     }
                 }
             }
-
-            // 
 
             "edit-table"(class="w-100" id="tbl_poraplicar" data="#<to.json(@('&./docs'))>")
             {
@@ -136,20 +128,14 @@ module "cte.poraplicar.dk"
 
         p{$"#<@('$error/message')>"}
 
-        script
-        {$'
-            var table = document.getElementById("tbl_poraplicar");
-
-            function goTo(url)
-            {
-                if (!url) { alert("No se ha indicado un destino."); return; }
-                if (table.CurrentRowIndex() < 0) { alert("Debe seleccionar una fila"); return; }
-
-                var data = table.DataArray[table.CurrentRowIndex()];
-
-                var url = url.replace("{_documento}",data.sys_pk);
-                window.location.href = url;
-            }
-        '}
+        script(type="text/javascript")
+		{$'
+			function getCurrentContext()
+			{
+				const table = document.getElementById("tbl_poraplicar");
+				const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+    			return { item_id:id, context: {} }
+			}
+		'}
     }
 }

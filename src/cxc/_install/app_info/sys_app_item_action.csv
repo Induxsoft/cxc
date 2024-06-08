@@ -1,4 +1,5 @@
 ﻿id,title,shorttitle,icon16x16,href,_blank,appid,itemtype,req_context_item_id,act_type
+GB10,Ver todos los documentos por cobrar,Ver todos,,/!/cxc/documentos/,0,cxc.documentos,DET01D,0,action
 GB11,Nuevo documento por cobrar,Agregar,,/!/cxc/documentos/_new/,0,cxc.documentos,DET01D,0,action
 GB12,Consultar documento por cobrar,Consultar,,/!/cxc/documentos/@_src_context_item_id/,0,cxc.documentos,DET01D,1,action
 GB13,Cobrar documento,Cobrar,,/!/cxc/documentos/@_src_context_item_id/cobrar/,0,cxc.documentos,DET01D,1,action
