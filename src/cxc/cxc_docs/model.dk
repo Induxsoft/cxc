@@ -84,12 +84,15 @@ module "model"
             }
             case "cobrar"
             {
+                ref dcxc = entity.read(db,params)
+                if @@(dcxc,"#debe") <= 0 { do rise_error(500,"No es posible cobrar el documento proporcionado") }
+
                 sql_cuentas = "SELECT c.sys_pk, d.codigo AS divisa, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
                 sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
 
-                data<"infoDoc*"> : entity.read(db,params)
+                data<"infoDoc*"> : dcxc
                 data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
@@ -99,18 +102,24 @@ module "model"
             }
             case "bonificacion"
             {
+                ref dcxc = entity.read(db,params)
+                if @@(dcxc,"#debe") <= 0 { do rise_error(500,"No es posible bonificar el documento proporcionado") }
+
                 sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
 
-                data<"infoDoc*"> : entity.read(db,params)
+                data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
                 data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case "intmoratorios"
             {
+                ref dcxc = entity.read(db,params)
+                if @@(dcxc,"#debe") <= 0 { do rise_error(500,"No es posible aplicar intereses moratorios al documento proporcionado") }
+
                 sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_int_mor,0);"
 
-                data<"infoDoc*"> : entity.read(db,params)
+                data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
                 data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
@@ -166,7 +175,7 @@ module "model"
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
 
-        @url_redir = @CXC_DOCUMENTOS
+        // @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
@@ -200,7 +209,7 @@ module "model"
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
 
-        @url_redir = @CXC_DOCUMENTOS
+        // @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
@@ -234,7 +243,7 @@ module "model"
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
 
-        @url_redir = @CXC_DOCUMENTOS
+        // @url_redir = @CXC_DOCUMENTOS
 
         exception
         {
@@ -256,6 +265,8 @@ module "model"
 
     cxc.obtenerDocumentosPorAplicar::&db,&params
     {
+        do errordet(@false)
+        
         sql_xaplicar = "
         SELECT
             cxc.sys_pk,
@@ -276,6 +287,8 @@ module "model"
         "
         // Documento por aplicar
         ref xaplicar = dbr.rec(db,sql_xaplicar,params)
+
+        if @@(xaplicar,"#haber") <= 0 { do rise_error(500,"No es posible aplicar el documento proporcionado") }
         
         using params
         {
@@ -283,7 +296,7 @@ module "model"
             @"icliente": @@(xaplicar,"#icliente")
         }
 
-        sql_pendientes = "
+        sql_pendientes = ftext("
         SELECT
             cxc.sys_pk,
             cxc.sys_guid,
@@ -301,14 +314,16 @@ module "model"
             (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS sfinal
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
+            LEFT JOIN aplcxc AS mor ON mor.fk_dcxc_aplicadoa = cxc.sys_pk AND mor.destino = #<@CXC_DESTINO_APLICACION_INT_MORATORIOS>
         WHERE cxc.icliente = @icliente
             AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
+            AND NOT IFNULL(mor.sys_pk,0)
             AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
             AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
             AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
             AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
             AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
-        "
+        ")
         // Documentos con saldo del cliente
         ref pendientes = dbr.list(db,sql_pendientes,params)
 
@@ -329,9 +344,9 @@ module "model"
             SUM(IFNULL(apl.importe,0)) AS aplicado,
             ((IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) + SUM(IFNULL(apl.importe,0))) AS santerior
         FROM aplcxc AS apl
-            INNER JOIN dcxc AS cxc ON apl.fk_dcxc_aplicadoa = cxc.sys_pk
+            INNER JOIN dcxc AS cxc ON apl.aplicadoa = cxc.sys_pk
             INNER JOIN cdocumentos AS doc ON cxc.documento = doc.id
-        WHERE apl.aplicadoa = @idocumento
+        WHERE apl.fk_dcxc_aplicadoa = @idocumento
         GROUP BY cxc.sys_pk
         "
         // Documentos con importes aplicados del documento por aplicar
@@ -395,8 +410,8 @@ module "model"
                     @"destino": 4 //pagos
                     @"fecha*": now()
                     @"importe": @@(dst,"#aplicar")
-                    @"aplicadoa": @@(dst,"#id_origen")
-                    @"fk_dcxc_aplicadoa": @@(dst,"#id_destino")
+                    @"aplicadoa": @@(dst,"#id_destino")
+                    @"fk_dcxc_aplicadoa": @@(dst,"#id_origen")
                 }
                 do dbr.insert(db,"aplcxc",aplcxc)
 
@@ -440,8 +455,8 @@ module "model"
         sql_aplicados = "
         SELECT
             apl.sys_pk AS id_aplicado,
-            apl.aplicadoa AS id_origen,
-            apl.fk_dcxc_aplicadoa as id_destino,
+            apl.fk_dcxc_aplicadoa AS id_origen,
+            apl.aplicadoa as id_destino,
             cxc.referencia,
             IFNULL(cxc.bonificaciones,0) AS bonificaciones,
             IFNULL(cxc.debe,0) AS debe,
@@ -452,8 +467,8 @@ module "model"
             IFNULL(apl.importe,0) AS aplicado,
             ((IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) + IFNULL(apl.importe,0)) AS santerior
         FROM aplcxc AS apl
-            INNER JOIN dcxc AS cxc ON apl.fk_dcxc_aplicadoa = cxc.sys_pk
-        WHERE apl.aplicadoa = @_entity_id
+            INNER JOIN dcxc AS cxc ON apl.aplicadoa = cxc.sys_pk
+        WHERE apl.fk_dcxc_aplicadoa = @_entity_id
         ORDER BY apl.sys_dtcreated ASC
         "
         // Documentos con importes aplicados del documento por aplicar

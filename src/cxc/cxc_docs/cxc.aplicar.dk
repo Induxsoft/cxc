@@ -30,7 +30,7 @@ module "cxp.aplicar.dk"
     {
         @"title": "Aplicación de cobro o bonificación"
         @"buttons*": @null //general_act
-        @"urlexit": @CXC_DOCUMENTOS
+        @"urlexit": "javascript:window.history.back()" //@CXC_DOCUMENTOS
     }
 
     #$
