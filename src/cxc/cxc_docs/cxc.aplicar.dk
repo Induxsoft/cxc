@@ -7,6 +7,9 @@ module "cxp.aplicar.dk"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/icons.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -32,6 +35,13 @@ module "cxp.aplicar.dk"
         @"buttons*": @null //general_act
         @"urlexit": "javascript:window.history.back()" //@CXC_DOCUMENTOS
     }
+
+    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
+    if trim(format_decs)==""{format_decs=fmoneda}
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=6}
+    else{decs=parse.num(vdecs)}
 
     #$
     div(class="container-fluid")
@@ -99,9 +109,9 @@ module "cxp.aplicar.dk"
                 b(title="Tipo de documento"){$"#<@@(xaplicar,'$documento')>"}
                 b(title="Referencia del documento"){$"#<@@(xaplicar,'$referencia')>"}
                 b(title="Fecha de emisión del documento"){$"#<@@(xaplicar,'$emision')>"}
-                b(id="lbl_saldo" title="Haber del documento"){$"#<format(@@(xaplicar,'#haber'),fmoneda)>"}
-                b(id="lbl_aplicado" title="Saldo aplicado del documento"){$"#<format(@@(xaplicar,'#aplicado'),fmoneda)>"}
-                b(id="lbl_xaplicar" title="Saldo por aplicar del documento"){$"#<format(@@(xaplicar,'#xaplicar'),fmoneda)>"}
+                b(id="lbl_saldo" title="Haber del documento"){$"#<format(@@(xaplicar,'#haber'),format_decs)>"}
+                b(id="lbl_aplicado" title="Saldo aplicado del documento"){$"#<format(@@(xaplicar,'#aplicado'),format_decs)>"}
+                b(id="lbl_xaplicar" title="Saldo por aplicar del documento"){$"#<format(@@(xaplicar,'#xaplicar'),format_decs)>"}
             }
 
             nav(class="")
@@ -140,9 +150,9 @@ module "cxp.aplicar.dk"
                                     "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                                     "edit-th"(type="NoEditable" field="emision" textalign="center" width="8em"){$"Fecha"}
                                     "edit-th"(type="NoEditable" field="aplicacion" textalign="center" width="8em"){$"Vencimiento"}
-                                    "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" thousandssep="true" decs="2"){$"Saldo"}
-                                    "edit-th"(type="Number" field="aplicar" textalign="end" format="true" thousandssep="true" decs="2"){$"Aplicar"}
-                                    "edit-th"(type="NoEditable" field="sfinal" textalign="end" format="true" thousandssep="true" decs="2"){$"Saldo Final"}
+                                    "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Saldo"}
+                                    "edit-th"(type="Number" field="aplicar" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Aplicar"}
+                                    "edit-th"(type="NoEditable" field="sfinal" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Saldo Final"}
                                 }
                             }
                         }
@@ -174,9 +184,9 @@ module "cxp.aplicar.dk"
                                     "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                                     "edit-th"(type="NoEditable" field="emision" textalign="center" width="8em"){$"Fecha"}
                                     "edit-th"(type="NoEditable" field="aplicacion" textalign="center" width="8em"){$"Vencimiento"}
-                                    "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" thousandssep="true" decs="2"){$"Saldo"}
-                                    "edit-th"(type="NoEditable" field="aplicado" textalign="end" format="true" thousandssep="true" decs="2"){$"Aplicado"}
-                                    "edit-th"(type="NoEditable" field="santerior" textalign="end" format="true" thousandssep="true" decs="2"){$"Saldo Anterior"}
+                                    "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Saldo"}
+                                    "edit-th"(type="NoEditable" field="aplicado" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Aplicado"}
+                                    "edit-th"(type="NoEditable" field="santerior" textalign="end" format="true" thousandssep="true" decs="#<decs>"){$"Saldo Anterior"}
                                 }
                             }
                         }

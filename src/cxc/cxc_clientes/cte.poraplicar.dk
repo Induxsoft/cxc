@@ -9,6 +9,7 @@ module "cte.poraplicar.dk"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/icons.dk"
+    #include "dbr.vars.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -28,6 +29,13 @@ module "cte.poraplicar.dk"
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
+
+    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
+    if trim(format_decs)==""{format_decs="$ #,#.00"}
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=6}
+    else{decs=parse.num(vdecs)}
 
     #$ div(class="container-fluid")
     {
@@ -98,9 +106,9 @@ module "cte.poraplicar.dk"
                 {
                     tr
                     {
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),format_decs)>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),format_decs)>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),format_decs)>"}
                     }
                 }
             }

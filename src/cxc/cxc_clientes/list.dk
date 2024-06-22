@@ -6,6 +6,7 @@ module "list.dk"
     #include "serialize.dkh"
     #include "dbr.dkh"
     #include "dbr.apps.dkl"
+    #include "dbr.vars.dkl"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/icons.dk"
@@ -17,6 +18,10 @@ module "list.dk"
     ref listClientes = ifnull(@("&."),list.create())
 
     context = to.json(@null)
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=2}
+    else{decs=parse.num(vdecs)}
 
     new table_definition
     {
@@ -34,7 +39,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
+                @"decs": decs
             }
             member @"divisa"
             {

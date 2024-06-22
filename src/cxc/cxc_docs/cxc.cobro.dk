@@ -8,6 +8,8 @@ module "cxc.cobro.dk"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
 
     do @context.begin(@crud_context)
     
@@ -84,6 +86,13 @@ module "cxc.cobro.dk"
         @"selected": form("documento_cobro","nm",@null)
     }
 
+    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
+    if trim(format_decs)==""{format_decs=@FMT_MONEY}
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=6}
+    else{decs=parse.num(vdecs)}
+
     #$
     div(class="container")
     {
@@ -150,7 +159,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Capital:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#haber'),@FMT_MONEY)>"
+                            $"#<format(@@(infoDoc,'#haber'),format_decs)>"
                         }
                     }
 
@@ -158,7 +167,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Financieros:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intfinancieros'),@FMT_MONEY)>"
+                            $"#<format(@@(infoDoc,'#intfinancieros'),format_decs)>"
                         }
                     }
 
@@ -166,7 +175,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Moratorios:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intmoratorios'),@FMT_MONEY)>"
+                            $"#<format(@@(infoDoc,'#intmoratorios'),format_decs)>"
                         }
                     }
 
@@ -174,7 +183,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Bonificaciones:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#bonificaciones'),@FMT_MONEY)>"
+                            $"#<format(@@(infoDoc,'#bonificaciones'),format_decs)>"
                         }
                     }
 
@@ -182,7 +191,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#saldo'),@FMT_MONEY)>"
+                            $"#<format(@@(infoDoc,'#saldo'),format_decs)>"
                         }
                     }
                     
@@ -240,7 +249,7 @@ module "cxc.cobro.dk"
                                     step="0.000001"
                                     id="txt_tcambio_deposito"
                                     required="true"
-                                    "num-decs"="6"
+                                    "num-decs"="#<decs>"
                                 )
                                 span(class="input-group-text rounded-0" id="spn_tcambio_deposito"){$"#<cDIVISA_PRED>"}
                             }
@@ -259,7 +268,7 @@ module "cxc.cobro.dk"
                                     value="#<form('importe_deposito','nm',@null)>"
                                     step="0.000001"
                                     id="txt_importe_deposito"
-                                    "num-decs"="6"
+                                    "num-decs"="#<decs>"
                                 )
                                 span(class="input-group-text rounded-0" id="spn_importe_deposito"){$""}
                             }
@@ -326,7 +335,7 @@ module "cxc.cobro.dk"
                                     step="0.000001"
                                     id="txt_tcambio"
                                     required="true"
-                                    "num-decs"="6"
+                                    "num-decs"="#<decs>"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(infoDoc,'$divisa')>"}
                             }
@@ -346,7 +355,7 @@ module "cxc.cobro.dk"
                                     min="1"
                                     step="0.000001"
                                     id="txt_importe"
-                                    "num-decs"="6"
+                                    "num-decs"="#<decs>"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
                             }

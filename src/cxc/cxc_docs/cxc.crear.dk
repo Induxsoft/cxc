@@ -8,6 +8,8 @@ module "cxc.crear.dk"
     #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
 
     do @context.begin(@crud_context)
 
@@ -49,6 +51,13 @@ module "cxc.crear.dk"
         @"urlexit": "javascript:window.history.back();"
         member @"hidden" { @"print": @true }
     }
+
+    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
+    if trim(format_decs)==""{format_decs=@FMT_MONEY}
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=6}
+    else{decs=parse.num(vdecs)}
 
     #$
     div(class="container")
@@ -97,7 +106,7 @@ module "cxc.crear.dk"
                         id="txt_tcambio"
                         min="1"
                         step="0.000001"
-                        "num-decs"="6"
+                        "num-decs"="#<decs>"
                     )
                 }
                 div(class="col-lg-4") {
@@ -160,7 +169,7 @@ module "cxc.crear.dk"
                         id="txt_importe"
                         required="true"
                         "num-style"="currency"
-                        "num-decs"="6"
+                        "num-decs"="#<decs>"
                     )
                 }
             }

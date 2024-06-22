@@ -9,6 +9,7 @@ module "cte.pendientes.dk"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/icons.dk"
+    #include "dbr.vars.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -28,6 +29,13 @@ module "cte.pendientes.dk"
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
+
+    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
+    if trim(format_decs)==""{format_decs="$ #,#.00"}
+
+    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
+    if trim(vdecs)==""{decs=6}
+    else{decs=parse.num(vdecs)}
 
     #$ div(class="container-fluid")
     {
@@ -106,9 +114,9 @@ module "cte.pendientes.dk"
                 {
                     tr
                     {
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),'$ #,0.00')>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),'$ #,0.00')>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),'$ #,0.00')>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),format_decs)>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),format_decs)>"}
+                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),format_decs)>"}
                     }
                 }
             }
@@ -123,11 +131,11 @@ module "cte.pendientes.dk"
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Fecha"}
                         "edit-th"(type="NoEditable" field="aplicacion"){$"Vencimiento"}
-                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Importe"}
-                        "edit-th"(type="NoEditable" field="int_moratorios" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"IntMoratorios"}
-                        "edit-th"(type="NoEditable" field="bonificaciones" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Bonificaciones"}
-                        "edit-th"(type="NoEditable" field="pagos" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Pagos"}
-                        "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" decs="2" prefix="$ " thousandssep="true"){$"Saldo"}
+                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Importe"}
+                        "edit-th"(type="NoEditable" field="int_moratorios" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"IntMoratorios"}
+                        "edit-th"(type="NoEditable" field="bonificaciones" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Bonificaciones"}
+                        "edit-th"(type="NoEditable" field="pagos" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Pagos"}
+                        "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Saldo"}
                     }
                 }
                 /* "edit-tbody"
