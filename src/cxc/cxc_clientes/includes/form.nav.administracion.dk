@@ -107,7 +107,7 @@ section(class="" id="")
         div(class="col-12")
         {
             #!
-            checked = form("chq_addenda","ch",@null)
+            checked = ifstr(not(field.exist(@("&."),"form")), "checked", form("chq_addenda","ch",@null))
             if @("$parameters/_entity_id") != "_new" { checked = ifstr(parse.bool(@@(cliente,"#uf_addenda")),"checked","") }
             #$
             div(class="form-check") {
