@@ -65,19 +65,52 @@ module "list.dk"
             }
             member @"debe"
             {
-                @"caption":"Debe"
+                @"caption":"Importe"
                 @"align":"end"
                 @"format":@true
                 @"thousandssep":@true
                 @"decs":decs
             }
-            member @"haber"
+            // member @"haber"
+            // {
+            //     @"caption":"Haber"
+            //     @"align":"end"
+            //     @"format":@true
+            //     @"thousandssep":@true
+            //     @"decs":decs
+            // }
+            member @"intmor"
             {
-                @"caption":"Haber"
-                @"align":"end"
-                @"format":@true
-                @"thousandssep":@true
-                @"decs":decs
+                @"caption":"Mor."
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
+            }
+
+            member @"bonificacion"
+            {
+                @"caption":"Bonif."
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
+            }
+            member @"pagos"
+            {
+                @"caption":"Pagos"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
+            }
+            member @"saldo"
+            {
+                @"caption":"Saldo"
+                @"align": "end"
+                @"format": @true
+                @"thousandssep": @true
+                @"decs": 2
             }
             member @"divisa"
             {

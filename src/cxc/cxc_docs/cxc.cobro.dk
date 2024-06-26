@@ -186,7 +186,13 @@ module "cxc.cobro.dk"
                             $"#<format(@@(infoDoc,'#bonificaciones'),format_decs)>"
                         }
                     }
-
+                     div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label fw-bolder"){$"Pagos:"}
+                        div(class="col-6") {
+                            $"#<format(@@(infoDoc,'#pagos'),format_decs)>"
+                        }
+                    }
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}

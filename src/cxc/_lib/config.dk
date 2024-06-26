@@ -17,6 +17,12 @@ module
 	@DECIMAL_SEPARATOR = "."
 	@DECIMAL_PRECISION = 2
 
+	//
+	@curr_ndt = ndatetime.now()
+    @curr_year = ndatetime.year(@curr_ndt)
+    @curr_month = ndatetime.month(@curr_ndt)
+    @curr_day = ndatetime.day(@curr_ndt)
+
 	/**
 	* Clave Primaria (PK) de la divisa predeterminada
 	* 0 : Se obtiene la divisa de las variables globales (glovalbar), 1 por defecto si no existe.

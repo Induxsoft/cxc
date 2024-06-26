@@ -71,6 +71,7 @@ module "model"
                 }
                 else 
                 {
+                    
                     ref info_dcxc = record.copy(data,"*")
                     do record.clear(data)
                     new p { @"icliente": @@(info_dcxc,"#icliente") }
@@ -168,6 +169,9 @@ module "model"
         do dbr.apps.action.pre("GB13")
         do dbr.begin(db)
 
+        if @@(data,"#pkparent")>0{params<"pkparent">:@@(data,"#pkparent")}
+        do cxc.validateAplicable(db,params)
+
         new p { @"_entity_id": erp.cxc.movimientos.cobrarCxC(db,data) }
         ref entity = entity.read(db,p)
 
@@ -202,6 +206,9 @@ module "model"
         do dbr.apps.action.pre("GB14")
         do dbr.begin(db)
 
+        if @@(data,"#pkparent")>0{params<"pkparent">:@@(data,"#pkparent")}
+        do cxc.validateAplicable(db,params)
+
         new p { @"_entity_id": erp.cxc.movimientos.bonificarCxC(db,data) }
         ref entity = entity.read(db,p)
 
@@ -235,6 +242,9 @@ module "model"
 
         do dbr.apps.action.pre("GB15")
         do dbr.begin(db)
+        
+        if @@(data,"#pkparent")>0{params<"pkparent">:@@(data,"#pkparent")}
+        do cxc.validateAplicable(db,params)
 
         new p { @"_entity_id": erp.cxc.movimientos.aplicarIntMor(db,data) }
         ref entity = entity.read(db,p)
@@ -583,6 +593,10 @@ module "model"
             DATE_FORMAT(cxc.aplicacion, '%Y-%m-%d') AS aplicacion,
             IFNULL(cxc.debe,0) AS debe,
             IFNULL(cxc.haber,0) AS haber,
+            IFNULL(cxc.intmoratorios,0) AS intmor,
+            IFNULL(cxc.bonificaciones,0) AS bonificacion,
+            IFNULL(cxc.pagos,0)pagos,
+            (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
             dvs.codigo AS divisa
         FROM dcxc AS cxc 
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
@@ -661,6 +675,8 @@ module "model"
     {
         do dbr.apps.action.grant("GB10")
 
+        do cxc.validateAplicable(db,params)
+
         new data {}
         do cxc.prepareView(db,params,data)
         return data
@@ -694,5 +710,15 @@ module "model"
         }
         do list.ins(list, 0, record)
         return list
+    }
+    cxc.validateAplicable::&db,&params
+    {
+        if @@(params,"#pkparent")>0{params<"doc">:@@(params,"#pkparent")}
+        else{params<"doc">:@@(params,"#_entity_id")}
+        
+        if @@(params,"#doc")<1{return}
+        
+        aplicable=dbr.num(db,"select aplicable from dcxc where sys_pk=@doc",params)
+        if not(aplicable){do rise_error(500,"El documento proporcionado es no aplicable")}
     }
 }

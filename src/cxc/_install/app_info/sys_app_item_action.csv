@@ -15,4 +15,4 @@ GB25,Cobros por aplicar del cliente,Por aplicar,,/!/cxc/clientes/@_src_context_i
 GB26,Cobro a cliente,Cobrar,,/!/cxc/clientes/@_src_context_item_id/cobrar/,0,cxc.clientes,DET014,1,action
 GB27,Bonificación a cliente,Bonificar,,/!/cxc/clientes/@_src_context_item_id/bonificacion/,0,cxc.clientes,DET014,1,action
 GB28,Importar clientes,Importar,,/!/batch/taskman/GB/importar.cliente/,0,cxc.clientes,DET014,0,action
-GB30,Informe de antigüedad de saldos por cobrar,Antigüedad de saldos,,/!/cxc/reports/antiguedad-saldos/,0,cxc.reports,DET01D,0,report
+GB30,Informe de antigüedad de saldos por cobrar,Antigüedad de saldos,,/!/cxc/reports/antiguedad-saldos/,0,cxc.reports,DET014,0,report
