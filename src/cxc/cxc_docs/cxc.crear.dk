@@ -69,7 +69,7 @@ module "cxc.crear.dk"
         #$
         div(class="alert alert-danger overflow-auto mb-2 #<ifstr(@('$error/message')!='','','d-none')>" id="frm_alerts"){$"#<@('error/message')>"}
 
-        form(action="." method="POST" enctype="multipart/form-data" id="form_cxc" class="#<ifstr(@is_new,'','disable-form')>")
+        form(action="." method="POST" enctype="multipart/form-data" id="form_cxc" class="#<ifstr(@is_new,'','disable-form')>" onsubmit="return cliente.form.ValidateForm(event)")
         {
             ##
             do uie.print_from_url_field()
@@ -160,7 +160,7 @@ module "cxc.crear.dk"
                     }
                     #$
                     input(
-                        class="form-control rounded-0 induxsoft-num-field mw-100"
+                        class="form-control rounded-0 induxsoft-num-field mw-100 validate-number"
                         type="number"
                         name="importe"
                         value="#<importe>"
@@ -170,6 +170,7 @@ module "cxc.crear.dk"
                         required="true"
                         "num-style"="currency"
                         "num-decs"="#<decs>"
+                        onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                     )
                 }
             }
@@ -229,6 +230,7 @@ module "cxc.crear.dk"
         div
         {
             script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(src="#<@JS_CLIENTES>"){$""}
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {

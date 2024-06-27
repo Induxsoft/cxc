@@ -106,7 +106,7 @@ module "cte.cobro.dk"
             }
         }
 
-        form(action="." method="POST" id="form_cobro")
+        form(action="." method="POST" id="form_cobro" onsubmit="return cliente.form.ValidateForm(event)")
         {
             input(type="hidden" name="icliente" value="#<@@(cliente,'#sys_pk')>")
 
@@ -278,14 +278,16 @@ module "cte.cobro.dk"
                         div(class="col-6") {
                             div(class="input-group input-group-sm") {
                                 input(
-                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100"
+                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number"
                                     name="importe"
                                     value="#<form('importe','nm',@null)>"
                                     min="1"
                                     step="0.000001"
                                     id="txt_importe"
+                                    required="true"
                                     "num-decs"="#<decs>"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }

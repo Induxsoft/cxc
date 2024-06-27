@@ -107,7 +107,7 @@ module "cxc.cobro.dk"
             }
         }
 
-        form(action="." method="post" id="form_cobro")
+        form(action="." method="post" id="form_cobro" onsubmit="return cliente.form.ValidateForm(event)")
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
             input(type="hidden" name="icliente" value="#<@@(infoDoc,'#icliente')>")
@@ -275,6 +275,7 @@ module "cxc.cobro.dk"
                                     step="0.000001"
                                     id="txt_importe_deposito"
                                     "num-decs"="#<decs>"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0" id="spn_importe_deposito"){$""}
                             }
@@ -354,7 +355,7 @@ module "cxc.cobro.dk"
                         div(class="col-6") {
                             div(class="input-group input-group-sm") {
                                 input(
-                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100"
+                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number"
                                     name="importe"
                                     value="#<form('importe','nm',@null)>"
@@ -362,6 +363,8 @@ module "cxc.cobro.dk"
                                     step="0.000001"
                                     id="txt_importe"
                                     "num-decs"="#<decs>"
+                                    required="true"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
                             }
@@ -421,6 +424,8 @@ module "cxc.cobro.dk"
         div
         {
             script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(src="#<@JS_CLIENTES>"){$""}
+
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {

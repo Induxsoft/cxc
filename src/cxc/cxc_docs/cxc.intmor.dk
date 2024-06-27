@@ -57,7 +57,7 @@ module "cxc.intmor.dk"
             }
         }
 
-        form(action="." method="POST" id="form_intmor")
+        form(action="." method="POST" id="form_intmor" onsubmit="return cliente.form.ValidateForm(event)")
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
             input(type="hidden" name="icliente" value="#<@@(infoDoc,'#icliente')>")
@@ -220,7 +220,7 @@ module "cxc.intmor.dk"
                         div(class="col-6") {
                             div(class="input-group input-group-sm") {
                                 input(
-                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100"
+                                    class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number"
                                     name="importe"
                                     value="#<form('importe','nm',@null)>"
@@ -229,6 +229,7 @@ module "cxc.intmor.dk"
                                     id="txt_importe"
                                     required="true"
                                     "num-decs"="#<decs>"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
                             }
@@ -290,6 +291,7 @@ module "cxc.intmor.dk"
         div
         {
             script(src="#<@JS_DOCUMENTOS>"){$""}
+            script(src="#<@JS_CLIENTES>"){$""}
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {

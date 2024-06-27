@@ -53,7 +53,7 @@ module "cte.bonificacion.dk"
             }
         }
 
-        form(action="." method="POST" id="form_bonificacion")
+        form(action="." method="POST" id="form_bonificacion" onsubmit="return cliente.form.ValidateForm(event)")
         {
             input(type="hidden" name="icliente" value="#<@@(cliente,'#sys_pk')>")
 
@@ -140,7 +140,7 @@ module "cte.bonificacion.dk"
                         div(class="col-6") {
                             div(class="input-group") {
                                 input(
-                                    class="form-control rounded-0 induxsoft-num-field mw-100"
+                                    class="form-control rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number"
                                     name="importe"
                                     value="#<form('importe','nm',@null)>"
@@ -148,6 +148,8 @@ module "cte.bonificacion.dk"
                                     step="0.000001"
                                     id="txt_importe"
                                     "num-decs"="#<decs>"
+                                    required="true"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }

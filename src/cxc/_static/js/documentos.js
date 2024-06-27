@@ -394,7 +394,7 @@ var documento =
             let arr_aplicados = this.tbl_aplicados.DataArray;
 
             if (arr_aplicados.length === 0) return;
-            if (!confirm("¿Esta seguro que quiere desaplicar todos los documentos?")) return;
+            if (!confirm("¿Esta seguro que quiere desaplicar todos los documentos?\r\n(No se desaplican documentos que tengan un cfdi relacionado).")) return;
 
             this.submit("./?_act=desaplicar", {}, function(res){ window.location.reload() });
         },

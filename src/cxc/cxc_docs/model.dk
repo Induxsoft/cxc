@@ -462,11 +462,13 @@ module "model"
         do dbr.apps.action.pre("GB17")
         //do dbr.begin(db)
 
+        // Obtener registros de aplicación de pagos no timbrados
         sql_aplicados = "
         SELECT
             apl.sys_pk AS id_aplicado,
             apl.fk_dcxc_aplicadoa AS id_origen,
             apl.aplicadoa as id_destino,
+            IFNULL(apl.uf_cfdi,'') AS uf_cfdi,
             cxc.referencia,
             IFNULL(cxc.bonificaciones,0) AS bonificaciones,
             IFNULL(cxc.debe,0) AS debe,
@@ -478,7 +480,7 @@ module "model"
             ((IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) + IFNULL(apl.importe,0)) AS santerior
         FROM aplcxc AS apl
             INNER JOIN dcxc AS cxc ON apl.aplicadoa = cxc.sys_pk
-        WHERE apl.fk_dcxc_aplicadoa = @_entity_id
+        WHERE apl.fk_dcxc_aplicadoa = @_entity_id AND (TRIM(IFNULL(apl.uf_cfdi,''))='' OR apl.uf_cfdi='0')
         ORDER BY apl.sys_dtcreated ASC
         "
         // Documentos con importes aplicados del documento por aplicar
