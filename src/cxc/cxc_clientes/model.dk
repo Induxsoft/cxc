@@ -773,6 +773,7 @@ module "model"
                 {
                     str = trim(field.str(data,field))
                     if str != "" { output<field> : str }
+                    if str == "" { output<field+"*"> : @null }
                     break
                 }
                 case 2
@@ -783,7 +784,7 @@ module "model"
                 case 3
                 {
                     ref obj = field.obj(data,field)
-                    if not(isnull(obj)) { output<field+"*"> : obj }
+                    output<field+"*"> : obj
                     break
                 }
             }

@@ -358,12 +358,13 @@ module "cxc.cobro.dk"
                                     class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number"
                                     name="importe"
-                                    value="#<form('importe','nm',@null)>"
+                                    value="#<@@(infoDoc,'#saldo')>"
                                     min="1"
                                     step="0.000001"
                                     id="txt_importe"
                                     "num-decs"="#<decs>"
                                     required="true"
+                                    readonly=""
                                     onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
@@ -400,7 +401,7 @@ module "cxc.cobro.dk"
                         div(class="col-4") {
                             #!
                             saldo = @@(infoDoc,"#saldo")
-                            importe = form("importe","nm",@null)
+                            importe = @@(infoDoc,"#saldo") //form("importe","nm",@null)
 
                             nuevo_saldo = (saldo - importe)
                             #$
