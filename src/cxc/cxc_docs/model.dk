@@ -60,7 +60,7 @@ module "model"
                     INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
                 WHERE cte.sys_pk = @icliente
                 "
-                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.pagable,0);"
+                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.pagable,0);"
 
                 if @@(params,"$_entity_id") == "_new"
                 {
@@ -90,7 +90,7 @@ module "model"
 
                 sql_cuentas = "SELECT c.sys_pk, d.codigo AS divisa, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
-                sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
+                sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
 
                 data<"infoDoc*"> : dcxc
@@ -106,7 +106,7 @@ module "model"
                 ref dcxc = entity.read(db,params)
                 if @@(dcxc,"#debe") <= 0 { do rise_error(500,"No es posible bonificar el documento proporcionado") }
 
-                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
+                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
 
                 data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
@@ -118,7 +118,7 @@ module "model"
                 ref dcxc = entity.read(db,params)
                 if @@(dcxc,"#debe") <= 0 { do rise_error(500,"No es posible aplicar intereses moratorios al documento proporcionado") }
 
-                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxp_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_int_mor,0);"
+                sql_documentos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_int_mor,0);"
 
                 data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
@@ -634,7 +634,7 @@ module "model"
 
         query = trim(sql)
 
-        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_cxp_docs cd ON d.id=cd.documento ORDER BY d.id;"
+        sql_cdocumentos = "SELECT d.id, d.const FROM cdocumentos d INNER JOIN cfg_cxc_docs cd ON d.id=cd.documento ORDER BY d.id;"
         ref cdocumentos = dbr.list(db, sql_cdocumentos, @null)
 
         new response

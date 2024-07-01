@@ -394,7 +394,7 @@ model "erp.cxc"
         @"uf_cfdi" string(50)
     }
     // Configuración de documentos por pagar
-    entity "cfg_cxp_docs"
+    entity "cfg_cxc_docs"
     {
         @"documento" ref:"cdocumentos" key
         @"pagable" bool     // Si es true, puede agregarse como documento por pagar al que se le pueden aplicar cargos, bonificaciones y pagos
