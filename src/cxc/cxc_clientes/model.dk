@@ -767,13 +767,14 @@ module "model"
         {
             field = trim(list.str(fields,i))
             // 1 - $ | 2 - # | 3 - * | 0 - not exist
+
             switch field.typeof(data,field)
             {
                 case 1
                 {
                     str = trim(field.str(data,field))
                     if str != "" { output<field> : str }
-                    if str == "" { output<field+"*"> : @null }
+                    else if str == "" { output<field+"*"> : @null }
                     break
                 }
                 case 2
@@ -794,7 +795,7 @@ module "model"
     cte.create::&db,&params,&data
     {
         @use_transaction = @false
-
+        do dbr.apps.action.pre("GB21")
         ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
@@ -804,12 +805,14 @@ module "model"
         ref cliente = record.create()
         if trim(@@(data,"$codigo")) == "" {
             sql_gen_code = "SELECT (IF(COUNT(*) >= 1,CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')),'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%';"
-            cliente<"codigo"> : dbr.str(db,sql_gen_code,@null)
+            codigo=dbr.str(db,sql_gen_code,@null)
+            cliente<"codigo"> : codigo
+            data<"codigo">:codigo
         }
         do cleanFormData(fieldsCliente,data,cliente)
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
-        do dbr.apps.action.pre("GB21")
+        
 
         validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
         if field.exist(data,'rfc') && parse.bool(validate_rfc)
@@ -818,7 +821,7 @@ module "model"
             ref dtrfc=dbr.rec(db,"select * from cliente c where rfc=@rfc and sys_pk<>@_entity_id",params)
             if not(isnull(dtrfc)){do rise_error(500,"Y existe un cliente con el mismo RFC")}
         }
-
+        // do rise_error(0,to.json(cliente))
         do dbr.begin(db)
 
         // Datos de domicilios
