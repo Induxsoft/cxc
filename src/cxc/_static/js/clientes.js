@@ -56,7 +56,6 @@ var cliente =
 
             this.setEvents();
             this.setKeyboardShortcuts();
-            v12navbar.toggleButtonInteraction(true);
         },
 
         setEvents()
@@ -86,6 +85,8 @@ var cliente =
                 this.tbl_clientes.Events[this.tEvents.LostFocus] = (e) => {
                     v12navbar.toggleButtonInteraction(true);
                 }
+
+                v12navbar.toggleButtonInteraction(true);
             }
         },
 
