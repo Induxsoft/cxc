@@ -56,6 +56,7 @@ var cliente =
 
             this.setEvents();
             this.setKeyboardShortcuts();
+            v12navbar.toggleButtonInteraction(true);
         },
 
         setEvents()
@@ -77,6 +78,14 @@ var cliente =
 
                     tr.ondblclick = (event) => { cliente.goTo("/!/cxc/clientes/{_cliente}/"); }
                 };
+
+                this.tbl_clientes.Events[this.tEvents.BeforeCellFocus] = (e) => {
+                    v12navbar.toggleButtonInteraction(false);
+                }
+
+                this.tbl_clientes.Events[this.tEvents.LostFocus] = (e) => {
+                    v12navbar.toggleButtonInteraction(true);
+                }
             }
         },
 
