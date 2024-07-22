@@ -75,13 +75,12 @@ module "cte.balance.dk"
     format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
     if trim(format_decs)==""{format_decs="$ #,#.00"}
 
-    #$ div(class="container-fluid")
+    #$ div(class="v12-list-view" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
-
-        #$ div(class="" id="work_area")
+        section(class="container-fluid bg-white" id="top_area")
         {
-            form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #! do uie.printV12FormBar(nav_config)
+            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -117,37 +116,6 @@ module "cte.balance.dk"
                             "label-to"="Hasta:"
                         ){$""}
                     }
-                    // div
-                    // {
-                    //     select(class="induxsoft-form-select" name="tdate" onchange="document.querySelector('#form_filter').submit();")
-                    //     {
-                    //         option(value="0" "#<ifstr(@@(get,'$tdate')=='0','selected','')>"="true"){$"Emisión"}
-                    //         option(value="1" "#<ifstr(@@(get,'$tdate')=='1','selected','')>"="true"){$"Aplicación"}
-                    //     }
-                    // }
-                    // div(class="flex-grow-1")
-                    // {
-                    //     "filter-date-range"(
-                    //         "mode-field"="filter-mode"
-                    //         "year-field"="year"
-                    //         "month-field"="month"
-                    //         "range-field"="range"
-                    //         "from-field"="datefrom"
-                    //         "to-field"="dateto"
-                    //         "selection"='#<to.json(get)>'
-                    //         "lastdays-options"="15,30,45,60,90"
-                    //         "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
-                    //         "custom-range"="true"
-                    //         "form"="#form_filter"
-                    //         "auto-submit"="true"
-                    //         "label-months"="Ver por cada mes"
-                    //         "label-days"="Últ. @lastdays días"
-                    //         "label-custom"="Personalizado"
-                    //         "label-from"="Desde:"
-                    //         "label-to"="Hasta:"
-                    //         "month-names"="Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre"
-                    //     ){$""}
-                    // }
                 }
                 div(class="flex-grow-1 py-1")
                 {
@@ -162,7 +130,7 @@ module "cte.balance.dk"
                     ){$""}
                 }
             }
-            
+
             div(class="d-flex justify-content-between")
             {
                 h6(class=""){$"#<@('$./nombre')>"}
@@ -196,7 +164,11 @@ module "cte.balance.dk"
                     }
                 }
             }
+        }
 
+        section(class="container-fluid" id="work_area")
+        {
+            
             "edit-table"(class="w-100" id="tbl_dcxc" data="#<to.json(@('&./docs'))>")
             {
                 "edit-thead"
@@ -212,11 +184,8 @@ module "cte.balance.dk"
                         "edit-th"(type="NoEditable" field="notas"){$"Concepto"}
                     }
                 }
-                /* "edit-tbody"
-                {
-                    // contenido...
-                } */
             }
+            
         }
 
         p{$"#<@('$error/message')>"}
@@ -257,7 +226,10 @@ module "cte.balance.dk"
                 }
 
                 v12navbar.toggleButtonInteraction(true);
-            })
+            });
+
+            
+
 		'}
     }
 }
