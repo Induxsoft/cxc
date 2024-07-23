@@ -78,12 +78,9 @@ var cliente =
                     tr.ondblclick = (event) => { cliente.goTo("/!/cxc/clientes/{_cliente}/"); }
                 };
 
-                this.tbl_clientes.Events[this.tEvents.BeforeCellFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(false);
-                }
-
-                this.tbl_clientes.Events[this.tEvents.LostFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(true);
+                this.tbl_clientes.Events[this.tEvents.RowChanged] = (e) => {
+                    let obj = (this.tbl_clientes?.DataArray??[])[e.index];
+                    v12navbar.toggleButtonInteraction(!obj);
                 }
 
                 v12navbar.toggleButtonInteraction(true);

@@ -37,13 +37,12 @@ module "cte.poraplicar.dk"
     if trim(vdecs)==""{decs=6}
     else{decs=parse.num(vdecs)}
 
-    #$ div(class="container-fluid")
+    #$ div(class="v12-list-view" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
-
-        #$ div(class="" id="work_area")
+        section(class="container-fluid bg-white" id="top_area")
         {
-            form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #! do uie.printV12FormBar(nav_config)
+            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -112,7 +111,11 @@ module "cte.poraplicar.dk"
                     }
                 }
             }
+        }
+        
 
+        section(class="container-fluid" id="work_area")
+        {
             "edit-table"(class="w-100" id="tbl_poraplicar" data="#<to.json(@('&./docs'))>")
             {
                 "edit-thead"
@@ -127,10 +130,6 @@ module "cte.poraplicar.dk"
                         "edit-th"(type="NoEditable" field="xaplicar"){$"Por aplicar"}
                     }
                 }
-                /* "edit-tbody"
-                {
-                    // contenido...
-                } */
             }
         }
 
@@ -149,16 +148,10 @@ module "cte.poraplicar.dk"
                 const table = document.getElementById("tbl_poraplicar");
                 const event = table.EdiTable.Const.Events;
 
-                table.Events[event.LostFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(true);
-                }
-
-                table.Events[event.BeforeCellFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(false);
-                }
-
                 table.Events[event.RowChanged] = (e) => {
                     let obj = table.DataArray[e.index];
+
+                    v12navbar.toggleButtonInteraction(!obj);
                     
                     const btn_cobrar = document.getElementById("v12_GB13");
                     const btn_bonif = document.getElementById("v12_GB14");

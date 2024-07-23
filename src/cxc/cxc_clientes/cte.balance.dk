@@ -137,7 +137,7 @@ module "cte.balance.dk"
                 h6(class=""){$"#<@('$./divisa')>"}
             }
 
-            table(class="table table-bordered")
+            table(class="table table-sm table-bordered")
             {
                 thead
                 {
@@ -168,7 +168,6 @@ module "cte.balance.dk"
 
         section(class="container-fluid" id="work_area")
         {
-            
             "edit-table"(class="w-100" id="tbl_dcxc" data="#<to.json(@('&./docs'))>")
             {
                 "edit-thead"
@@ -185,7 +184,6 @@ module "cte.balance.dk"
                     }
                 }
             }
-            
         }
 
         p{$"#<@('$error/message')>"}
@@ -203,16 +201,10 @@ module "cte.balance.dk"
                 const table = document.getElementById("tbl_dcxc");
                 const event = table.EdiTable.Const.Events;
 
-                table.Events[event.LostFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(true);
-                }
-
-                table.Events[event.BeforeCellFocus] = (e) => {
-                    v12navbar.toggleButtonInteraction(false);
-                }
-
                 table.Events[event.RowChanged] = (e) => {
                     let obj = table.DataArray[e.index];
+
+                    v12navbar.toggleButtonInteraction(!obj);
                     
                     const btn_cobrar = document.getElementById("v12_GB13");
                     const btn_bonif = document.getElementById("v12_GB14");
@@ -227,9 +219,6 @@ module "cte.balance.dk"
 
                 v12navbar.toggleButtonInteraction(true);
             });
-
-            
-
 		'}
     }
 }

@@ -131,13 +131,12 @@ module "list.dk"
         @"jscurrentcontext": "documento.getCurrentContext"
     }
     
-    #$ div(class="container-fluid p-0")
+    #$ div(class="v12-list-view" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
-
-        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        section(class="container-fluid bg-white" id="top_area")
         {
-            form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #! do uie.printV12FormBar(nav_config)
+            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center flex-wrap gap-1")
                 {
@@ -194,6 +193,10 @@ module "list.dk"
                     }
                 }
             }
+        }
+
+        section(class="container-fluid" id="work_area")
+        {
             #! do uie.dbeditable(table_definition,"tbl_cxc")
         }
 

@@ -47,16 +47,10 @@ var documento =
         const table = this.table;
         const event = table.EdiTable.Const.Events;
 
-        table.Events[event.LostFocus] = (e) => {
-            v12navbar.toggleButtonInteraction(true);
-        }
-
-        table.Events[event.BeforeCellFocus] = (e) => {
-            v12navbar.toggleButtonInteraction(false);
-        }
-
         table.Events[event.RowChanged] = (e) => {
             let obj = table.DataArray[e.index];
+
+            v12navbar.toggleButtonInteraction(!obj);
             
             const btn_cobrar = document.getElementById("v12_GB13");
             const btn_bonif = document.getElementById("v12_GB14");

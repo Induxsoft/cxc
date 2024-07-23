@@ -85,16 +85,12 @@ module "list.dk"
         @"jscurrentcontext": "cliente.getCurrentContext"
     }
 
-    #$
-    div(class="container-fluid p-0")
+    #$ div(class="v12-list-view" id="view")
     {
-        #! do uie.printV12FormBar(nav_config)
-        
-        #$ div(id="work_area" class="container-section mt-1 p-2 pt-0")
+        section(class="container-fluid bg-white" id="top_area")
         {
-            p{$"#<@('$error/message')>"}
-
-            form(action="./" method="GET" id="form_search" class="no-print my-1 d-flex py-1")
+            #! do uie.printV12FormBar(nav_config)
+            #$ form(action="./" method="GET" id="form_search" class="no-print my-1 d-flex py-1")
             {
                 "filter-text"(
                     "id"="ft_search"
@@ -107,7 +103,10 @@ module "list.dk"
                 ){$""}
                 a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm induxsoft-corners" type="button" id="btn_new_cliente" title="Nuevo cliente" style="outline: 1px solid #DDD;"){$"#<@ICON_USER_ADD>"}
             }
-
+        }
+        
+        section(class="container-fluid" id="work_area")
+        {
             #! do uie.dbeditable(table_definition, "tbl_clientes")
         }
 
