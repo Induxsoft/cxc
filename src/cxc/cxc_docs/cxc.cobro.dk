@@ -21,8 +21,11 @@ module "cxc.cobro.dk"
     ref docCobros = ifnull(@('&./docCobros'),list.create())
     ref dvsPred = ifnull(@("&./dvsPred"),record.create())
 
+    @DECIMAL_PRECISION = @("#./decimals")
+    @IDIVISA_PREDETERMINADA = field.dnum(dvsPred,"sys_pk",0)
     cDIVISA_PRED = field.dstr(dvsPred,"codigo","MXN")
     tCAMBIO_PRED = field.dnum(dvsPred,"tcambio",1)
+    num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
 
     new sel_cuenta_deposito
     {
@@ -86,13 +89,6 @@ module "cxc.cobro.dk"
         @"selected": form("documento_cobro","nm",@null)
     }
 
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs=@FMT_MONEY}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
-
     #$
     div(class="container")
     {
@@ -107,7 +103,7 @@ module "cxc.cobro.dk"
             }
         }
 
-        form(action="." method="post" id="form_cobro" onsubmit="return cliente.form.ValidateForm(event)")
+        form(action="." method="post" id="form_cobro") //onsubmit="return cliente.form.ValidateForm(event)"
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
             input(type="hidden" name="icliente" value="#<@@(infoDoc,'#icliente')>")
@@ -159,7 +155,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Capital:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#haber'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#haber'))>"
                         }
                     }
 
@@ -167,7 +163,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Financieros:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intfinancieros'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#intfinancieros'))>"
                         }
                     }
 
@@ -175,7 +171,7 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Moratorios:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#intmoratorios'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#intmoratorios'))>"
                         }
                     }
 
@@ -183,21 +179,21 @@ module "cxc.cobro.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Bonificaciones:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#bonificaciones'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#bonificaciones'))>"
                         }
                     }
                      div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Pagos:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#pagos'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#pagos'))>"
                         }
                     }
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}
                         div(class="col-6") {
-                            $"#<format(@@(infoDoc,'#saldo'),format_decs)>"
+                            $"$ #<number_format(@@(infoDoc,'#saldo'))>"
                         }
                     }
                     
@@ -248,14 +244,10 @@ module "cxc.cobro.dk"
                             div(class="input-group input-group-sm") {
                                 input(
                                     class="form-control rounded-0 induxsoft-num-field mw-100"
-                                    type="number"
-                                    name="tcambio_deposito"
-                                    value="#<form('tcambio_deposito','nm',@null)>"
-                                    min="1"
-                                    step="0.000001"
-                                    id="txt_tcambio_deposito"
-                                    required="true"
-                                    "num-decs"="#<decs>"
+                                    type="number" name="tcambio_deposito" value="#<form('tcambio_deposito','nm',@null)>"
+                                    id="txt_tcambio_deposito" min="1" step="#<num_step>" required="true"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
                                 )
                                 span(class="input-group-text rounded-0" id="spn_tcambio_deposito"){$"#<cDIVISA_PRED>"}
                             }
@@ -269,13 +261,10 @@ module "cxc.cobro.dk"
                             div(class="input-group input-group-sm"){
                                 input(
                                     class="form-control rounded-0 induxsoft-num-field mw-100"
-                                    type="number"
-                                    name="importe_deposito"
-                                    value="#<form('importe_deposito','nm',@null)>"
-                                    step="0.000001"
-                                    id="txt_importe_deposito"
-                                    "num-decs"="#<decs>"
-                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
+                                    type="number" name="importe_deposito" value="#<form('importe_deposito','nm',@null)>"
+                                    id="txt_importe_deposito" step="#<num_step>"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
                                 )
                                 span(class="input-group-text rounded-0" id="spn_importe_deposito"){$""}
                             }
@@ -335,14 +324,9 @@ module "cxc.cobro.dk"
                             div(class="input-group input-group-sm") {
                                 input(
                                     class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100"
-                                    type="number"
-                                    name="tipocambio"
-                                    value="#<form('tipocambio','nm',infoDoc)>"
-                                    min="1"
-                                    step="0.000001"
-                                    id="txt_tcambio"
-                                    required="true"
-                                    "num-decs"="#<decs>"
+                                    type="number" name="tipocambio" value="#<form('tipocambio','nm',infoDoc)>"
+                                    id="txt_tcambio" min="1" step="#<num_step>" required="true"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(infoDoc,'$divisa')>"}
                             }
@@ -356,16 +340,10 @@ module "cxc.cobro.dk"
                             div(class="input-group input-group-sm") {
                                 input(
                                     class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
-                                    type="number"
-                                    name="importe"
-                                    value="#<@@(infoDoc,'#saldo')>"
-                                    min="1"
-                                    step="0.000001"
-                                    id="txt_importe"
-                                    "num-decs"="#<decs>"
-                                    required="true"
-                                    readonly=""
-                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
+                                    type="number" name="importe" value="#<@@(infoDoc,'#saldo')>"
+                                    id="txt_importe" min="1" step="#<num_step>" required="true"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
                             }
@@ -401,9 +379,8 @@ module "cxc.cobro.dk"
                         div(class="col-4") {
                             #!
                             saldo = @@(infoDoc,"#saldo")
-                            importe = @@(infoDoc,"#saldo") //form("importe","nm",@null)
-
-                            nuevo_saldo = (saldo - importe)
+                            importe = form("importe","nm",@null)
+                            nuevo_saldo = round(saldo - importe, @DECIMAL_PRECISION)
                             #$
                             input(
                                 class="form-control form-control-sm rounded-0 text-end"
@@ -432,6 +409,7 @@ module "cxc.cobro.dk"
                 document.addEventListener("DOMContentLoaded", () => {
                     documento.cobro.dtCxC = #<to.json(infoDoc)>;
                     documento.cobro.dvsPred = #<to.json(dvsPred)>;
+                    documento.cobro.decimals = #<@DECIMAL_PRECISION>;
                     documento.cobro.init();
                     documento.cobro.pedirTCambio();
                     InduxsoftNumberFields.Init();

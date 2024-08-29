@@ -10,6 +10,10 @@ var documento =
 
     trigger(element,event) {
         if (element) {
+            if (element.nodeName==="FORM" && event=='submit') {
+                element.requestSubmit();
+                return
+            }
             let e = new Event(event);
             element.dispatchEvent(e);
         }
@@ -106,6 +110,7 @@ var documento =
         btnSave: null,
         dtCxC: {},
         dvsPred: {},
+        decimals: 2,
 
         init()
         {
@@ -124,7 +129,7 @@ var documento =
                     let importe = Number(event.target.value);
                     let saldo = Number(this.dtCxC.saldo);
 
-                    this.elements["txt_nuevo_saldo"].value = Math.sub(saldo,importe);
+                    this.elements["txt_nuevo_saldo"].value = Math.RoundTo(Math.sub(saldo,importe), this.decimals);
                 });
 
                 this.elements["sel_cuenta_deposito"].addEventListener("change", (event) => {
@@ -146,7 +151,7 @@ var documento =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
                     
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
                 this.elements["txt_importe_deposito"].addEventListener("change", (event) => {
                     let tcambio_cte = Number(this.elements["txt_tcambio"].value);
@@ -156,7 +161,7 @@ var documento =
                     let importe_cte = Math.mul(importe_dep,tcambio_dep);
                     importe_cte = Math.div(importe_cte,tcambio_cte);
 
-                    this.elements["txt_importe"].value = importe_cte;
+                    this.elements["txt_importe"].value = Math.RoundTo(importe_cte, this.decimals);
                     documento.trigger(this.elements["txt_importe"],"input");
                 });
 
@@ -168,8 +173,11 @@ var documento =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
 
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
+
+                documento.trigger(this.elements["txt_importe"],"input");
+                documento.trigger(this.elements["sel_cuenta_deposito"],"change");
             }
         },
 
@@ -264,6 +272,7 @@ var documento =
         btnSave: null,
         dtCxC: {},
         dvsPred: {},
+        decimals: 2,
 
         init()
         {
@@ -282,7 +291,7 @@ var documento =
                     let importe = Number(event.target.value);
                     let saldo = Number(this.dtCxC.saldo);
 
-                    this.elements["txt_nuevo_saldo"].value = Math.sub(saldo,importe);
+                    this.elements["txt_nuevo_saldo"].value = Math.RoundTo(Math.sub(saldo,importe), this.decimals);
                 });
             }
         },
@@ -294,6 +303,7 @@ var documento =
         btnSave: null,
         dtCxC: {},
         dvsPred: {},
+        decimals: 2,
 
         init()
         {
@@ -312,7 +322,7 @@ var documento =
                     let importe = Number(event.target.value);
                     let saldo = Number(this.dtCxC.saldo);
 
-                    this.elements["txt_nuevo_saldo"].value = Math.add(saldo,importe);
+                    this.elements["txt_nuevo_saldo"].value = Math.RoundTo(Math.add(saldo,importe), this.decimals);
                 });
             }
         },
@@ -320,7 +330,7 @@ var documento =
 
     aplicar: {
         tbl_xaplicar:null, arr_xaplicar:[], tbl_aplicados:null, arr_aplicados:[],
-        source:{},
+        source:{}, decimals:2,
 
         init()
         {
@@ -439,18 +449,20 @@ var documento =
             let sfinal = (saldo - aplicar);
 
             let aplicado = 0;
+            let xaplicar = 0;
             for (let i = 0; i < arr_xaplicar.length; i++) {
                 const impAplicar = Number(arr_xaplicar[i]["aplicar"]);
                 aplicado = Math.add(aplicado,impAplicar);
             }
-            aplicado = Math.add(aplicado,aplicar);
+            aplicado = Math.RoundTo(Math.add(aplicado,aplicar), this.decimals);
+            xaplicar = Math.RoundTo(Math.sub(sxaplicar,aplicado), this.decimals);
 
             let rst = 
             {
                 aplicar: aplicar,
                 sfinal: sfinal,
                 aplicado: aplicado,
-                xaplicar: Math.sub(sxaplicar,aplicado),
+                xaplicar: xaplicar,
             }
 
             return rst
@@ -502,8 +514,8 @@ var documento =
                 const formatter = new Intl.NumberFormat(langcode, {
                     style: "currency",
                     currency: "MXN",
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
+                    minimumFractionDigits: this.decimals,
+                    maximumFractionDigits: this.decimals
                 });
 
                 lbl_aplicado.textContent = formatter.format(rst.aplicado);

@@ -9,6 +9,10 @@ var cliente =
 
     trigger(element,event) {
         if (element) {
+            if (element.nodeName==="FORM" && event=='submit') {
+                element.requestSubmit();
+                return
+            }
             let e = new Event(event);
             element.dispatchEvent(e);
         }
@@ -175,7 +179,7 @@ var cliente =
                 const field = fields_number[i];
                 if(field && field.hasAttribute("required"))
                 {
-                    var data_value=field.getAttribute("data-value");
+                    var data_value=field.getAttribute("data-value") ?? field.value;
                     var value=field.getAttribute("value");
                     var alert_text=field.getAttribute("alert");
                     if(data_value.trim()!="")value=data_value;

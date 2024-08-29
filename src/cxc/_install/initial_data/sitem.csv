@@ -21,3 +21,4 @@ GB16,Aplicar abonos a documentos por cobrar,cxc.documentos
 GB17,Desaplicar abonos de documentos por cobrar,cxc.documentos
 cxc.reports,Reportes,cxc
 GB30,Informe de antigüedad de saldos por cobrar,cxc.reports
+GB31,Origen y aplicación,cxc.reports

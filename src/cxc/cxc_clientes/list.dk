@@ -13,15 +13,9 @@ module "list.dk"
     #include "../_lib/lib.dk"
     
     do @context.begin(@crud_context)
-    ref @http_context = @('&http')
-    ref get = @@(@http_context,"&request/get")
+    
     ref listClientes = ifnull(@("&."),list.create())
-
     context = to.json(@null)
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=2}
-    else{decs=parse.num(vdecs)}
 
     new table_definition
     {
@@ -39,7 +33,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": decs
+                @"decs": @("#parameters/decimals")
             }
             member @"divisa"
             {
@@ -97,7 +91,7 @@ module "list.dk"
                     "text-field"="buscar"
                     "placeholder"="Buscar por código, nombre o RFC"
                     "form"="#form_search"
-                    "value"="#<@@(get,'$buscar')>"
+                    "value"="#<@('$parameters/buscar')>"
                     "auto-submit"="true"
                     "class"="w-100"
                 ){$""}

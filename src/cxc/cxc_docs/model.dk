@@ -2,7 +2,6 @@
 #!
 module "model"
 {
-    #include "../_lib/config.dk"
     @table_name = "dcxc"
     @read_query = "
     SELECT
@@ -40,8 +39,7 @@ module "model"
 
     cxc.prepareView::&db,&params,&data
     {
-        params<"pk_dvs"> : get_idivisa_predeterminada()
-        sql_divisa_predeterminada = "SELECT sys_pk, codigo, tcambio FROM divisa WHERE sys_pk = @pk_dvs;"
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         switch @@(params,"$_view")
         {
@@ -98,7 +96,6 @@ module "model"
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
-                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case "bonificacion"
@@ -110,7 +107,6 @@ module "model"
 
                 data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
-                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case "intmoratorios"
@@ -122,9 +118,14 @@ module "model"
 
                 data<"infoDoc*"> : dcxc
                 data<"documentos*"> : dbr.list(db,sql_documentos,@null)
-                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
+        }
+
+        using data
+        {
+            @"dvsPred*": dbr.localize.money(db,@dbr.localize.default.money_code)
+            @"decimals": @@(params,"#decimals")
         }
     }
 
@@ -276,6 +277,7 @@ module "model"
     cxc.obtenerDocumentosPorAplicar::&db,&params
     {
         do errordet(@false)
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
         
         sql_xaplicar = "
         SELECT
@@ -475,6 +477,8 @@ module "model"
     cxc.list::&db,&params
     {
         do dbr.apps.action.grant("GB10")
+
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))

@@ -19,6 +19,8 @@ module "cxc.crear.dk"
 
     // do rise_error(0,to.json(@("&.")))
     @is_new = (@("$parameters/_entity_id") == "_new")
+    @DECIMAL_PRECISION = @("#parameters/decimals")
+    num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
 
     new sel_documento
     {
@@ -52,13 +54,6 @@ module "cxc.crear.dk"
         member @"hidden" { @"print": @true }
     }
 
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs=@FMT_MONEY}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
-
     #$
     div(class="container")
     {
@@ -69,7 +64,7 @@ module "cxc.crear.dk"
         #$
         div(class="alert alert-danger overflow-auto mb-2 #<ifstr(@('$error/message')!='','','d-none')>" id="frm_alerts"){$"#<@('error/message')>"}
 
-        form(action="." method="POST" enctype="multipart/form-data" id="form_cxc" class="#<ifstr(@is_new,'','disable-form')>" onsubmit="return cliente.form.ValidateForm(event)")
+        form(action="." method="POST" enctype="multipart/form-data" id="form_cxc" class="#<ifstr(@is_new,'','disable-form')>") //onsubmit="return cliente.form.ValidateForm(event)"
         {
             ##
             do uie.print_from_url_field()
@@ -105,8 +100,8 @@ module "cxc.crear.dk"
                         value="#<form('tcambio','nm',cliente)>"
                         id="txt_tcambio"
                         min="1"
-                        step="0.000001"
-                        "num-decs"="#<decs>"
+                        step="#<num_step>"
+                        "num-decs"="#<@DECIMAL_PRECISION>"
                     )
                 }
                 div(class="col-lg-4") {
@@ -165,12 +160,12 @@ module "cxc.crear.dk"
                         name="importe"
                         value="#<importe>"
                         min="1"
-                        step="0.000001"
+                        step="#<num_step>"
                         id="txt_importe"
                         required="true"
                         "num-style"="currency"
-                        "num-decs"="#<decs>"
-                        onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
+                        "num-decs"="#<@DECIMAL_PRECISION>"
+                        onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
                     )
                 }
             }
@@ -183,12 +178,11 @@ module "cxc.crear.dk"
             {
                 div(class="col-lg-12")
                 {
-
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Financieros:"}
                         div(class="col-2 text-end") {
-                            $"#<format(@@(infoDoc,'#intfinancieros'),@FMT_MONEY)>"
+                            $"#<number_format(@@(infoDoc,'#intfinancieros'))>"
                         }
                     }
 
@@ -196,7 +190,7 @@ module "cxc.crear.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Intereses Moratorios:"}
                         div(class="col-2 text-end") {
-                            $"#<format(@@(infoDoc,'#intmoratorios'),@FMT_MONEY)>"
+                            $"#<number_format(@@(infoDoc,'#intmoratorios'))>"
                         }
                     }
 
@@ -204,21 +198,21 @@ module "cxc.crear.dk"
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Bonificaciones:"}
                         div(class="col-2 text-end") {
-                            $"#<format(@@(infoDoc,'#bonificaciones'),@FMT_MONEY)>"
+                            $"#<number_format(@@(infoDoc,'#bonificaciones'))>"
                         }
                     }
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Pagos:"}
                         div(class="col-2 text-end") {
-                            $"#<format(@@(infoDoc,'#pagos'),@FMT_MONEY)>"
+                            $"#<number_format(@@(infoDoc,'#pagos'))>"
                         }
                     }
                     div(class="row d-flex justify-content-end align-items-center")
                     {
                         label(class="col-auto col-form-label fw-bolder"){$"Saldo:"}
                         div(class="col-2 text-end") {
-                            $"#<format(@@(infoDoc,'#saldo'),@FMT_MONEY)>"
+                            $"#<number_format(@@(infoDoc,'#saldo'))>"
                         }
                     }
                     

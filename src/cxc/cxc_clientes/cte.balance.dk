@@ -13,13 +13,9 @@ module "cte.balance.dk"
     #include "../_lib/icons.dk"
     
     do @context.begin(@crud_context)
-    ref @http_context = @('&http')
-    ref get = @@(@http_context,"&request/get")
-    ref @_GET=get
     
-    get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
-    get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
-    get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
+    ref @_GET = @("&parameters")
+    @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
     {
@@ -31,7 +27,8 @@ module "cte.balance.dk"
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
     }
-     ref list_years = list_years(10,0)
+    
+    ref list_years = list_years(10,0)
     fdr_year_opt = ""
     for i = 0; i < list.count(list_years) { fdr_year_opt = fdr_year_opt + list.str(list_years,i) + "," }
     fdr_year_opt = rremove(fdr_year_opt,1)
@@ -67,13 +64,6 @@ module "cte.balance.dk"
         @"text_field": "const"
         @"selected": @("#parameters/fil_fdr_field")
     }
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=2}
-    else{decs=parse.num(vdecs)}
-
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs="$ #,#.00"}
 
     #$ div(class="v12-list-view" id="view")
     {
@@ -124,7 +114,7 @@ module "cte.balance.dk"
                         "text-field"="s"
                         "placeholder"="Buscar por referencia"
                         "form"="#form_filter"
-                        "value"="#<@@(get,'$s')>"
+                        "value"="#<@('$parameters/s')>"
                         "auto-submit"="true"
                         "class"="w-100"
                     ){$""}
@@ -155,12 +145,12 @@ module "cte.balance.dk"
                 {
                     tr
                     {
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_inicial'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/debe'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/haber'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_alfinal'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),format_decs)>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_inicial'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/debe'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/haber'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_alfinal'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_docs'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/por_aplicar'))>"}
                     }
                 }
             }
@@ -178,8 +168,8 @@ module "cte.balance.dk"
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Emisión"}
                         "edit-th"(type="NoEditable" field="aplicacion"){$"Aplicación"}
-                        "edit-th"(type="NoEditable" field="debe" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Debe"}
-                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Haber"}
+                        "edit-th"(type="NoEditable" field="debe" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" prefix="$ " thousandssep="true"){$"Debe"}
+                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" prefix="$ " thousandssep="true"){$"Haber"}
                         "edit-th"(type="NoEditable" field="notas"){$"Concepto"}
                     }
                 }

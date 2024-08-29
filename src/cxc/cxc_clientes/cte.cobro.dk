@@ -106,7 +106,7 @@ module "cte.cobro.dk"
             }
         }
 
-        form(action="." method="POST" id="form_cobro" onsubmit="return cliente.form.ValidateForm(event)")
+        form(action="." method="POST" id="form_cobro") //onsubmit="return cliente.form.ValidateForm(event)"
         {
             input(type="hidden" name="icliente" value="#<@@(cliente,'#sys_pk')>")
 

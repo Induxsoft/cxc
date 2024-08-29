@@ -128,6 +128,13 @@ module "lib.dk"
         return @IDIVISA_PREDETERMINADA
     }
 
+    function number_format(value)
+    {
+        number = parse.num(value)
+        format = "#"+@THOUSANDS_SEPARATOR+"0"+@DECIMAL_SEPARATOR+padright("",@DECIMAL_PRECISION,"0")
+        return format(number,format)
+    }
+
     function new_rec()
     {
         new record

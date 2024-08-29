@@ -4,6 +4,8 @@ module ":erp.cxc.movimientos"
 {
     saveCxC::&db,&data
     {
+        start_transaction = @false
+
         fecha = trim(@@(data,"$fecha"))
         aplicacion = trim(@@(data,"$aplicacion"))
 
@@ -155,10 +157,7 @@ module ":erp.cxc.movimientos"
         }
 
         dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0)
-
-        if field.exist(data,"aplicable") && trim(@@(data,"$aplicable"))!=""{dcxc<"aplicable"> :@@(data,"aplicable")}
-
-        start_transaction = @false
+        if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -172,7 +171,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -214,6 +213,8 @@ module ":erp.cxc.movimientos"
     {
         namespace "erp.cxc.movimientos"
 
+        start_transaction = @false
+
         new dcxc
         {
             @"aplicable": @@(data,"$aplicable")
@@ -229,8 +230,7 @@ module ":erp.cxc.movimientos"
         }
 
         if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
-
-        start_transaction = @false
+        do determinarImporteCxC(dcxc,@@(data,"#importe"))
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -238,17 +238,16 @@ module ":erp.cxc.movimientos"
         }
 
         // Generar documento por cobrar (dcxc).
-        do determinarImporteCxC(dcxc,@@(data,"#importe"))
         lastId = saveCxC(db,dcxc)
         // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",data)
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @debe - @haber) WHERE sys_pk = @icliente;",dcxc)
 
         if start_transaction { do dbr.commit(db) }
         return lastId
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -256,6 +255,8 @@ module ":erp.cxc.movimientos"
     cobrarCxC::&db,&data
     {
         namespace "erp.cxc.movimientos"
+
+        start_transaction = @false
 
         tcambio_doc = @@(data,"#tipocambio")
         tcambio_dep = @@(data,"#tcambio_deposito")
@@ -304,8 +305,6 @@ module ":erp.cxc.movimientos"
             @"aplicadoa": @@(data,"#pkparent")
         }
 
-        start_transaction = @false
-
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
             start_transaction = @true
@@ -338,7 +337,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -346,6 +345,8 @@ module ":erp.cxc.movimientos"
     bonificarCxC::&db,&data
     {
         namespace "erp.cxc.movimientos"
+
+        start_transaction = @false
 
         new dcxc
         {
@@ -373,8 +374,6 @@ module ":erp.cxc.movimientos"
             @"importe": @@(data,"#importe")
             @"aplicadoa": @@(data,"#pkparent")
         }
-
-        start_transaction = @false
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -406,7 +405,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -414,6 +413,8 @@ module ":erp.cxc.movimientos"
     aplicarIntMor::&db,&data
     {
         namespace "erp.cxc.movimientos"
+
+        start_transaction = @false
 
         new dcxc
         {
@@ -441,8 +442,6 @@ module ":erp.cxc.movimientos"
             @"importe": @@(data,"#importe")
             @"aplicadoa": @@(data,"#pkparent")
         }
-
-        start_transaction = @false
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -474,7 +473,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -482,6 +481,8 @@ module ":erp.cxc.movimientos"
     cobrarCliente::&db,&data
     {
         namespace "erp.cxc.movimientos"
+
+        start_transaction = @false
 
         tcambio_cte = @@(data,"#tcambio")
         tcambio_dep = @@(data,"#tcambio_deposito")
@@ -518,8 +519,6 @@ module ":erp.cxc.movimientos"
             @"icliente": @@(data,"#icliente")
         }
 
-        start_transaction = @false
-
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
             start_transaction = @true
@@ -543,7 +542,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }
@@ -551,6 +550,8 @@ module ":erp.cxc.movimientos"
     bonificarCliente::&db,&data
     {
         namespace "erp.cxc.movimientos"
+
+        start_transaction = @false
 
         new dcxc
         {
@@ -569,8 +570,6 @@ module ":erp.cxc.movimientos"
 
         if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
 
-        start_transaction = @false
-
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
             start_transaction = @true
@@ -586,7 +585,7 @@ module ":erp.cxc.movimientos"
 
         exception
         {
-            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if start_transaction { do dbr.rollback(db) }
             do rise_error(last_error_code(),last_error())
         }
     }

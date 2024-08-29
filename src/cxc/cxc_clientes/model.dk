@@ -198,8 +198,7 @@ module "model"
 
     cte.prepareView::&db,&params,&data
     {
-        params<"pk_dvs"> : get_idivisa_predeterminada()
-        sql_divisa_predeterminada = "SELECT sys_pk, codigo, tcambio FROM divisa WHERE sys_pk = @pk_dvs;"
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         switch @@(params,"$_view")
         {
@@ -208,7 +207,6 @@ module "model"
                 data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
                 sql = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
                 data<"documentos*"> : dbr.list(db,sql,@null)
-                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case "cobrar"
@@ -223,7 +221,6 @@ module "model"
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
-                data<"dvsPred*"> : dbr.rec(db,sql_divisa_predeterminada,params)
                 break
             }
             case ""
@@ -291,6 +288,12 @@ module "model"
                 data<"list_status*"> : dbr.list(db,sql_status,@null)
                 break
             }
+        }
+
+        using data
+        {
+            @"dvsPred*": dbr.localize.money(db,@dbr.localize.default.money_code)
+            @"decimals": @@(params,"#decimals")
         }
     }
 
@@ -454,6 +457,7 @@ module "model"
     {
         do dbr.apps.action.grant("GB23")
 
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
         params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
 
@@ -674,6 +678,8 @@ module "model"
     cte.list::&db,&params
     {
         do dbr.apps.action.grant("GB20")
+
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         buscar = trim(@@(params,"$buscar"))
         tipo = trim(@@(params,"$tipo"))
