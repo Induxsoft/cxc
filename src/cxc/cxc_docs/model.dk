@@ -509,7 +509,7 @@ module "model"
             cxc.sys_guid,
             cte.sys_pk AS icliente,
             cte.codigo AS ccliente,
-            cte.nombre AS cliente,
+            CONCAT('[',cte.codigo,'] ',cte.nombre) AS cliente,
             doc.const AS documento,
             cxc.referencia,
             DATE_FORMAT(cxc.fecha, '%Y-%m-%d') AS emision,

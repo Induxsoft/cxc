@@ -193,6 +193,7 @@ module "cxp.aplicar.dk"
             {$'
                 document.addEventListener("DOMContentLoaded", () => {
                     documento.aplicar.source = #<to.json(xaplicar)> ?? {};
+                    documento.aplicar.decimals = #<@DECIMAL_PRECISION>;
                     documento.aplicar.init();
                 });
             '}

@@ -14,13 +14,6 @@ module "list.dk"
     
     do @context.begin(@crud_context)
 
-      format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs=@FMT_MONEY}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
-
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
     ref docs = ifnull(@("&./docs"),list.create())
@@ -28,6 +21,8 @@ module "list.dk"
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
+
+    @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new def_doc
     {
@@ -46,10 +41,8 @@ module "list.dk"
     new table_definition
     {
         @"datatable*": docs
-        @"leyend": "Mostrando los primeros # documentos ordenados por fecha de emisión"
         member @"columns"
         {
-            member @"ccliente" { @"caption":"Código" }
             member @"cliente" { @"caption":"Cliente" }
             member @"documento" { @"caption":"Documento" }
             member @"referencia" { @"caption":"Referencia" }
@@ -63,29 +56,26 @@ module "list.dk"
                 @"caption":"Aplicación"
                 @"align":"center"
             }
+            member @"divisa"
+            {
+                @"caption":"Divisa"
+                @"align":"center"
+            }
             member @"debe"
             {
                 @"caption":"Importe"
                 @"align":"end"
                 @"format":@true
                 @"thousandssep":@true
-                @"decs":decs
+                @"decs": @DECIMAL_PRECISION
             }
-            // member @"haber"
-            // {
-            //     @"caption":"Haber"
-            //     @"align":"end"
-            //     @"format":@true
-            //     @"thousandssep":@true
-            //     @"decs":decs
-            // }
             member @"intmor"
             {
                 @"caption":"Mor."
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
+                @"decs": @DECIMAL_PRECISION
             }
 
             member @"bonificacion"
@@ -94,7 +84,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
+                @"decs": @DECIMAL_PRECISION
             }
             member @"pagos"
             {
@@ -102,7 +92,7 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
+                @"decs": @DECIMAL_PRECISION
             }
             member @"saldo"
             {
@@ -110,14 +100,10 @@ module "list.dk"
                 @"align": "end"
                 @"format": @true
                 @"thousandssep": @true
-                @"decs": 2
-            }
-            member @"divisa"
-            {
-                @"caption":"Divisa"
-                @"align":"center"
+                @"decs": @DECIMAL_PRECISION
             }
         }
+        @"leyend": "Mostrando los primeros # documentos ordenados por fecha de emisión"
     }
 
     new nav_config

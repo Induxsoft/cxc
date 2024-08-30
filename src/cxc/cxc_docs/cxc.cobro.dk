@@ -358,7 +358,7 @@ module "cxc.cobro.dk"
                             {
                                 #!
                                 concepto = form("notas","tx",@null)
-                                if concepto == "" { concepto = "Cobro de documento con referencia " + @@(infoDoc,"$referencia") }
+                                if concepto == "" { concepto = "Cobro a documento " + @@(infoDoc,"$referencia") }
                                 #$
                                 $"#<concepto>"
                             }
