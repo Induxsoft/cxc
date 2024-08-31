@@ -9,22 +9,22 @@ module ":erp.cxc.movimientos"
         fecha = trim(@@(data,"$fecha"))
         aplicacion = trim(@@(data,"$aplicacion"))
 
-        if trim(@@(data,"$referencia")) == "" { do rise_error(500,"Debe indicar una referencia `referencia`.") }
-        if aplicacion == "" { do rise_error(500,"Debe indicar la fecha límite de pago `aplicacion`.") }
-        if fecha == "" { do rise_error(500,"Debe indicar la fecha de emisión del documento `fecha`.") }
-        if @@(data,"#documento") <= 0 { do rise_error(500,"Debe indicar el tipo de documento `documento`.") }
-        if @@(data,"#icliente") <= 0 { do rise_error(500,"No se ha indicado un cliente `icliente`.") }
+        if trim(@@(data,"$referencia")) == "" { do rise_error(511,"Debe indicar una referencia `referencia`.") }
+        if aplicacion == "" { do rise_error(512,"Debe indicar la fecha límite de pago `aplicacion`.") }
+        if fecha == "" { do rise_error(513,"Debe indicar la fecha de emisión del documento `fecha`.") }
+        if @@(data,"#documento") <= 0 { do rise_error(514,"Debe indicar el tipo de documento `documento`.") }
+        if @@(data,"#icliente") <= 0 { do rise_error(515,"No se ha indicado un cliente `icliente`.") }
 
         ndt_fecha = ndatetime.fromstr(fecha,"yyyy-MM-dd")
         ndt_aplicacion = ndatetime.fromstr(aplicacion,"yyyy-MM-dd")
-        if ndatetime.diff(ndt_aplicacion,ndt_fecha,"d") < 0 { do rise_error(500,"La fecha límite no puede ser inferior a la fecha de emisión.") }
+        if ndatetime.diff(ndt_aplicacion,ndt_fecha,"d") < 0 { do rise_error(516,"La fecha límite no puede ser inferior a la fecha de emisión.") }
 
         new dcxc
         {
             @"sys_pk": 0
             @"sys_guid": uuid()
-            @"sys_dtcreated*": now()
-            @"sys_timestamp*": now()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
             @"sys_info": ""
             @"sys_user": ""
             @"sys_lastuser": ""
@@ -32,7 +32,7 @@ module ":erp.cxc.movimientos"
             @"sys_dtexported*": @null
             @"sys_recver": 0
             @"sys_deleted": @false
-            @"sys_lock": 0
+            @"sys_lock": @null
             @"aplicable": @true
             @"aplicacion*": @null
             @"auditado": @false
@@ -163,11 +163,33 @@ module ":erp.cxc.movimientos"
             do dbr.begin(db)
             start_transaction = @true
         }
+
+        ref params = record.copy(dcxc,"debe,haber,intmoratorios,bonificaciones,pagos,icliente")
+
+        // Validar crédito del cliente.
+        ref credit_limit = dbr.rec(db,"
+            SELECT
+                IFNULL(limitecredito,0) limite_credito,
+                IFNULL(diascredito,0) dias_credito,
+                IF(IFNULL(limitecredito,0) = -1, FALSE, ((IFNULL(saldo,0) + (@debe - @haber)) > IFNULL(limitecredito,0))) AS limite_excedido
+            FROM cliente
+            WHERE sys_pk = @icliente
+        ",params)
+        if @@(credit_limit,"#limite_excedido") {
+            // Permitir exceder límite de crédito.
+            priv_id = "GB18:DET014:"+@@(params,"$icliente")
+            if not(dbr.security.isauth(db,priv_id)) { do rise_error(598,"Denegado por falta de privilegio requerido: '"+priv_id+"' Esta operación excede el límite de crédito del cliente.") }
+        }
         
+        // Generar documento por cobrar (dcxc).
         do dbr.insert(db,"dcxc",dcxc)
+        pk_dcxc = dbr.num(db,"select last_insert_id();",@null)
+
+        // Afectar saldo del cliente.
+        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @debe - @haber) WHERE sys_pk = @icliente;",params)
         
         if start_transaction { do dbr.commit(db) }
-        return dbr.num(db,"select last_insert_id();",@null)
+        return pk_dcxc
 
         exception
         {
@@ -237,13 +259,11 @@ module ":erp.cxc.movimientos"
             start_transaction = @true
         }
 
-        // Generar documento por cobrar (dcxc).
-        lastId = saveCxC(db,dcxc)
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @debe - @haber) WHERE sys_pk = @icliente;",dcxc)
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
+        pk_dcxc = saveCxC(db,dcxc)
 
         if start_transaction { do dbr.commit(db) }
-        return lastId
+        return pk_dcxc
 
         exception
         {
@@ -317,23 +337,24 @@ module ":erp.cxc.movimientos"
             @"icliente": @@(data,"#icliente")
         }
 
+        do determinarImporteCxC(dcxc,importe_doc)
         // Realizar deposito a la cuenta.
         dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
-        // Generar documento por cobrar (dcxc).
-        do determinarImporteCxC(dcxc,importe_doc)
-        lastId = saveCxC(db,dcxc)
-        aplcxc<"fk_dcxc_aplicadoa"> : lastId
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
+        pk_dcxc = saveCxC(db,dcxc)
         // Aplicar cobro.
+        aplcxc<"fk_dcxc_aplicadoa"> : pk_dcxc
         do dbr.insert(db,"aplcxc",aplcxc)
 
-        sql_aplicar_cobro = "UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @importe_doc) WHERE sys_pk = @pkparent 
-        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe_doc) >= 0);"
+        sql_aplicar_cobro = "
+        UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @importe_doc)
+        WHERE sys_pk = @pkparent
+            AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe_doc) >= 0)
+        "
         if not(dbr.execute(db,sql_aplicar_cobro,p)) { do rise_error(500,"Documento destino no encontrado o el importe es mayor al saldo.") }
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe_doc) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
-        return lastId
+        return pk_dcxc
 
         exception
         {
@@ -387,21 +408,22 @@ module ":erp.cxc.movimientos"
             @"icliente": @@(data,"#icliente")
         }
 
-        // Generar documento por cobrar (dcxc).
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
-        lastId = saveCxC(db,dcxc)
-        aplcxc<"fk_dcxc_aplicadoa"> : lastId
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
+        pk_dcxc = saveCxC(db,dcxc)
         // Aplicar bonificacion.
+        aplcxc<"fk_dcxc_aplicadoa"> : pk_dcxc
         do dbr.insert(db,"aplcxc",aplcxc)
 
-        sql_aplicar_bonific = "UPDATE dcxc SET bonificaciones = (IFNULL(bonificaciones,0) + @importe) WHERE sys_pk = @pkparent 
-        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0);"
+        sql_aplicar_bonific = "
+        UPDATE dcxc SET bonificaciones = (IFNULL(bonificaciones,0) + @importe)
+        WHERE sys_pk = @pkparent
+            AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0)
+        "
         if not(dbr.execute(db,sql_aplicar_bonific,p)) { do rise_error(500,"Documento destino no encontrado o la bonificación es mayor al saldo.") }
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
-        return lastId
+        return pk_dcxc
 
         exception
         {
@@ -455,21 +477,22 @@ module ":erp.cxc.movimientos"
             @"icliente": @@(data,"#icliente")
         }
 
-        // Generar documento por cobrar (dcxc).
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
-        lastId = saveCxC(db,dcxc)
-        aplcxc<"fk_dcxc_aplicadoa"> : lastId
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
+        pk_dcxc = saveCxC(db,dcxc)
         // Aplicar IntMor.
+        aplcxc<"fk_dcxc_aplicadoa"> : pk_dcxc
         do dbr.insert(db,"aplcxc",aplcxc)
 
-        sql_aplicar_intmor = "UPDATE dcxc SET intmoratorios = (IFNULL(intmoratorios,0) + @importe) WHERE sys_pk = @pkparent 
-        AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0);"
+        sql_aplicar_intmor = "
+        UPDATE dcxc SET intmoratorios = (IFNULL(intmoratorios,0) + @importe)
+        WHERE sys_pk = @pkparent
+            AND ((IFNULL(debe,0) + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0) - @importe) >= 0)
+        "
         if not(dbr.execute(db,sql_aplicar_intmor,p)) { do rise_error(500,"Documento destino no encontrado o el importe es mayor al saldo.") }
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) + @importe) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
-        return lastId
+        return pk_dcxc
 
         exception
         {
@@ -532,11 +555,9 @@ module ":erp.cxc.movimientos"
 
         // Realizar deposito a la cuenta.
         dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
-        // Generar documento por cobrar (dcxc).
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,importe_cte)
         do saveCxC(db,dcxc)
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe_cte) WHERE sys_pk = @icliente;",p)
 
         if start_transaction { do dbr.commit(db) }
 
@@ -575,11 +596,9 @@ module ":erp.cxc.movimientos"
             start_transaction = @true
         }
 
-        // Generar documento por cobrar (dcxc).
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
         do saveCxC(db,dcxc)
-        // Afectar saldo del cliente.
-        do dbr.execute(db,"UPDATE cliente SET saldo = (IFNULL(saldo,0) - @importe) WHERE sys_pk = @icliente;",data)
 
         if start_transaction { do dbr.commit(db) }
 

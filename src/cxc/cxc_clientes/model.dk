@@ -802,32 +802,35 @@ module "model"
     {
         @use_transaction = @false
         do dbr.apps.action.pre("GB21")
+
         ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
+        
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
         chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
+        otorgar_credito = parse.bool(@@(data,"$chq_otorgar_credito"))
+        limitar_credito = parse.bool(@@(data,"$rd_limitar_credito"))
         
         // Datos del nuevo cliente
         ref cliente = record.create()
         if trim(@@(data,"$codigo")) == "" {
             sql_gen_code = "SELECT (IF(COUNT(*) >= 1,CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')),'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%';"
-            codigo=dbr.str(db,sql_gen_code,@null)
+            codigo = dbr.str(db,sql_gen_code,@null)
             cliente<"codigo"> : codigo
-            data<"codigo">:codigo
+            data<"codigo"> : codigo
         }
         do cleanFormData(fieldsCliente,data,cliente)
+        if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
-
-        
 
         validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
         if field.exist(data,'rfc') && parse.bool(validate_rfc)
         {
             using params{@"rfc":@@(data,"$rfc")}
             ref dtrfc=dbr.rec(db,"select * from cliente c where rfc=@rfc and sys_pk<>@_entity_id",params)
-            if not(isnull(dtrfc)){do rise_error(500,"Y existe un cliente con el mismo RFC")}
+            if not(isnull(dtrfc)){do rise_error(500,"Ya existe un cliente con el mismo RFC")}
         }
-        // do rise_error(0,to.json(cliente))
+        
         do dbr.begin(db)
 
         // Datos de domicilios
@@ -934,13 +937,15 @@ module "model"
     cte.update::&db,&params,&data
     {
         @use_transaction = @false
+        do dbr.apps.action.pre("GB22")
 
         ref fieldsCliente = split("codcuenta,regfiscal,codigo,curp,descuento,diascredito,email,fax,limitecredito,monedero,nombre,notas,precio,puntos,rfc,saldo,saldopuntos,status,telefonos,website,agente,contacto1,contacto2,contacto3,idivisa,tipo,zona",",")
 
         chq_domicilio1 = parse.bool(@@(data,"$chq_domicilio1"))
         chq_domicilio2 = parse.bool(@@(data,"$chq_domicilio2"))
         chq_domicilio3 = parse.bool(@@(data,"$chq_domicilio3"))
-        
+        otorgar_credito = parse.bool(@@(data,"$chq_otorgar_credito"))
+        limitar_credito = parse.bool(@@(data,"$rd_limitar_credito"))
 
         // Datos del nuevo cliente
         new cliente
@@ -951,19 +956,20 @@ module "model"
         }
         if trim(@@(data,"$codigo")) == "" {
             sql_gen_code = "SELECT (IF(COUNT(*) >= 1,CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')),'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%';"
-            cliente<"codigo"> : dbr.str(db,sql_gen_code,@null)
+            codigo = dbr.str(db,sql_gen_code,@null)
+            cliente<"codigo"> : codigo
+            data<"codigo"> : codigo
         }
         do cleanFormData(fieldsCliente,data,cliente)
+        if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
-
-        do dbr.apps.action.pre("GB22")
 
         validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
         if field.exist(data,'rfc') && parse.bool(validate_rfc)
         {
             using params{@"rfc":@@(data,"$rfc")}
             ref dtrfc=dbr.rec(db,"select * from cliente c where rfc=@rfc and sys_pk<>@_entity_id",params)
-            if not(isnull(dtrfc)){do rise_error(500,"Y existe un cliente con el mismo RFC")}
+            if not(isnull(dtrfc)){do rise_error(500,"Ya existe un cliente con el mismo RFC")}
         }
         
         do dbr.begin(db)
