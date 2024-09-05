@@ -22,6 +22,7 @@ program "instalador"
         "cstatusorg.csv",
         "divisa.csv",
         "tipocliente.csv",
+        "sys_app_item_type_finder.csv"
     ]')
 
     // Lista de privilegios iniciales (arreglo de id de privilegios)
