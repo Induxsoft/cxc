@@ -40,13 +40,11 @@ var cliente =
         tData: {},
         txt_search_cliente: null,
         btn_search_cliente: null,
-        btn_new_cliente: null,
 
         init()
         {
             this.txt_search_cliente = document.getElementById("txt_search_cliente");
             this.btn_search_cliente = document.getElementById("btn_search_cliente");
-            this.btn_new_cliente = document.getElementById("btn_new_cliente");
             this.tbl_clientes = document.getElementById("tbl_clientes");
 
             if (this.txt_search_cliente) {

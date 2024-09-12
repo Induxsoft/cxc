@@ -2,7 +2,6 @@
 #!
 module "model"
 {
-    #include "../_lib/config.dk"
     @table_name = "cliente"
     @read_query = "
     SELECT
@@ -678,13 +677,9 @@ module "model"
     cte.list::&db,&params
     {
         do dbr.apps.action.grant("GB20")
-
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
-
-        buscar = trim(@@(params,"$buscar"))
-        tipo = trim(@@(params,"$tipo"))
         
-        sql = "
+        sql_clientes = "
         SELECT
             cte.sys_pk,
             cte.codigo,
@@ -699,27 +694,30 @@ module "model"
             INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
             INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
             LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
-        WHERE TRUE
+        WHERE NOT IFNULL(cte.sys_deleted,0)
+            #<conditions>
+        ORDER BY cte.codigo
+        LIMIT #<@default_max_rows>;
         "
-        if buscar != "" {
-            sql = sql + ftext(" 
-                AND IF(IFNULL(@buscar,'')='', true, (
-                cte.codigo LIKE CONCAT('%',@buscar,'%')
-                OR cte.nombre LIKE CONCAT('%',@buscar,'%')
-                OR cte.rfc LIKE CONCAT('%',@buscar,'%')
-            ))
-            ORDER BY cte.codigo
-            LIMIT #<@default_max_rows>;")
+
+        conditions = ""
+        if @@(params,"#fil_tipo") > 0 { conditions = conditions + " AND tpc.sys_pk = @fil_tipo" }
+        if trim(@@(params,"$fil_text")) != "" {
+            conditions = conditions + " AND (
+                cte.codigo = @fil_text
+                OR cte.rfc = @fil_text
+                OR cte.nombre LIKE CONCAT('%',@fil_text,'%')
+            )
+            "
         }
-        if tipo != "" {
-            sql = sql + " AND (
-                tpc.sys_pk = @tipo
-                OR tpc.codigo = @tipo
-                OR tpc.descripcion LIKE CONCAT('%',@tipo,'%')
-            )"
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(sql_clientes),params)
+            @"list_tipos*": dbr.list(db,"select sys_pk, descripcion from tipocliente where not ifnull(sys_deleted,0)",@null)
         }
     
-        return dbr.list(db,sql,params)
+        return data
 
         exception
         {
