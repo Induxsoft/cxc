@@ -8,8 +8,8 @@ module "cte.poraplicar.dk"
     #include "dbr.apps.dkl"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
     #include "../_lib/icons.dk"
-    #include "dbr.vars.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -18,6 +18,8 @@ module "cte.poraplicar.dk"
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
+
+    @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
     {
@@ -30,19 +32,15 @@ module "cte.poraplicar.dk"
         @"jscurrentcontext": "getCurrentContext"
     }
 
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs="$ #,#.00"}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
-
     #$ div(class="v12-list-view" id="view")
     {
         section(class="container-fluid bg-white" id="top_area")
         {
-            #! do uie.printV12FormBar(nav_config)
-            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -105,9 +103,9 @@ module "cte.poraplicar.dk"
                 {
                     tr
                     {
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),format_decs)>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_total'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_docs'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/por_aplicar'))>"}
                     }
                 }
             }
@@ -125,9 +123,9 @@ module "cte.poraplicar.dk"
                         "edit-th"(type="NoEditable" field="documento"){$"Documento"}
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Fecha"}
-                        "edit-th"(type="NoEditable" field="debe"){$"Importe"}
-                        "edit-th"(type="NoEditable" field="aplicado"){$"Aplicado"}
-                        "edit-th"(type="NoEditable" field="xaplicar"){$"Por aplicar"}
+                        "edit-th"(type="NoEditable" field="debe" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Importe"}
+                        "edit-th"(type="NoEditable" field="aplicado" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Aplicado"}
+                        "edit-th"(type="NoEditable" field="xaplicar" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Por aplicar"}
                     }
                 }
             }

@@ -4,12 +4,10 @@ module "cte.bonificacion.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "dbr.dkh"
     #include "uielements.dkl"
-    #include "../_lib/icons.dk"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
-    #include "dbr.vars.dkl"
+    #include "../_lib/icons.dk"
     
     do @context.begin(@crud_context)
 
@@ -20,6 +18,11 @@ module "cte.bonificacion.dk"
 
     cDIVISA_PRED = field.dstr(dvsPred,"codigo","MXN")
     tCAMBIO_PRED = field.dnum(dvsPred,"tcambio",1)
+
+    @DECIMAL_PRECISION = @("#parameters/decimals")
+
+    num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
+    num_max = "9999999999."+padright("",@DECIMAL_PRECISION,"9")
 
     new sel_documento
     {
@@ -36,11 +39,8 @@ module "cte.bonificacion.dk"
         @"selected": form("documento","nm",@null)
     }
 
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
     #$
-    div(class="container")
+    div(class="container-md")
     {
         div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
         {
@@ -53,7 +53,7 @@ module "cte.bonificacion.dk"
             }
         }
 
-        form(action="." method="POST" id="form_bonificacion" onsubmit="return cliente.form.ValidateForm(event)")
+        form(action="." method="POST" id="form_bonificacion") //onsubmit="return cliente.form.ValidateForm(event)"
         {
             input(type="hidden" name="icliente" value="#<@@(cliente,'#sys_pk')>")
 
@@ -63,7 +63,7 @@ module "cte.bonificacion.dk"
                 {
                     div(class="row d-flex justify-content-end align-items-center")
                     {
-                        label(class="col-auto col-form-label"){$"Cliente:"}
+                        label(class="col-auto col-form-label fw-bold"){$"Cliente:"}
                         div(class="col-6") {
                             $"[#<@@(cliente,'$codigo')>] #<@@(cliente,'$nombre')>"
                         }
@@ -71,7 +71,7 @@ module "cte.bonificacion.dk"
 
                     div(class="row d-flex justify-content-end align-items-center")
                     {
-                        label(class="col-auto col-form-label"){$"Divisa:"}
+                        label(class="col-auto col-form-label fw-bold"){$"Divisa:"}
                         div(class="col-6") {
                             $"#<@@(cliente,'$divisa')>"
                         }
@@ -120,14 +120,9 @@ module "cte.bonificacion.dk"
                             div(class="input-group") {
                                 input(
                                     class="form-control rounded-0 induxsoft-num-field mw-100"
-                                    type="number"
-                                    name="tcambio"
-                                    value="#<form('tcambio','nm',cliente)>"
-                                    min="1"
-                                    step="0.000001"
-                                    id="txt_tcambio"
-                                    required="true"
-                                    "num-decs"="#<decs>"
+                                    type="number" name="tcambio" value="#<form('tcambio','nm',cliente)>" id="txt_tcambio"
+                                    step="#<num_step>" min="1" max="#<num_max>" required="true"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<cDIVISA_PRED> = 1 #<@@(cliente,'$divisa')>"}
                             }
@@ -141,15 +136,10 @@ module "cte.bonificacion.dk"
                             div(class="input-group") {
                                 input(
                                     class="form-control rounded-0 induxsoft-num-field mw-100 validate-number"
-                                    type="number"
-                                    name="importe"
-                                    value="#<form('importe','nm',@null)>"
-                                    min="1"
-                                    step="0.000001"
-                                    id="txt_importe"
-                                    "num-decs"="#<decs>"
-                                    required="true"
-                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<decs>)"
+                                    type="number" name="importe" value="#<form('importe','nm',@null)>" id="txt_importe"
+                                    step="#<num_step>" min="1" max="#<num_max>" required="true"
+                                    "num-decs"="#<@DECIMAL_PRECISION>"
+                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }

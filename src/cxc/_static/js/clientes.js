@@ -448,6 +448,7 @@ var cliente =
         btnSave: null,
         dtCliente: {},
         dvsPred: {},
+        decimals: 2,
 
         init()
         {
@@ -469,7 +470,7 @@ var cliente =
 
                     this.pedirTCambio();
 
-                    this.elements["txt_tcambio_deposito"].value = cambio;
+                    this.elements["txt_tcambio_deposito"].value = Math.RoundTo(cambio, this.decimals);
                     cliente.trigger(this.elements["txt_tcambio_deposito"],"change");
                 });
                 
@@ -481,7 +482,7 @@ var cliente =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
                     
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
                 this.elements["txt_importe_deposito"].addEventListener("change", (event) => {
                     let tcambio_cte = Number(this.elements["txt_tcambio"].value);
@@ -491,7 +492,7 @@ var cliente =
                     let importe_cte = Math.mul(importe_dep,tcambio_dep);
                     importe_cte = Math.div(importe_cte,tcambio_cte);
 
-                    this.elements["txt_importe"].value = importe_cte;
+                    this.elements["txt_importe"].value = Math.RoundTo(importe_cte, this.decimals);
                 });
 
                 this.elements["txt_importe"].addEventListener("change", (event) => {
@@ -502,7 +503,7 @@ var cliente =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
 
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
             }
         },
@@ -596,6 +597,7 @@ var cliente =
         formBonificacion: null,
         elements: null,
         btnSave: null,
+        decimals: 2,
 
         init()
         {

@@ -11,22 +11,22 @@ module "model"
         DATE_FORMAT(cxc.sys_timestamp,'%Y-%m-%d %H:%i:%s') AS sys_timestamp,
         IFNULL(cxc.sys_recver,0) AS sys_recver,
         cxc.aplicable,
-        DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
-        IFNULL(cxc.bonificaciones,0) AS bonificaciones,
-        IFNULL(cxc.debe,0) AS debe,
+        cxc.referencia,
         cxc.documento,
         DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS emision,
         DATE_FORMAT(cxc.fultmoratorios,'%Y-%m-%d') AS fultmoratorios,
-        IFNULL(cxc.haber,0) AS haber,
-        IFNULL(cxc.intfinancieros,0) AS intfinancieros,
-        IFNULL(cxc.intmoratorios,0) AS intmoratorios,
-        (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) AS saldo,
-        cxc.notas,
-        IFNULL(cxc.pagos,0) AS pagos,
-        cxc.referencia,
-        cxc.tipocambio,
+        DATE_FORMAT(cxc.aplicacion,'%Y-%m-%d') AS aplicacion,
+        ROUND(IFNULL(cxc.debe,0),@decimals) AS debe,
+        ROUND(IFNULL(cxc.haber,0),@decimals) AS haber,
+        ROUND(IFNULL(cxc.intfinancieros,0),@decimals) AS intfinancieros,
+        ROUND(IFNULL(cxc.intmoratorios,0),@decimals) AS intmoratorios,
+        ROUND(IFNULL(cxc.pagos,0),@decimals) AS pagos,
+        ROUND(IFNULL(cxc.bonificaciones,0),@decimals) AS bonificaciones,
+        ROUND((IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)),@decimals) AS saldo,
+        ROUND(cxc.tipocambio,@decimals) tipocambio,
         cxc.xaplicar,
         cxc.icliente,
+        cxc.notas,
         cte.codigo AS ccliente,
         cte.nombre AS cliente,
         cte.saldo AS saldo_cliente,
@@ -477,7 +477,6 @@ module "model"
     cxc.list::&db,&params
     {
         do dbr.apps.action.grant("GB10")
-
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
@@ -579,6 +578,7 @@ module "model"
     cxc.read::&db,&params
     {
         do dbr.apps.action.grant("GB10")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         ref data = entity.read(db,params)
         do cxc.prepareView(db,params,data)
@@ -597,9 +597,9 @@ module "model"
     cxc.blank::&db,&params
     {
         do dbr.apps.action.grant("GB10")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
-        do cxc.validateAplicable(db,params)
-
+        // do cxc.validateAplicable(db,params)
         new data {}
         do cxc.prepareView(db,params,data)
         return data

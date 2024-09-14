@@ -20,7 +20,9 @@ module "cxc.crear.dk"
     // do rise_error(0,to.json(@("&.")))
     @is_new = (@("$parameters/_entity_id") == "_new")
     @DECIMAL_PRECISION = @("#parameters/decimals")
+
     num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
+    num_max = "9999999999."+padright("",@DECIMAL_PRECISION,"9")
 
     new sel_documento
     {
@@ -95,12 +97,8 @@ module "cxc.crear.dk"
                     label(class="form-label" "for"="txt_tcambio"){$"Tipo de cambio:"}
                     input(
                         class="form-control rounded-0 induxsoft-num-field mw-100"
-                        type="number"
-                        name="tcambio"
-                        value="#<form('tcambio','nm',cliente)>"
-                        id="txt_tcambio"
-                        min="1"
-                        step="#<num_step>"
+                        type="number" name="tcambio" value="#<form('tcambio','nm',cliente)>" id="txt_tcambio"
+                        step="#<num_step>" min="1" max="#<num_max>"
                         "num-decs"="#<@DECIMAL_PRECISION>"
                     )
                 }
@@ -156,13 +154,8 @@ module "cxc.crear.dk"
                     #$
                     input(
                         class="form-control rounded-0 induxsoft-num-field mw-100 validate-number"
-                        type="number"
-                        name="importe"
-                        value="#<importe>"
-                        min="1"
-                        step="#<num_step>"
-                        id="txt_importe"
-                        required="true"
+                        type="number" name="importe" value="#<importe>" id="txt_importe"
+                        step="#<num_step>" min="1" max="#<num_max>" required="true"
                         "num-style"="currency"
                         "num-decs"="#<@DECIMAL_PRECISION>"
                         onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"

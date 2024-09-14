@@ -507,6 +507,7 @@ module "model"
     cte.obtenerDocsPorCobrar::&db,&params
     {
         do dbr.apps.action.grant("GB24")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         sql = "
         SELECT
@@ -554,6 +555,7 @@ module "model"
     cte.obtenerCobrosPorAplicar::&db,&params
     {
         do dbr.apps.action.grant("GB25")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         // sql = "
         // SELECT
@@ -732,6 +734,7 @@ module "model"
     cte.read::&db,&params
     {
         do dbr.apps.action.grant("GB20")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         new data {}
         do cte.prepareView(db,params,data)
@@ -750,6 +753,7 @@ module "model"
     cte.blank::&db,&params
     {
         do dbr.apps.action.grant("GB20")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         new data {}
         do cte.prepareView(db,params,data)

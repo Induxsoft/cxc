@@ -139,7 +139,7 @@ var documento =
 
                     this.pedirTCambio();
 
-                    this.elements["txt_tcambio_deposito"].value = cambio;
+                    this.elements["txt_tcambio_deposito"].value = Math.RoundTo(cambio, this.decimals);
                     documento.trigger(this.elements["txt_tcambio_deposito"],"change");
                 });
                 

@@ -4,12 +4,13 @@ module "form.dk"
 {
     #include "functions.dkh"
     #include "serialize.dkh"
-    #include "uielements.dkl"
+    #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
     #include "../_lib/icons.dk"
 
     do @context.begin(@crud_context)
+
     ref listTipoCliente = ifnull(@("&./list_tclientes"),list.create())
     ref listDivisas = ifnull(@("&./list_divisas"),list.create())
     ref listPais = ifnull(@("&./list_pais"),list.create())
@@ -216,25 +217,36 @@ module "form.dk"
 
     ref data_regimen=list.create()
     if file.exists(@REGIMEN_FISCAL){ref data_regimen=from.json(file.rtext(@REGIMEN_FISCAL))}
+
+    function fn_print_buttons()
+    {
+        #$
+        button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
+        #!
+    }
+    point print_buttons to fn_print_buttons
+    new nav_config
+    {
+        @"title": form_title
+        @"urlexit": url_exit
+        @"buttons*": print_buttons
+        member @"hidden"
+        {
+            @"print": @true
+        }
+    }
     
     #$
-    div(class="container")
+    div(class="container-lg" id="view")
     {
         link(href="#<@CSS_MAIN>" rel="stylesheet")
 
-        div(class="row container-section m-0 px-0 py-2 my-2 border-bottom sticky-top bg-white" id="main_action_bar")
+        section(id="top_area")
         {
-            div(class="col-4 d-flex align-items-center p-0") { h5(class="tex-no-break m-0"){$"#<form_title>"} }
-            div(class="col-8 d-flex justify-content-end align-items-center p-0 gap-2")
-            {
-                a(href="./?url_exit=#<@('$parameters/url_exit')>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Refrescar"){$"#<@ICON_ARROW_CLOCKWISE>"}
-                button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
-                a(href="#<url_exit>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action" title="Salir"){$"#<@ICON_X_LG>"}
-            }
-        }
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
 
-        div
-        {
             nav
             {
                 div(class="nav nav-tabs mb-2" id="nav-tab" role="tablist")
@@ -245,7 +257,10 @@ module "form.dk"
                     button(class="nav-link" id="nav-notas-tab" "data-bs-toggle"="tab" "data-bs-target"="#nav-notas" type="button" role="tab" "aria-controls"="nav-notas" "aria-selected"="false"){$"Notas"}
                 }
             }
+        }
 
+        section(class="" id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
             form(class="" action="./?url_exit=#<@('$parameters/url_exit')>" method="POST" id="form_cliente")
             {
                 input(type="hidden" name="sys_pk" value="#<@@(cliente,'#sys_pk')>")
@@ -267,7 +282,7 @@ module "form.dk"
             }
         }
 
-        // div{ span(class="text-danger" id="err-msg"){$"#<@('$error/message')>"} }
+        section(id="bottom_area"){$""}
 
         div
         {
@@ -296,4 +311,7 @@ module "form.dk"
             '}
         }
     }
+    #!
+    
+    do @context.end()
 }
