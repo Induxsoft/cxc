@@ -41,13 +41,6 @@ module "cxc.intmor.dk"
         @"selected": form("documento","nm",@null)
     }
 
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs=@FMT_MONEY}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
-
     #$
     div(class="container-md")
     {
@@ -310,7 +303,7 @@ module "cxc.intmor.dk"
                             saldo = @@(infoDoc,"#saldo")
                             importe = form("importe","nm",@null)
 
-                            nuevo_saldo =round((saldo + importe),decs)
+                            nuevo_saldo =round((saldo + importe),@DECIMAL_PRECISION)
                             #$
                             input(
                                 class="form-control form-control-sm rounded-0 text-end induxsoft-num-field1"
