@@ -62,6 +62,16 @@ module "Historial de Pagos por Cliente"
         {
             #!
             do uie.printV12FormBar(nav_config)
+
+
+            fechai = @('$parameters/finicio')
+            fechaf = @('$parameters/ffinal')
+            if fechai == "" || fechaf == ""
+            {
+                fechai = date_str(now(), "yyyy-MM-dd")
+                fechaf = date_str(now(), "yyyy-MM-dd")
+            }
+            
             #$
             style
             {$'
@@ -80,11 +90,11 @@ module "Historial de Pagos por Cliente"
                     {
                             div(class="col-2"){
                                 span(class="text-dark"){"Fecha Inicial"}
-                                 input(class="form-control form-control-sm rounded-0" type="date" name="finicio" value="#<@('$parameters/finicio')>" title="Fecha inicial")
+                                 input(class="form-control form-control-sm rounded-0" type="date" name="finicio" value="#<fechai>" title="Fecha inicial")
                             }
                             div(class="col-2"){
                                 span(class="text-dark"){"Fecha Final"}
-                                 input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<@('$parameters/ffinal')>" title="Fecha final")
+                                 input(class="form-control form-control-sm rounded-0" type="date" name="ffinal" value="#<fechaf>" title="Fecha final")
                             }
 
                             div(class="col-2 mt-4"){
@@ -287,7 +297,6 @@ module "Historial de Pagos por Cliente"
             }
         }}
 
-        // script(type="text/javascript"){$''}
     }
     #!
 

@@ -20,7 +20,6 @@ module ""
             @form_view = "historial.de.pago.por.clientes.dk"
             point @read to HistorialDePagoPorCliente
         }
-
         default
         {
             point @read to NotImplemented
