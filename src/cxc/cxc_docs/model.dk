@@ -599,7 +599,8 @@ module "model"
         do dbr.apps.action.grant("GB10")
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
-        // do cxc.validateAplicable(db,params)
+        do cxc.validateAplicable(db,params)
+        
         new data {}
         do cxc.prepareView(db,params,data)
         return data

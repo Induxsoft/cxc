@@ -156,8 +156,8 @@ module ":erp.cxc.movimientos"
             }
         }
 
-        dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0)
         if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
+        else { dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0) }
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -239,7 +239,6 @@ module ":erp.cxc.movimientos"
 
         new dcxc
         {
-            @"aplicable": @@(data,"$aplicable")
             @"aplicacion": @@(data,"$flimite")
             @"basecm": 0
             @"documento": @@(data,"#documento")
@@ -250,6 +249,7 @@ module ":erp.cxc.movimientos"
             @"tipocambio": @@(data,"#tcambio")
             @"icliente": @@(data,"#icliente")
         }
+        if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
 
         if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
         do determinarImporteCxC(dcxc,@@(data,"#importe"))

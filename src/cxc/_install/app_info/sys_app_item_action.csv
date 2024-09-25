@@ -17,4 +17,4 @@ GB27,Bonificación a cliente,Bonificar,,/!/cxc/clientes/@_src_context_item_id/bo
 GB28,Importar clientes,Importar,,/!/batch/taskman/GB/importar.cliente/,0,cxc.clientes,DET014,0,action
 GB30,Informe de antigüedad de saldos por cobrar,Antigüedad de saldos,,/!/cxc/reports/antiguedad-saldos/,0,cxc.reports,DET014,0,report
 GB31,Origen y aplicación,Origen y aplicación,,/!/cxc/reports/origen-aplicacion/,0,cxc.reports,DET01D,0,report
-GB32,Historial de pagos por clientes,historial de pagos por clientes,,/!/cxc/reports/historial-de-pagos-por-cliente/,0,cxc.reports,DET01D,0,report
+GB32,Historial de pagos por clientes,HPagos XCliente,,/!/cxc/reports/historial-de-pagos-por-cliente/,0,cxc.reports,DET014,0,report
