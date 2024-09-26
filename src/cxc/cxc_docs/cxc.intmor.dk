@@ -55,6 +55,7 @@ module "cxc.intmor.dk"
             }
         }
 
+        div(class="alert alert-danger overflow-auto mb-2 #<ifstr(@('$error/message')!='','','d-none')>" id="frm_alerts"){$"#<@('error/message')>"}
         form(action="." method="POST" id="form_intmor") //onsubmit="return cliente.form.ValidateForm(event)"
         {
             input(type="hidden" name="pkparent" value="#<@@(infoDoc,'#sys_pk')>")
@@ -319,8 +320,6 @@ module "cxc.intmor.dk"
                 }
             }
         }
-
-        p{$"#<@('$error/message')>"}
 
         div
         {
