@@ -273,6 +273,8 @@ var cliente =
 
                 if (this._GET["_entity_id"] != "new")
                 {
+                    cliente.trigger(this.elements["chq_domicilio1"],"change");
+
                     let contacto1 = Number(this.dtCliente.contacto1);
                     let contacto2 = Number(this.dtCliente.contacto2);
                     let contacto3 = Number(this.dtCliente.contacto3);
@@ -289,6 +291,9 @@ var cliente =
                         let ikContacto3 = document.getElementById("ik_contacto3");
                         this.setContacto(ikContacto3,contacto3);
                     }
+
+                    cliente.trigger(this.elements["chq_domicilio2"],"change");
+                    cliente.trigger(this.elements["chq_domicilio3"],"change");
                 }
                 this.elements["txt_rfc"].addEventListener("change",()=>
                 {
