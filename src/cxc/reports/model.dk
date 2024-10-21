@@ -135,46 +135,42 @@ module "Reportes de Cuentas por Cobrar"
 
     HistorialDePagoPorCliente::&db,&params
     {
-    // do rise_error(99,to.json(params))
+        do dbr.apps.action.grant("GB32")
 
-     do dbr.apps.action.grant("GB32")
+        sql_historial_de_pago_por_Cliente = "
+            SELECT
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS fecha,
+            doc.id AS idocumento,
+            doc.const AS cdocumento,
+            cxc.referencia,
+            cxc.notas,
+            cxc.haber AS importe,
+            cxc.icliente,
+            cte.nombre,
+            cte.codigo AS ccliente
+            FROM cliente AS cte
+            INNER JOIN dcxc AS cxc ON cxc.icliente = cte.sys_pk
+            INNER JOIN cdocumentos AS doc ON cxc.documento = doc.id
+            WHERE
+            cxc.haber > 0
+            AND cxc.fecha BETWEEN IFNULL(@finicio,date(now())) AND IFNULL(@ffinal, date(now()))
+            AND IF(CONVERT(@pktipo,DECIMAL)>0, cte.tipo = @pktipo, TRUE)
+            AND IF(CONVERT(@doctype,DECIMAL)>0, cxc.documento = @doctype, (cxc.documento=5 OR cxc.documento=19))
+            ORDER BY
+            cxc.icliente,
+            cxc.fecha,
+            cxc.haber;"
 
-    sql_historial_de_pago_por_Cliente = "
-        SELECT
-        DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS fecha,
-        doc.id AS idocumento,
-        doc.const AS cdocumento,
-        cxc.referencia,
-        cxc.notas,
-        cxc.haber AS importe,
-        cxc.icliente,
-        cte.nombre,
-        cte.codigo AS ccliente
-        FROM cliente AS cte
-        INNER JOIN dcxc AS cxc ON cxc.icliente = cte.sys_pk
-        INNER JOIN cdocumentos AS doc ON cxc.documento = doc.id
-        WHERE
-        cxc.haber > 0
-        AND cxc.fecha BETWEEN IFNULL(@finicio,date(now())) AND IFNULL(@ffinal, date(now()))
-        AND IF(CONVERT(@pktipo,DECIMAL)>0, cte.tipo = @pktipo, TRUE)
-        AND IF(CONVERT(@doctype,DECIMAL)>0, cxc.documento = @doctype, (cxc.documento=5 OR cxc.documento=19))
-        ORDER BY
-        cxc.icliente,
-        cxc.fecha,
-        cxc.haber;"
+            //este data sirve para usar consultas db
+            new data
+            {
+                @"lista*": dbr.list(db,sql_historial_de_pago_por_Cliente,params)
+            }
 
-        //sql_vale = "SELECT sys_pk, referencia, descripcion, IFNULL(DATE_FORMAT(fecha,'%Y-%m-%d'),'') fecha FROM cardex WHERE (sys_pk = @pkcardex OR referencia = @referencia)"
-
-        //este data sirve para usar consultas db
-        new data
-        {
-              @"lista*": dbr.list(db,sql_historial_de_pago_por_Cliente,params)
-        }
-
-        do prepareView(db,params,data)
-        //retorna los datos de la consulta
-        return data //retorna la data
-        exception{ do catch() }
+            do prepareView(db,params,data)
+            //retorna los datos de la consulta
+            return data //retorna la data
+            exception{ do catch() }
 
     }
 

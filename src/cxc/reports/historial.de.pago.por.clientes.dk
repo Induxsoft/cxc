@@ -238,7 +238,7 @@ module "Historial de Pagos por Cliente"
                                 td(class=""){$"#<@@(obj,'$fecha')>"}
                                 td(class=""){$"#<@@(obj,'$referencia')>"}
                                 td(class=""){$"#<@@(obj,'$cdocumento')>"}
-                                td(class=""){$"#<@@(obj,'$descripcion')>"}
+                                td(class=""){$"#<@@(obj,'$notas')>"}
                                 td(class="text-end"){$"$ #<number_format(importe)>"}
                             }
                             #!
