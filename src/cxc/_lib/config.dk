@@ -48,6 +48,8 @@ module
 	@CXC_MENU = "/!/cxc/"
 	@BATCH_TASKMAN="/!/batch/taskman/"
 
+	//bitacora
+	@URL_BITACORA="/!/webshell/log/DET01D/@guid/"
 	//#region services
 	@CXC_BUSCAR_CLIENTE = "/!/cxc/clientes/?_view=buscar-cliente&search=@search"
 	@CXC_BUSCAR_CONTACTO = "/!/cxc/clientes/?_view=buscar-contacto&search=@search"

@@ -223,6 +223,9 @@ module "cxc.crear.dk"
                 document.addEventListener("DOMContentLoaded", () => {
                     documento.crear.init();
                     InduxsoftNumberFields.Init();
+
+                    _bitacora._url="#<@URL_BITACORA>";
+                    _bitacora.EnableLog("#<@("$./infoDoc/sys_guid")>");
                 });
             '}
         }
