@@ -250,7 +250,8 @@ module ":erp.cxc.movimientos"
             @"icliente": @@(data,"#icliente")
         }
         if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
-
+        if @@(data,"#ifolio") > 0{dcxc<"ifolio"> : @@(data,"#ifolio")}
+    
         if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
 
