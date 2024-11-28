@@ -37,6 +37,20 @@ module "model"
     WHERE cxc.#<@keyfield> = @_entity_id
     "
 
+    function setPrintTitles(&db,&data)
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
     cxc.prepareView::&db,&params,&data
     {
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
@@ -562,6 +576,7 @@ module "model"
             @"docs*": dbr.list(db, ftext(query), params)
             @"cdocumentos*": prepare_filter(cdocumentos)
         }
+        do setPrintTitles(db,response)
 
         return response
 
