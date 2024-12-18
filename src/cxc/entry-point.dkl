@@ -45,6 +45,7 @@ module "Controller configs"
 	do crudl.routes.pattern("/_program/")
 	do crudl.routes.entity("/clientes/","cxc_clientes")
 	do crudl.routes.entity("/documentos/","cxc_docs")
+	do crudl.routes.entity("/precioventa/","precioventa")
 
 	do crudl.routes.entity("/reports/","reports")
 	

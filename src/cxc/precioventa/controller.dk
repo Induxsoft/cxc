@@ -1,0 +1,13 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    switch @@(params,"$_view")
+    {
+        case "buscar-producto"
+        {
+            point @list to buscarProducto
+            break
+        }
+    }
+}

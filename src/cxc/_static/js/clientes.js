@@ -617,4 +617,87 @@ var cliente =
             if (this.formBonificacion) { this.elements = this.formBonificacion.elements; }
         },
     },
+    precioventa:
+    {
+        init()
+        {
+            this.tbl_precioventa=document.getElementById("tbl_precioventa");
+            this.ik_producto = document.getElementById("ik_producto");
+            this.btn_guardar=document.getElementById("btn_guardar");
+            this.form_precioventa=document.getElementById("form_precioventa");
+            this.data_array=document.getElementById("data_array");
+
+            if(this.btn_guardar)this.btn_guardar.addEventListener("click",()=>{cliente.precioventa.validatePrecioventa();});
+            this.setEventTable();
+        },
+        setEventTable()
+        {
+            if(!this.tbl_precioventa ||!this.ik_producto)return;
+
+            this.ik_producto.change_event = (data) => this.IncludeProd(data);
+            
+            this.tbl_precioventa.setInputKey("codigo",this.ik_producto);
+            this.tbl_precioventa.setInputKey("descripcion",this.ik_producto);
+        },
+        IncludeProd(data)
+        {
+            let dtarray = this.tbl_precioventa?.DataArray ?? [];
+            let _productos = this.filterData();
+            let available_row = (_productos.length > 0) ? _productos.length : 0;
+            
+            data["precio"]=0;
+            data["limite"]=1;
+
+            dtarray[available_row] = data;
+
+            this.tbl_precioventa._printRows();
+            this.tbl_precioventa.NavTo(available_row,2);
+        },
+        filterData() 
+        {
+            return (this.tbl_precioventa?.DataArray??[]).filter((row) => { return Object.keys(row??{}).length >= this.tbl_precioventa.Columns.length });
+        },
+        deleteRow()
+        {
+            var row=this.tbl_precioventa?.DataArray[this.tbl_precioventa?.CurrentRowIndex()];
+            if(!row || Object.keys(row).length< 1)
+            {
+                alert("Debe seleccionar un elemento de la tabla");
+                return;
+            }
+            this.tbl_precioventa.DeleteCurrentRow();
+        },
+        addRow()
+        {
+            this.tbl_precioventa.AddRow();
+        },
+        validatePrecioventa()
+        {
+            var array=(this.tbl_precioventa?.DataArray??[]);
+            var sinprecio=false;
+            var l=[];
+            for (let i = 0; i < array.length; i++) 
+            {
+                const row = array[i];
+                if(Object.keys(row).length > 0)
+                {
+                    if((row.precio??0)<1)sinprecio=true;
+                    l.push(row);
+                }
+            }
+            if(this.data_array)this.data_array.value=JSON.stringify(l);
+            
+            if(sinprecio)
+            {
+               var res= confirm("Existen productos sin asignar un precio ¿Esta seguro de guardar la lista?");
+               if(!res)return;
+               
+               InduxsoftCrudlModel.Submit("form_precioventa");
+            }
+            else
+            {
+                InduxsoftCrudlModel.Submit("form_precioventa");
+            }
+        }
+    }
 }

@@ -1,0 +1,124 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+
+    @list_query="SELECT 
+            p.sys_pk,pv.limite,pv.precio,pv.producto,
+            p.codigo,p.descripcion,IFNULL(p.costoultimo,0)costo,TRIM(p.unidad)unidad
+            FROM 
+            precioventa pv
+            INNER JOIN producto p ON pv.producto=p.sys_pk
+            where fk_cliente_listaprecios=@_entity_id"
+
+    @read_query="select * from precioventawhere fk_cliente_listaprecios=@_entity_id and ifnull(sys_deleted,0)=0 limit 1"
+    @qry_buscar_producto = "
+    SELECT
+        p.sys_pk,
+        p.codigo,
+        p.descripcion,
+        p.precio1 AS precio,
+        1 AS cantidad,
+        0 AS descuentos,
+        IFNULL(p.existencia,0) AS existencia,
+        TRIM(p.unidad) AS unidad,
+        TRIM(IFNULL(p.unidadb,'')) AS unidadb,
+        TRIM(IFNULL(p.unidadc,'')) AS unidadc,
+        TRIM(IFNULL(p.unidadd,'')) AS unidadd,
+        TRIM(IFNULL(p.unidade,'')) AS unidade,
+        IFNULL(p.factorb,0) AS factorb,
+        IFNULL(p.factorc,0) AS factorc,
+        IFNULL(p.factord,0) AS factord,
+        IFNULL(p.factore,0) AS factore,
+        p.reqlote,
+        p.reqserie,
+        dvs.codigo AS `divisa`,
+        dvs.tcambio AS tipocambio,
+        imp.nombre AS conf_impuestos,
+        IFNULL(imp.uf_tipoi1,'') AS i1_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i1venta, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i1_tasa,
+        IFNULL(imp.uf_tipoi2,'') AS i2_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i2venta, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i2_tasa,
+        IFNULL(imp.uf_tipoi3,'') AS i3_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i3venta, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i3_tasa,
+        IFNULL(imp.uf_tipoi4,'') AS i4_txt,
+        (CONVERT(REPLACE(SUBSTRING_INDEX(imp.i4venta, '|', @zimpuesto),'%',''), DECIMAL) / 100) AS i4_tasa,
+        ifnull(p.costoultimo,0)costo
+        #<selects>
+    FROM producto AS p
+        INNER JOIN divisa AS dvs ON p.idivisa = dvs.sys_pk
+        INNER JOIN cfgimpuesto AS imp ON p.impuestos = imp.sys_pk
+        INNER JOIN linea AS ln ON p.ilinea = ln.sys_pk
+        #<joins>
+    WHERE NOT IFNULL(p.sys_deleted,0)
+        AND ln.clase BETWEEN 2 AND 6
+        #<conditions>
+    "
+    read::&db,&params
+    {
+        ref cliente=dbr.rec(db,"select sys_pk,codigo,rfc,nombre from cliente where sys_pk=@_entity_id",params)
+        if isnull(cliente){do rise_error(500,"No s eencontró el cliente")}
+
+        new entity
+        {
+            @"cliente*":cliente
+            @"details*":dbr.list(db,ftext(@list_query),params)
+        }
+        return entity
+    }
+    setZonaImpuesto::&db,&params
+    {
+        /**
+        * Zona de impuesto
+        * 1 => 1 = cInterior
+        * 2 => -1 = cFrontera
+        */
+        
+        zimpuesto = parse.num(dbr.vars.getd(db,"ventas_zimpuesto","1"))
+        if zimpuesto > 1 { zimpuesto = -1 }
+        params<"zimpuesto"> : zimpuesto
+    }
+    buscarProducto::&db,&params
+    {
+        //#region buscarProducto()
+        do setZonaImpuesto(db,params)
+        
+        conditions = "AND (p.codigo LIKE CONCAT('%',@search,'%') OR p.descripcion LIKE CONCAT('%',@search,'%'))"
+        return dbr.list(db,ftext(@qry_buscar_producto),params)
+    }
+    save::&db,&params,&data
+    {
+        do dbr.execute(db,"delete from precioventa where fk_cliente_listaprecios=@_entity_id ",params)
+
+        ref array=from.json(@@(data,"$data_array"))
+        for i = 0; i < @count(array)
+        {
+            ref item=@item(array,i)
+            new precioventa
+            {
+                @"sys_guid":uuid()
+                @"sys_dtcreated*":now()
+                @"sys_timestamp*":now()
+                @"sys_recver": 0
+
+                @"limite":@@(item,"#limite")
+                @"precio":@@(item,"#precio")
+                @"producto":@@(item,"#sys_pk")
+                @"fk_cliente_listaprecios":@@(params,"#_entity_id")
+            }
+            do dbr.insert(db,"precioventa",precioventa)
+        }    
+        new obj
+        {
+            @"url_redir": "."
+        }
+        
+        return obj
+    }
+    
+    point @create to save
+    point @update to save
+    point @read to read
+}
