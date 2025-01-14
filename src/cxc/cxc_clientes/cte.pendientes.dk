@@ -19,6 +19,9 @@ module "cte.pendientes.dk"
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
 
+    @_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+    
     @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
@@ -30,6 +33,14 @@ module "cte.pendientes.dk"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
+
+        member @"parameters"
+        {
+            member @"GB11"
+            {
+                @"icliente": @_entity_id
+            }
+        }
     }
 
     #$ div(class="v12-list-view" id="view")
@@ -161,11 +172,13 @@ module "cte.pendientes.dk"
 
                     v12navbar.toggleButtonInteraction(!obj);
                     
+                    const btn_consultar = document.getElementById("v12_GB12");
                     const btn_cobrar = document.getElementById("v12_GB13");
                     const btn_bonif = document.getElementById("v12_GB14");
                     const btn_intmor = document.getElementById("v12_GB15");
                     const btn_aplicar = document.getElementById("v12_GB16");
 
+                    if (btn_consultar) btn_consultar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_cobrar) btn_cobrar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_bonif) btn_bonif.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_intmor) btn_intmor.parentElement.hidden = (Number(obj?.debe) <= 0);

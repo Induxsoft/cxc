@@ -76,7 +76,10 @@ module "model"
 
                 if @@(params,"$_entity_id") == "_new"
                 {
-                    new p { @"icliente": @@(data,"#form/icliente") }
+                    icliente = @@(data,"#form/icliente")
+                    if icliente < 1 { icliente = @@(params,"#icliente") }
+
+                    new p { @"icliente": icliente }
 
                     data<"infoCliente*"> : dbr.rec(db,sql_get_cliente,p)
                     data<"documentos*"> : dbr.list(db,sql_documentos,@null)
