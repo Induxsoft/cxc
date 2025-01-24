@@ -1,0 +1,2 @@
+det,class,sql_query,primarykey,keyfield,textfield
+DET014,*,"SELECT sys_pk, codigo, nombre FROM cliente WHERE IF(IFNULL(@primarykey,0)=0, codigo=@search OR nombre LIKE CONCAT('%',@search,'%'), sys_pk=@primarykey);",sys_pk,codigo,nombre

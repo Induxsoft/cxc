@@ -18,6 +18,15 @@ module "Reportes de Cuentas por Cobrar"
                 }
                 break
             }
+             case "historial-de-pagos-por-cliente"
+            {
+                using data
+                {
+                    @"list_tipos*": dbr.list(db,sql_tiposcliente,@null)
+                    @"list_docs*": dbr.list(db,"SELECT * FROM cdocumentos WHERE id IN (5,19);",@null)
+                }
+                break
+            }
         }
 
         do prepareDefaultReportData(db,data)
@@ -43,30 +52,33 @@ module "Reportes de Cuentas por Cobrar"
 
         sql_antiguedad_saldo = "
         SELECT
-            dcxc.sys_pk,
-            DATE_FORMAT(dcxc.aplicacion,'%d/%m/%Y') AS aplicacion,
-            DATE_FORMAT(dcxc.fecha,'%d/%m/%Y') AS fecha,
-            dcxc.referencia,
+            x.sys_pk,
+            DATE_FORMAT(x.aplicacion,'%d/%m/%Y') AS aplicacion,
+            DATE_FORMAT(x.fecha,'%d/%m/%Y') AS fecha,
+            x.referencia,
             z.codigo,
             z.nombre,
             z.rfc,
             z.telefonos,
-            cdocumentos.const AS documento,
-            DATEDIFF(@fil_fcorte, dcxc.aplicacion) AS dias,
-            (dcxc.debe + dcxc.intmoratorios - dcxc.bonificaciones - dcxc.pagos) AS saldo
+            d.const AS documento,
+            DATEDIFF(@fil_fcorte, x.aplicacion) AS dias,
+            (x.debe + x.intmoratorios - x.bonificaciones - x.pagos) AS saldo
         FROM
             (
                 cliente z
                 INNER JOIN (
-                    cdocumentos
-                    INNER JOIN dcxc ON cdocumentos.id = dcxc.documento
-                ) ON z.sys_pk = dcxc.icliente
+                    cdocumentos d
+                    INNER JOIN dcxc x ON d.id = x.documento
+                ) ON z.sys_pk = x.icliente
             )
         WHERE
-            dcxc.aplicable <> 0
-            AND (dcxc.debe + dcxc.intmoratorios - dcxc.bonificaciones - dcxc.pagos) <> 0
+            x.aplicable <> 0
+            AND (x.debe + x.intmoratorios - x.bonificaciones - x.pagos) <> 0
             #<conditions>
-        ORDER BY z.nombre;
+        ORDER BY
+            z.nombre,
+            x.fecha,
+            x.referencia;
         "
 
         conditions = ""
@@ -110,8 +122,11 @@ module "Reportes de Cuentas por Cobrar"
             inner join dcxc y on a.aplicadoa=y.sys_pk 
             inner join cliente c on y.icliente=c.sys_pk
         where y.fecha between @finicio and @ffinal
-        order by y.fecha, y.sys_pk, x.aplicacion
-        ;"
+        order by
+            y.fecha,
+            y.sys_pk,
+            x.aplicacion;
+        "
 
         new data
         {
@@ -122,6 +137,47 @@ module "Reportes de Cuentas por Cobrar"
         return data
 
         exception{ do catch() }
+    }
+
+    HistorialDePagoPorCliente::&db,&params
+    {
+        do dbr.apps.action.grant("GB32")
+
+        sql = "
+        SELECT
+            DATE_FORMAT(cxc.fecha,'%Y-%m-%d') AS fecha,
+            doc.id AS idocumento,
+            doc.const AS cdocumento,
+            cxc.referencia,
+            cxc.notas,
+            cxc.haber AS importe,
+            cxc.icliente,
+            cte.nombre,
+            cte.codigo AS ccliente
+        FROM cliente AS cte
+            INNER JOIN dcxc AS cxc ON cxc.icliente = cte.sys_pk
+            INNER JOIN cdocumentos AS doc ON cxc.documento = doc.id
+        WHERE
+            cxc.haber > 0
+            AND cxc.fecha BETWEEN IFNULL(@finicio,date(now())) AND IFNULL(@ffinal, date(now()))
+            AND IF(CONVERT(@pktipo,DECIMAL)>0, cte.tipo = @pktipo, TRUE)
+            AND IF(CONVERT(@doctype,DECIMAL)>0, cxc.documento = @doctype, (cxc.documento=5 OR cxc.documento=19))
+        ORDER BY
+            cxc.icliente,
+            cxc.fecha,
+            cxc.haber;
+        "
+
+        new data
+        {
+            @"lista*": dbr.list(db,sql,params)
+        }
+
+        do prepareView(db,params,data)
+        
+        return data
+        exception{ do catch() }
+
     }
 
     NotImplemented::&db,&params { do rise_error(404,"Reporte no implementado") }

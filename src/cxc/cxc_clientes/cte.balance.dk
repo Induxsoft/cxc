@@ -6,7 +6,6 @@ module "cte.balance.dk"
     #include "serialize.dkh"
     #include "dbr.dkh"
     #include "dbr.apps.dkl"
-    #include "dbr.vars.dkl"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
     #include "../_lib/lib.dk"
@@ -15,6 +14,10 @@ module "cte.balance.dk"
     do @context.begin(@crud_context)
     
     ref @_GET = @("&parameters")
+
+    @_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+
     @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
@@ -26,6 +29,14 @@ module "cte.balance.dk"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
+        
+        member @"parameters"
+        {
+            member @"GB11"
+            {
+                @"icliente": @_entity_id
+            }
+        }
     }
     
     ref list_years = list_years(10,0)
@@ -69,8 +80,11 @@ module "cte.balance.dk"
     {
         section(class="container-fluid bg-white" id="top_area")
         {
-            #! do uie.printV12FormBar(nav_config)
-            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -168,8 +182,8 @@ module "cte.balance.dk"
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Emisión"}
                         "edit-th"(type="NoEditable" field="aplicacion"){$"Aplicación"}
-                        "edit-th"(type="NoEditable" field="debe" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" prefix="$ " thousandssep="true"){$"Debe"}
-                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" prefix="$ " thousandssep="true"){$"Haber"}
+                        "edit-th"(type="NoEditable" field="debe" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Debe"}
+                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Haber"}
                         "edit-th"(type="NoEditable" field="notas"){$"Concepto"}
                     }
                 }
@@ -196,11 +210,13 @@ module "cte.balance.dk"
 
                     v12navbar.toggleButtonInteraction(!obj);
                     
+                    const btn_consultar = document.getElementById("v12_GB12");
                     const btn_cobrar = document.getElementById("v12_GB13");
                     const btn_bonif = document.getElementById("v12_GB14");
                     const btn_intmor = document.getElementById("v12_GB15");
                     const btn_aplicar = document.getElementById("v12_GB16");
 
+                    if (btn_consultar) btn_consultar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_cobrar) btn_cobrar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_bonif) btn_bonif.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_intmor) btn_intmor.parentElement.hidden = (Number(obj?.debe) <= 0);

@@ -13,13 +13,34 @@ module "list.dk"
     #include "../_lib/lib.dk"
     
     do @context.begin(@crud_context)
-    
-    ref listClientes = ifnull(@("&."),list.create())
     context = to.json(@null)
+
+    ref titles = ifnull(@("&./titles"),record.create())
+
+    @_entities_type = @("$parameters/_entities_type")
+    table_id = "tbl_"+@_entities_type
+
+    new fil_tipo_cliente
+    {
+        @"id": "fil_tipo"
+        @"datatable*": ifnull(@("&./list_tipos"),list.create())
+        new member @"attributes"
+        {
+            @"class": "induxsoft-form-select"
+            @"name": "fil_tipo"
+            @"title": "Filtrar por tipo de cliente"
+            @"onchange": "document.querySelector('#form_filter').submit()"
+        }
+        @"first_text": "(Todos los tipos)"
+        @"first_value": "-1"
+        @"text_field": "descripcion"
+        @"value_field": "sys_pk"
+        @"selected": @("#parameters/fil_tipo")
+    }
 
     new table_definition
     {
-        @"datatable*": listClientes
+        @"datatable*": ifnull(@("&./data"),list.create())
         @"table_footer": "Mostrando los primeros # clientes ordenados por código"
         member @"columns"
         {
@@ -43,26 +64,6 @@ module "list.dk"
             member @"zona" { @"caption":"Zona" }
         }
     }
-    
-    // header_act::
-    // {
-    //     if AppExist(@("&database"),"batch") {
-    //         ref act = dbr.apps.itemaction.get(@("&database"),"GB28")
-    //         url_act = path.concat(@@(act,"$href"),"?exit_url_encode="+url_encode(@CXC_CLIENTES))
-            
-    //         #$
-    //         a(href="#<url_act>" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" title="Importar clientes"){$"Importar"}
-    //     }
-
-    //     // #$
-    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_EDO_CTA>')"){$"Estado de cuenta"}
-    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_DOCS_XCOBRAR>')"){$"Documentos por cobrar"}
-    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS_XAPLICAR>')"){$"Cobros por aplicar"}
-    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_COBROS>')"){$"Cobro a cliente"}
-    //     // button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="cliente.goTo('#<@CTE_BONIFICACIONES>')"){$"Bonificaciones"}
-    //     // #!
-    // }
-    // point general_act to header_act
 
     new nav_config
     {
@@ -79,43 +80,94 @@ module "list.dk"
         @"jscurrentcontext": "cliente.getCurrentContext"
     }
 
-    #$ div(class="v12-list-view" id="view")
+    #$
+    div(class="container-fluid" id="view")
     {
-        section(class="container-fluid bg-white" id="top_area")
+        // Filtros y acciones
+        section(id="top_area")
         {
-            #! do uie.printV12FormBar(nav_config)
-            #$ form(action="./" method="GET" id="form_search" class="no-print my-1 d-flex py-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            form(action="./" method="GET" id="form_filter" class="mb-1")
             {
-                "filter-text"(
-                    "id"="ft_search"
-                    "text-field"="buscar"
-                    "placeholder"="Buscar por código, nombre o RFC"
-                    "form"="#form_search"
-                    "value"="#<@('$parameters/buscar')>"
-                    "auto-submit"="true"
-                    "class"="w-100"
-                ){$""}
-                a(href="#<@CTE_AGREGAR>" class="btn btn-light btn-sm induxsoft-corners" type="button" id="btn_new_cliente" title="Nuevo cliente" style="outline: 1px solid #DDD;"){$"#<@ICON_USER_ADD>"}
+                div(class="py-1 w-100 d-flex gap-2 flex-wrap align-items-center")
+                {
+                    div(class="d-flex gap-2")
+                    {
+                        div{#! do uie.dbSelect(fil_tipo_cliente) } #$
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(
+                            "id"="fil_text"
+                            "text-field"="fil_text"
+                            "placeholder"="Buscar por código, nombre o RFC"
+                            "form"="#form_filter"
+                            "value"="#<@('$parameters/fil_text')>"
+                            "auto-submit"="true"
+                            "class"="w-100"
+                        ){$""}
+                    }
+                }
             }
         }
-        
-        section(class="container-fluid" id="work_area")
+        // Contenido principal
+        section(id="work_area")
         {
-            #! do uie.dbeditable(table_definition, "tbl_clientes")
-        }
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
 
-        #$ div
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){$"Informe general de clientes"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_filter_1"){$""}
+                        small(class="d-block" id="lbl_filter_2"){$""}
+                        small(class="d-block" id="lbl_filter_3"){$""}
+                    }
+                }
+            }
+
+            #!
+            do uie.dbeditable(table_definition,table_id)
+            #$
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
         {
-            script(src="#<@JS_CLIENTES>"){$""}
-            script(type="text/javascript")
-            {$'
-                document.addEventListener("DOMContentLoaded", () => {
-                    cliente.tableId = "tbl_clientes";
-                    cliente.init();
-                    cliente.list.init();
-                    cliente.encode = #<context>;
-                });
-            '}
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                script(src="#<@JS_CLIENTES>"){$""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        cliente.tableId = "#<table_id>";
+                        cliente.init();
+                        cliente.list.init();
+                        cliente.encode = #<context>;
+
+                        // Script injection
+                        #<@@(@crud_context,"script")>
+                    });
+                '}
+            }
         }
     }
 }

@@ -16,12 +16,16 @@ module "list.dk"
 
     ref @http_context = @('&http')
     ref get = @@(@http_context,"&request/get")
+
     ref docs = ifnull(@("&./docs"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
 
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
 
+    @_entities_type = @("$parameters/_entities_type")
+    table_id = "tbl_"+@_entities_type
     @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new def_doc
@@ -117,12 +121,17 @@ module "list.dk"
         @"jscurrentcontext": "documento.getCurrentContext"
     }
     
-    #$ div(class="v12-list-view" id="view")
+    #$
+    div(class="container-fluid" id="view")
     {
-        section(class="container-fluid bg-white" id="top_area")
+        // Filtros y acciones
+        section(id="top_area")
         {
-            #! do uie.printV12FormBar(nav_config)
-            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center flex-wrap gap-1")
                 {
@@ -180,22 +189,59 @@ module "list.dk"
                 }
             }
         }
-
-        section(class="container-fluid" id="work_area")
+        // Contenido principal
+        section(id="work_area")
         {
-            #! do uie.dbeditable(table_definition,"tbl_cxc")
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){ $"#<cut(@('$http/session/user/name'),25)>" }
+                        small(class="d-block"){ $"#<date_str(now(),'dd/MMM/yyyy')>" }
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){$"Informe general de documentos por cobrar"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_filter_1"){$""}
+                        small(class="d-block" id="lbl_filter_2"){$""}
+                        small(class="d-block" id="lbl_filter_3"){$""}
+                    }
+                }
+            }
+
+            #!
+            do uie.dbeditable(table_definition,table_id)
+            #$
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}}
         }
-
-        #$ div
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
         {
-            script(src="#<@JS_DOCUMENTOS>"){$""}
-            script(type="text/javascript")
-            {$'
-                document.addEventListener("DOMContentLoaded", () => {
-                    documento.tableId = "tbl_cxc";
-                    documento.init();
-                });
-            '}
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                script(src="#<@JS_DOCUMENTOS>"){$""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        documento.tableId = "#<table_id>";
+                        documento.init();
+
+                        // Script injection
+                        #<@@(@crud_context,"script")>
+                    });
+                '}
+            }
         }
     }
 }

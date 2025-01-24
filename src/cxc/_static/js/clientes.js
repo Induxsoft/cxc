@@ -40,13 +40,11 @@ var cliente =
         tData: {},
         txt_search_cliente: null,
         btn_search_cliente: null,
-        btn_new_cliente: null,
 
         init()
         {
             this.txt_search_cliente = document.getElementById("txt_search_cliente");
             this.btn_search_cliente = document.getElementById("btn_search_cliente");
-            this.btn_new_cliente = document.getElementById("btn_new_cliente");
             this.tbl_clientes = document.getElementById("tbl_clientes");
 
             if (this.txt_search_cliente) {
@@ -275,6 +273,8 @@ var cliente =
 
                 if (this._GET["_entity_id"] != "new")
                 {
+                    cliente.trigger(this.elements["chq_domicilio1"],"change");
+
                     let contacto1 = Number(this.dtCliente.contacto1);
                     let contacto2 = Number(this.dtCliente.contacto2);
                     let contacto3 = Number(this.dtCliente.contacto3);
@@ -291,6 +291,9 @@ var cliente =
                         let ikContacto3 = document.getElementById("ik_contacto3");
                         this.setContacto(ikContacto3,contacto3);
                     }
+
+                    cliente.trigger(this.elements["chq_domicilio2"],"change");
+                    cliente.trigger(this.elements["chq_domicilio3"],"change");
                 }
                 this.elements["txt_rfc"].addEventListener("change",()=>
                 {
@@ -450,6 +453,7 @@ var cliente =
         btnSave: null,
         dtCliente: {},
         dvsPred: {},
+        decimals: 2,
 
         init()
         {
@@ -471,7 +475,7 @@ var cliente =
 
                     this.pedirTCambio();
 
-                    this.elements["txt_tcambio_deposito"].value = cambio;
+                    this.elements["txt_tcambio_deposito"].value = Math.RoundTo(cambio, this.decimals);
                     cliente.trigger(this.elements["txt_tcambio_deposito"],"change");
                 });
                 
@@ -483,7 +487,7 @@ var cliente =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
                     
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
                 this.elements["txt_importe_deposito"].addEventListener("change", (event) => {
                     let tcambio_cte = Number(this.elements["txt_tcambio"].value);
@@ -493,7 +497,7 @@ var cliente =
                     let importe_cte = Math.mul(importe_dep,tcambio_dep);
                     importe_cte = Math.div(importe_cte,tcambio_cte);
 
-                    this.elements["txt_importe"].value = importe_cte;
+                    this.elements["txt_importe"].value = Math.RoundTo(importe_cte, this.decimals);
                 });
 
                 this.elements["txt_importe"].addEventListener("change", (event) => {
@@ -504,7 +508,7 @@ var cliente =
                     let importe_dep = Math.mul(importe_cte,tcambio_cte);
                     importe_dep = Math.div(importe_dep,tcambio_dep);
 
-                    this.elements["txt_importe_deposito"].value = importe_dep;
+                    this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
             }
         },
@@ -598,6 +602,7 @@ var cliente =
         formBonificacion: null,
         elements: null,
         btnSave: null,
+        decimals: 2,
 
         init()
         {
@@ -612,4 +617,87 @@ var cliente =
             if (this.formBonificacion) { this.elements = this.formBonificacion.elements; }
         },
     },
+    precioventa:
+    {
+        init()
+        {
+            this.tbl_precioventa=document.getElementById("tbl_precioventa");
+            this.ik_producto = document.getElementById("ik_producto");
+            this.btn_guardar=document.getElementById("btn_guardar");
+            this.form_precioventa=document.getElementById("form_precioventa");
+            this.data_array=document.getElementById("data_array");
+
+            if(this.btn_guardar)this.btn_guardar.addEventListener("click",()=>{cliente.precioventa.validatePrecioventa();});
+            this.setEventTable();
+        },
+        setEventTable()
+        {
+            if(!this.tbl_precioventa ||!this.ik_producto)return;
+
+            this.ik_producto.change_event = (data) => this.IncludeProd(data);
+            
+            this.tbl_precioventa.setInputKey("codigo",this.ik_producto);
+            this.tbl_precioventa.setInputKey("descripcion",this.ik_producto);
+        },
+        IncludeProd(data)
+        {
+            let dtarray = this.tbl_precioventa?.DataArray ?? [];
+            let _productos = this.filterData();
+            let available_row = (_productos.length > 0) ? _productos.length : 0;
+            
+            data["precio"]=0;
+            data["limite"]=1;
+
+            dtarray[available_row] = data;
+
+            this.tbl_precioventa._printRows();
+            this.tbl_precioventa.NavTo(available_row,2);
+        },
+        filterData() 
+        {
+            return (this.tbl_precioventa?.DataArray??[]).filter((row) => { return Object.keys(row??{}).length >= this.tbl_precioventa.Columns.length });
+        },
+        deleteRow()
+        {
+            var row=this.tbl_precioventa?.DataArray[this.tbl_precioventa?.CurrentRowIndex()];
+            if(!row || Object.keys(row).length< 1)
+            {
+                alert("Debe seleccionar un elemento de la tabla");
+                return;
+            }
+            this.tbl_precioventa.DeleteCurrentRow();
+        },
+        addRow()
+        {
+            this.tbl_precioventa.AddRow();
+        },
+        validatePrecioventa()
+        {
+            var array=(this.tbl_precioventa?.DataArray??[]);
+            var sinprecio=false;
+            var l=[];
+            for (let i = 0; i < array.length; i++) 
+            {
+                const row = array[i];
+                if(Object.keys(row).length > 0)
+                {
+                    if((row.precio??0)<1)sinprecio=true;
+                    l.push(row);
+                }
+            }
+            if(this.data_array)this.data_array.value=JSON.stringify(l);
+            
+            if(sinprecio)
+            {
+               var res= confirm("Existen productos sin asignar un precio ¿Esta seguro de guardar la lista?");
+               if(!res)return;
+               
+               InduxsoftCrudlModel.Submit("form_precioventa");
+            }
+            else
+            {
+                InduxsoftCrudlModel.Submit("form_precioventa");
+            }
+        }
+    }
 }

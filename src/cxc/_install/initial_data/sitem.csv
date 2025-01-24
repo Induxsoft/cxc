@@ -23,3 +23,6 @@ GB18,Permitir exceder límite de crédito,cxc.documentos
 cxc.reports,Reportes,cxc
 GB30,Informe de antigüedad de saldos por cobrar,cxc.reports
 GB31,Origen y aplicación,cxc.reports
+GB32,Historial de pagos por clientes,cxc.reports
+GB40,Ver mensajes documentos por cobrar,cxc.documentos
+GB41,Publicar mensajes documentos por cobrar,cxc.documentos

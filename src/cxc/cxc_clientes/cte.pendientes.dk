@@ -8,8 +8,8 @@ module "cte.pendientes.dk"
     #include "dbr.apps.dkl"
     #include "uielements.v12.dkl"
     #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
     #include "../_lib/icons.dk"
-    #include "dbr.vars.dkl"
     
     do @context.begin(@crud_context)
     ref @http_context = @('&http')
@@ -18,6 +18,11 @@ module "cte.pendientes.dk"
     get<"filter-mode">: ifstr(trim(@@(get,"filter-mode"))!="", @@(get,"filter-mode"), "month")
     get<"year">: ifstr(trim(@@(get,"year"))!="", @@(get,"year"), str(ndatetime.year(ndatetime.now())))
     get<"month">: ifstr(trim(@@(get,"month"))!="", @@(get,"month"), str(ndatetime.month(ndatetime.now())))
+
+    @_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+    
+    @DECIMAL_PRECISION = @("#parameters/decimals")
 
     new nav_config
     {
@@ -28,21 +33,30 @@ module "cte.pendientes.dk"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET01D","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET01D","report","",0)
         @"jscurrentcontext": "getCurrentContext"
+
+        member @"parameters"
+        {
+            member @"GB11"
+            {
+                @"icliente": @_entity_id
+            }
+        }
     }
 
-    format_decs=dbr.vars.get(@("&database"),"FORMAT_DECS")
-    if trim(format_decs)==""{format_decs="$ #,#.00"}
-
-    vdecs=dbr.vars.get(@("&database"),"CANT_DECS")
-    if trim(vdecs)==""{decs=6}
-    else{decs=parse.num(vdecs)}
+    ref list_years = list_years(11,0)
+    fdr_year_opt = ""
+    for i = 0; i < list.count(list_years) { fdr_year_opt = fdr_year_opt + list.str(list_years,i) + "," }
+    fdr_year_opt = rremove(fdr_year_opt,1)
 
     #$ div(class="v12-list-view" id="view")
     {
         section(class="container-fluid bg-white" id="top_area")
         {
-            #! do uie.printV12FormBar(nav_config)
-            #$ form(action="./" method="GET" id="form_filter" class="no-print my-1")
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+            
+            form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
                 div(class="d-flex align-items-center")
                 {
@@ -65,7 +79,7 @@ module "cte.pendientes.dk"
                             "to-field"="dateto"
                             "selection"='#<to.json(get)>'
                             "lastdays-options"="15,30,45,60,90"
-                            "years-options"="2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024"
+                            "years-options"="#<fdr_year_opt>"
                             "custom-range"="true"
                             "form"="#form_filter"
                             "auto-submit"="true"
@@ -113,9 +127,9 @@ module "cte.pendientes.dk"
                 {
                     tr
                     {
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_total'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/saldo_docs'),format_decs)>"}
-                        td(class="text-end"){$"#<format(@('#./saldos/por_aplicar'),format_decs)>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_total'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/saldo_docs'))>"}
+                        td(class="text-end"){$"$ #<number_format(@('#./saldos/por_aplicar'))>"}
                     }
                 }
             }
@@ -133,11 +147,11 @@ module "cte.pendientes.dk"
                         "edit-th"(type="NoEditable" field="referencia"){$"Referencia"}
                         "edit-th"(type="NoEditable" field="emision"){$"Fecha"}
                         "edit-th"(type="NoEditable" field="aplicacion"){$"Vencimiento"}
-                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Importe"}
-                        "edit-th"(type="NoEditable" field="int_moratorios" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"IntMoratorios"}
-                        "edit-th"(type="NoEditable" field="bonificaciones" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Bonificaciones"}
-                        "edit-th"(type="NoEditable" field="pagos" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Pagos"}
-                        "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" decs="#<decs>" prefix="$ " thousandssep="true"){$"Saldo"}
+                        "edit-th"(type="NoEditable" field="haber" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Importe"}
+                        "edit-th"(type="NoEditable" field="int_moratorios" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"IntMoratorios"}
+                        "edit-th"(type="NoEditable" field="bonificaciones" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Bonificaciones"}
+                        "edit-th"(type="NoEditable" field="pagos" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Pagos"}
+                        "edit-th"(type="NoEditable" field="saldo" textalign="end" format="true" decs="#<@DECIMAL_PRECISION>" thousandssep="true"){$"Saldo"}
                     }
                 }
             }
@@ -163,11 +177,13 @@ module "cte.pendientes.dk"
 
                     v12navbar.toggleButtonInteraction(!obj);
                     
+                    const btn_consultar = document.getElementById("v12_GB12");
                     const btn_cobrar = document.getElementById("v12_GB13");
                     const btn_bonif = document.getElementById("v12_GB14");
                     const btn_intmor = document.getElementById("v12_GB15");
                     const btn_aplicar = document.getElementById("v12_GB16");
 
+                    if (btn_consultar) btn_consultar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_cobrar) btn_cobrar.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_bonif) btn_bonif.parentElement.hidden = (Number(obj?.debe) <= 0);
                     if (btn_intmor) btn_intmor.parentElement.hidden = (Number(obj?.debe) <= 0);

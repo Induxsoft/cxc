@@ -14,6 +14,13 @@ module ""
         {
             @form_view = "origen.aplicacion.dk"
             point @read to origenAplicacion
+            break
+        }
+        case "historial-de-pagos-por-cliente"
+        {
+            @form_view = "historial.de.pago.por.clientes.dk"
+            point @read to HistorialDePagoPorCliente
+            break
         }
         default
         {

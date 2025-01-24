@@ -2,7 +2,6 @@
 #!
 module "model"
 {
-    #include "../_lib/config.dk"
     @table_name = "cliente"
     @read_query = "
     SELECT
@@ -194,6 +193,20 @@ module "model"
     {
         new params { @"id": id }
         return cte.buscarCliente(db,params)
+    }
+
+    function setPrintTitles(&db,&data)
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
     }
 
     cte.prepareView::&db,&params,&data
@@ -508,6 +521,7 @@ module "model"
     cte.obtenerDocsPorCobrar::&db,&params
     {
         do dbr.apps.action.grant("GB24")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         sql = "
         SELECT
@@ -555,6 +569,7 @@ module "model"
     cte.obtenerCobrosPorAplicar::&db,&params
     {
         do dbr.apps.action.grant("GB25")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         // sql = "
         // SELECT
@@ -678,13 +693,9 @@ module "model"
     cte.list::&db,&params
     {
         do dbr.apps.action.grant("GB20")
-
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
-
-        buscar = trim(@@(params,"$buscar"))
-        tipo = trim(@@(params,"$tipo"))
         
-        sql = "
+        sql_clientes = "
         SELECT
             cte.sys_pk,
             cte.codigo,
@@ -699,27 +710,31 @@ module "model"
             INNER JOIN tipocliente AS tpc ON tpc.sys_pk = cte.tipo
             INNER JOIN divisa AS dvs ON dvs.sys_pk = cte.idivisa
             LEFT JOIN zona AS zna ON zna.sys_pk = cte.zona
-        WHERE TRUE
+        WHERE NOT IFNULL(cte.sys_deleted,0)
+            #<conditions>
+        ORDER BY cte.codigo
+        LIMIT #<@default_max_rows>;
         "
-        if buscar != "" {
-            sql = sql + ftext(" 
-                AND IF(IFNULL(@buscar,'')='', true, (
-                cte.codigo LIKE CONCAT('%',@buscar,'%')
-                OR cte.nombre LIKE CONCAT('%',@buscar,'%')
-                OR cte.rfc LIKE CONCAT('%',@buscar,'%')
-            ))
-            ORDER BY cte.codigo
-            LIMIT #<@default_max_rows>;")
+
+        conditions = ""
+        if @@(params,"#fil_tipo") > 0 { conditions = conditions + " AND tpc.sys_pk = @fil_tipo" }
+        if trim(@@(params,"$fil_text")) != "" {
+            conditions = conditions + " AND (
+                cte.codigo = @fil_text
+                OR cte.rfc = @fil_text
+                OR cte.nombre LIKE CONCAT('%',@fil_text,'%')
+            )
+            "
         }
-        if tipo != "" {
-            sql = sql + " AND (
-                tpc.sys_pk = @tipo
-                OR tpc.codigo = @tipo
-                OR tpc.descripcion LIKE CONCAT('%',@tipo,'%')
-            )"
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(sql_clientes),params)
+            @"list_tipos*": dbr.list(db,"select sys_pk, descripcion from tipocliente where not ifnull(sys_deleted,0)",@null)
         }
+        do setPrintTitles(db,data)
     
-        return dbr.list(db,sql,params)
+        return data
 
         exception
         {
@@ -734,6 +749,7 @@ module "model"
     cte.read::&db,&params
     {
         do dbr.apps.action.grant("GB20")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         new data {}
         do cte.prepareView(db,params,data)
@@ -752,6 +768,7 @@ module "model"
     cte.blank::&db,&params
     {
         do dbr.apps.action.grant("GB20")
+        if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         new data {}
         do cte.prepareView(db,params,data)
@@ -798,6 +815,34 @@ module "model"
         }
     }
 
+    validateFields::&data
+    {
+        if trim(@@(data,"$nombre")) == "" { do rise_error(511,"El valor de 'Nombre' es requerido.") }
+        if @@(data,"#tipo") < 1 { do rise_error(512,"El valor de 'Tipo' es requerido.") }
+        if @@(data,"#idivisa") < 1 { do rise_error(513,"El valor de 'Divisa' es requerido.") }
+
+        curp = toupper(trim(@@(data,"$curp")))
+        if curp != ""
+        {
+            if length(curp) != 18 { do rise_error(514,"El valor de 'CURP' no tiene la longitud requerida (18).") }
+            // Validar formato general.
+            curp_regex = "^([A-Z][AEIOUX][A-Z]{2}\\d{2}(?:0\\d|1[0-2])(?:[0-2]\\d|3[01])[HM](?:AS|B[CS]|C[CLMSH]|D[FG]|G[TR]|HG|JC|M[CNS]|N[ETL]|OC|PL|Q[TR]|S[PLR]|T[CSL]|VZ|YN|ZS)[B-DF-HJ-NP-TV-Z]{3}[A-Z\\d])(\\d)$"
+            if not(Regex.IsMatch(curp,curp_regex)) { do rise_error(515,"El valor de 'CURP' no tiene un formato válido.") }
+
+            data<"curp"> : curp
+        }
+        rfc = toupper(trim(@@(data,"$rfc")))
+        if rfc != ""
+        {
+            if not(between(length(rfc),12,13)) { do rise_error(516,"El valor de 'RFC' no tinene la longitud requerida (12-13).") }
+            // Validar formato general.
+            rfc_regex = "^[A-Z&Ñ]{3,4}[0-9]{2}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])[A-Z0-9]{2}[0-9A]$"
+            if not(Regex.IsMatch(rfc,rfc_regex)) { do rise_error(517,"El valor de 'RFC' no tiene un formato válido.") }
+
+            data<"rfc"> : rfc
+        }
+    }
+
     cte.create::&db,&params,&data
     {
         @use_transaction = @false
@@ -822,6 +867,8 @@ module "model"
         do cleanFormData(fieldsCliente,data,cliente)
         if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
+
+        do validateFields(cliente)
 
         validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
         if field.exist(data,'rfc') && parse.bool(validate_rfc)
@@ -963,6 +1010,8 @@ module "model"
         do cleanFormData(fieldsCliente,data,cliente)
         if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
+
+        do validateFields(cliente)
 
         validate_rfc=dbr.vars.get(db,"VALIDAR_RFC")
         if field.exist(data,'rfc') && parse.bool(validate_rfc)

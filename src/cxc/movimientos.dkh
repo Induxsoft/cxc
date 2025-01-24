@@ -156,8 +156,8 @@ module ":erp.cxc.movimientos"
             }
         }
 
-        dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0)
         if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
+        else { dcxc<"aplicable"> : (field.num(dcxc,"debe") > 0) }
 
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
@@ -239,7 +239,6 @@ module ":erp.cxc.movimientos"
 
         new dcxc
         {
-            @"aplicable": @@(data,"$aplicable")
             @"aplicacion": @@(data,"$flimite")
             @"basecm": 0
             @"documento": @@(data,"#documento")
@@ -250,8 +249,13 @@ module ":erp.cxc.movimientos"
             @"tipocambio": @@(data,"#tcambio")
             @"icliente": @@(data,"#icliente")
         }
-
-        if @@(data,"#iventa") > 0 { dcxc<"iventa"> : @@(data,"#iventa") }
+        if field.exist(data,"aplicable") { dcxc<"aplicable"> : parse.bool(@@(data,"$aplicable")) }
+    
+        if @@(data,"#iventa") > 0 
+        { 
+            dcxc<"iventa"> : @@(data,"#iventa") 
+            dcxc<"ifolio"> : dbr.num(db,"select ifolio from venta where sys_pk=@iventa",dcxc)
+        }
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
 
         if not(dbr.in_transaction(db)) {
@@ -557,9 +561,10 @@ module ":erp.cxc.movimientos"
         dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
         // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,importe_cte)
-        do saveCxC(db,dcxc)
+        pk_dcxc = saveCxC(db,dcxc)
 
         if start_transaction { do dbr.commit(db) }
+        return pk_dcxc
 
         exception
         {
@@ -598,9 +603,10 @@ module ":erp.cxc.movimientos"
 
         // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,@@(data,"#importe"))
-        do saveCxC(db,dcxc)
+        pk_dcxc = saveCxC(db,dcxc)
 
         if start_transaction { do dbr.commit(db) }
+        return pk_dcxc
 
         exception
         {

@@ -193,7 +193,7 @@ module ""
                                         td(class="text-end fw-bolder"){$"#<format(ttl_sld_mr_90,@FMT_MONEY)>"}
                                     }
                                     #!
-
+                                    
                                     ttl_sld_xvencer = 0
                                     ttl_saldo = 0
                                     ttl_sld_01_30 = 0
