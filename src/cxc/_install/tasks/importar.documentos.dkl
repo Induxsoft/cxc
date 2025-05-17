@@ -87,7 +87,7 @@ program "Importar Cuentas por Cobrar"
         function getDocumentCxC(&db,const)
         {
             const >> params
-            id = dbr.num(db,"SELECT d.id FROM cdocumentos d INNER JOIN cfg_cxc_docs c ON d.id = c.documento WHERE d.const = @const AND COALESCE(c.pagable,c.apl_int_fin,c.apl_int_mor,c.apl_bonific,c.apl_pago) IS NOT NULL",params)
+            id = dbr.num(db,"SELECT d.id FROM cdocumentos d INNER JOIN cfg_cxc_docs c ON d.id = c.documento WHERE (d.id = @const OR d.const = @const) AND COALESCE(c.pagable,c.apl_int_fin,c.apl_int_mor,c.apl_bonific,c.apl_pago) IS NOT NULL",params)
 
             exception
             {
@@ -138,7 +138,7 @@ program "Importar Cuentas por Cobrar"
                 if pTCambio == 0 { pTCambio = @@(cliente,"#tcambio") }
                 idocumento = getDocumentCxC(db,pDocumento)
                 if idocumento == 0 { do rise_error(513,"No se encontro el 'documento' proporcionado para las cuentas por cobrar.") }
-                if idocumento == @cRecibo { do rise_error(514,"Importar '"+pDocumento+"' no implementado.") }
+                // if idocumento == @cRecibo { do rise_error(514,"Importar '"+pDocumento+"' no implementado.") }
 
                 if pFecha == "" { pFecha = date_str(now(),"yyyy-MM-dd") }
                 if pAplicacion == "" {
@@ -157,7 +157,7 @@ program "Importar Cuentas por Cobrar"
                     @"fultmoratorios": pAplicacion
                     @"debe": pDebe
                     @"haber": pHaber
-                    @"xaplicar": if(idocumento == @cNotaCredito, pHaber, 0)
+                    @"xaplicar": if(idocumento==@cNotaCredito || idocumento==@cRecibo, pHaber, 0)
                     @"tipocambio": pTCambio
                     @"notas": pNotas
                 }

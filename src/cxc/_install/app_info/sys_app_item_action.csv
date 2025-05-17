@@ -21,5 +21,5 @@ GB31,Origen y aplicación,Origen y aplicación,,/!/cxc/reports/origen-aplicacion
 GB32,Historial de pagos por clientes,HPagos XCliente,,/!/cxc/reports/historial-de-pagos-por-cliente/,0,cxc.reports,DET014,0,report
 
 GBF0,Importar movimientos iniciales por cobrar,"Importar",,/!/batch/taskman/GB/importar.documentos/,0,cxc.documentos,DET01D,0,action
-GBF0,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action
-GBF0,Limpiar movimientos por cobrar,"Limpiar",,/!/batch/taskman/GB/limpiar.documentos/,0,cxc.documentos,DET01D,0,action
+GBF1,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action
+GBF2,Limpiar movimientos por cobrar,"Limpiar",,/!/batch/taskman/GB/limpiar.documentos/,0,cxc.documentos,DET01D,0,action

@@ -32,7 +32,7 @@ module ":erp.cxc.movimientos"
             @"sys_exported": @false
             @"sys_deleted": @false
             @"sys_recver": 0
-            @"sys_lock": @null
+            @"sys_lock*": @null
             @"aplicable": @true
             @"aplicacion*": @null
             @"auditado": @false
