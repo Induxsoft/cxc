@@ -25,13 +25,13 @@ module ":erp.cxc.movimientos"
             @"sys_guid": uuid()
             @"sys_dtcreated*": dbr.sql("now()")
             @"sys_timestamp*": dbr.sql("now()")
+            @"sys_dtexported*": dbr.sql("now()")
             @"sys_info": ""
             @"sys_user": ""
             @"sys_lastuser": ""
             @"sys_exported": @false
-            @"sys_dtexported*": @null
-            @"sys_recver": 0
             @"sys_deleted": @false
+            @"sys_recver": 0
             @"sys_lock": @null
             @"aplicable": @true
             @"aplicacion*": @null
@@ -218,16 +218,19 @@ module ":erp.cxc.movimientos"
         {
             cxc<"debe"> : importe
             cxc<"haber"> : 0
+            cxc<"xaplicar"> : 0
         }
         else if afecta_haber
         {
             cxc<"debe"> : 0
             cxc<"haber"> : importe
+            cxc<"xaplicar"> : importe
         }
         else
         {
-            cxc<"haber"> : 0
             cxc<"debe"> : 0
+            cxc<"haber"> : 0
+            cxc<"xaplicar"> : 0
         }
     }
 
