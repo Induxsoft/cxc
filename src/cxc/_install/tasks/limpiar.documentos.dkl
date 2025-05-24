@@ -41,19 +41,33 @@ program "Limpiar movimientos por cobrar"
         //#region >EJECUCIÓN
         do batch.v12.grant("GBF2") //GBF2 - Limpiar movimientos por cobrar
         
+        ref params = @("&params")
         ref db = @("&database")
+
+        if @@(params,"#icliente") == 0 { params<"icliente"> : -1 }
+
         do dbr.begin(db)
 
+        if @@(params,"#icliente") > 0 {
+            cliente = dbr.str(db,"select concat(codigo,' - ',nombre) from cliente where sys_pk = @icliente",params)
+            do batch.saveLog(@token,"> "+cliente)
+        }
+
         do batch.saveLog(@token,"Limpiando aplicaciones de movimientos por cobrar...")
-        do dbr.execute(db,"DELETE FROM aplcxc",@null)
+        do dbr.execute(db,"
+            DELETE apl
+            FROM aplcxc apl
+                JOIN dcxc cxc ON (apl.fk_dcxc_aplicadoa = cxc.sys_pk OR apl.aplicadoa = cxc.sys_pk)
+            WHERE IF(@icliente < 1, TRUE, cxc.icliente = @icliente)
+        ",params)
         do UpdatePercent(33)
 
         do batch.saveLog(@token,"Limpiando movimientos por cobrar...")
-        do dbr.execute(db,"DELETE FROM dcxc",@null)
+        do dbr.execute(db,"DELETE FROM dcxc WHERE IF(@icliente < 1, TRUE, icliente = @icliente)",params)
         do UpdatePercent(66)
 
-        do batch.saveLog(@token,"Limpiando saldos de clientes...")
-        do dbr.execute(db,"UPDATE cliente SET saldo = 0",@null)
+        do batch.saveLog(@token,"Limpiando saldo(s) de cliente(s)...")
+        do dbr.execute(db,"UPDATE cliente SET saldo = 0 WHERE IF(@icliente < 1, TRUE, sys_pk = @icliente)",params)
         do UpdatePercent(99)
 
         do dbr.commit(db)
