@@ -1,0 +1,270 @@
+#include "dkli.dkh"
+#!
+program "Autoaplicar recibos a facturas de clientes"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    //#region >CONSTANTES
+    do errordet(@false)
+
+    @action = "GBF3"
+    @qname = @("$qname")
+    @token = @("$job/token")
+    @program = @("$job/program")
+
+    // cdocumentos (documentos de cuentas por cobrar)
+    @cRemision = 3
+    @cFactura = 4
+    @cNotaCredito = 5
+    @cTicket = 6
+    @cNotaCargo = 17
+    @cPagare = 18
+    @cRecibo = 19
+    //#endregion
+
+    //#region >FUNCIONES
+    function Log(text)
+    {
+        do batch.saveLog(@("$job/token"),text)
+    }
+
+    function UpdatePercent(value)
+    {
+        new params
+        {
+            @"token":@("$job/token")
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+
+    function UserId(&db)
+    {
+        if isset("@_user_id") { return @_user_id }
+        
+        ref job = @("&job")
+        @_user_id = dbr.str(db,"SELECT tu.userid FROM job jb INNER JOIN tuser tu ON jb.sys_user = tu.userid WHERE jb.sys_guid = @token LIMIT 1",job)
+        exception
+        {
+            do pop_exception()
+            @_user_id = ""
+        }
+
+        return @_user_id
+    }
+
+    function ClientesConSaldo(&db,&params)
+    {
+        params<"icliente"> : @@(params,"#icliente")
+        params<"tcliente"> : @@(params,"#tcliente")
+
+        sql = "
+        SELECT
+            cte.sys_pk,
+            cte.codigo,
+            cte.rfc,
+            cte.nombre,
+            cte.saldo,
+            (SELECT IFNULL(SUM(IFNULL(xaplicar,0)),0) FROM dcxc WHERE icliente = cte.sys_pk) AS xaplicar,
+            DATE_FORMAT(NOW(), '%Y-%m-%d') AS fecha
+        FROM cliente AS cte
+            INNER JOIN dcxc d ON cte.sys_pk = d.icliente
+        WHERE (d.aplicable) <> 0
+            AND IF(@tcliente > 0, cte.tipo = @tcliente, TRUE)
+            AND IF(@icliente > 0, cte.sys_pk = @icliente, TRUE)
+        GROUP BY cte.codigo
+        HAVING xaplicar > 0
+        "
+        ref rst = dbr.list(db,sql,params)
+        
+        if list.count(rst) < 1 {
+            do Log("Nada para hacer")
+        }
+        
+        return rst
+    }
+
+    function AplicarCliente(&db,&cliente)
+    {
+        do Log("> "+@@(cliente,"$codigo")+" - "+@@(cliente,"$nombre"))
+        // Obtener recibos por aplicar
+        sql = ftext("SELECT sys_pk, referencia, notas, xaplicar, fecha FROM dcxc WHERE documento = #<@cRecibo> AND xaplicar > 0 AND icliente = @sys_pk")
+        ref recibos = dbr.list(db,sql,cliente)
+        
+        if list.count(recibos) < 1 {
+            do Log(" - No hay recibos por aplicar")
+            return
+        }
+
+        for i = 0; i < list.count(recibos)
+        {
+            ref recibo = list.obj(recibos,i)
+
+            sql = ftext("
+            SELECT
+                d.sys_pk,
+                d.referencia,
+                (d.debe - d.pagos) AS saldo,
+                d.iventa,
+                d.fecha
+            FROM dcxc d
+                LEFT JOIN venta v on d.iventa = v.sys_pk
+            WHERE
+                IF(IFNULL(v.sys_pk,0) > 0, v.statusadministrativo != 99, TRUE)
+                AND d.documento = #<@cFactura>
+                AND d.pagos < d.debe
+                AND d.icliente = @sys_pk
+            ORDER BY d.fecha ASC
+            ")
+            ref facturas = dbr.list(db,sql,cliente)
+
+            if list.count(facturas) < 1 {
+                do Log(" - No hay facturas por aplicar")
+                return
+            }
+
+            do Log(" - "+@@(recibo,"$referencia"))
+
+            irecibo = @@(recibo,"#sys_pk")
+            xaplicar = @@(recibo,"#xaplicar")
+            t_abono = 0
+
+            for j = 0; j < list.count(facturas)
+            {
+                ref factura = list.obj(facturas,j)
+
+                ifactura = @@(factura,"#sys_pk")
+                saldo = @@(factura,"#saldo")
+                abono = 0
+                if xaplicar <= 0 { break }
+                if xaplicar <= saldo {
+                    abono = xaplicar
+                    xaplicar = 0
+                }
+                else if xaplicar > saldo {
+                    abono = saldo
+                    xaplicar = (xaplicar - saldo)
+                }
+                t_abono = t_abono + abono
+                
+                do Log("  + "+@@(factura,"$referencia"))
+                do dbr.begin(db)
+
+                // Actualizar pagos de la factura
+                factura<"abonado"> : abono
+                sql = "UPDATE dcxc SET pagos = (IFNULL(pagos,0) + @abonado) WHERE sys_pk = @sys_pk"
+                if dbr.execute(db,sql,factura)
+                {
+                    do Log("   * "+format(abono,"$ #,0.00")+" abonado")
+                    
+                    debe = dbr.num(db,"SELECT (debe - pagos) FROM dcxc WHERE sys_pk = @sys_pk",factura)
+                    if debe == 0
+                    {
+                        do Log("   * Saldado")
+                        // Actualizar estado financiero de la venta (si el dcxc esta relacionado a una venta)
+                        if dbr.execute(db,"UPDATE venta SET statusfinanciero = 2 WHERE sys_pk = @iventa",factura) {
+                            do Log("   * Venta saldada")
+                        }
+                    }
+
+                    // Guardar registro de aplicación
+                    ref now = dbr.sql("now()")
+                    new aplcxc
+                    {
+                        @"sys_guid": uuid()
+                        @"sys_dtcreated*": now
+                        @"sys_timestamp*": now
+                        @"sys_dtexported*": now
+                        @"sys_info": @program
+                        @"sys_user": UserId(db)
+                        @"sys_exported": 0
+                        @"sys_recver": 0
+                        @"fecha*": dbr.sql("curdate()")
+                        @"destino": 4 // 1-IntFin | 2-IntMor | 3-Bonificaciones | 4-Pagos
+                        @"importe": abono
+                        @"aplicadoa": ifactura
+                        @"fk_dcxc_aplicadoa": irecibo
+                    }
+                    do dbr.insert(db,"aplcxc",aplcxc)
+                    do Log("   * Aplicado")
+
+                    exception
+                    {
+                        do dbr.rollback(db)
+                        do Log("   ** Error: "+last_error())
+
+                        t_abono = (t_abono - abono)
+                    }
+                }
+                else
+                {
+                    do dbr.rollback(db)
+                    do Log("   ** Error: "+last_error())
+
+                    t_abono = (t_abono - abono)
+                }
+
+                do dbr.commit(db)
+            }
+
+            // Actualizar saldo del recibo
+            recibo<"t_abono"> : t_abono
+            sql = "UPDATE dcxc SET xaplicar = (IFNULL(xaplicar,0) - @t_abono) WHERE sys_pk = @sys_pk"
+            if dbr.execute(db,sql,recibo) {
+                do Log(" * Saldo actualizado")
+            }
+            else {
+                do Log(" ** Error: "+last_error())
+            }
+        }
+    }
+
+    function AutoAplicar(&db,&params)
+    {
+        ref clientes = ClientesConSaldo(db,params)
+        for i = 0; i < list.count(clientes)
+        {
+            ref cliente = list.obj(clientes,i)
+            do AplicarCliente(db,cliente)
+        }
+    }
+    //#endregion
+
+    //#region >EJECUCIÓN
+    do batch.v12.grant(@action)
+
+    ref params = @("&params")
+    ref db = @("&database")
+    
+    if @@(params,"#tcliente") > 0 {
+        tipocliente = dbr.str(db,"select concat(codigo,' - ',descripcion) from tipocliente where sys_pk = @tcliente",params)
+        do Log(tipocliente)
+    }
+
+    do AutoAplicar(db,params)
+
+    exception
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if isset("db") {
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+        }
+        do rise_error(code,error)
+    }
+    //#endregion
+
+    do @context.end()
+}

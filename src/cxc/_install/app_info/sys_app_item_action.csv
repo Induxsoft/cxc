@@ -23,3 +23,4 @@ GB32,Historial de pagos por clientes,HPagos XCliente,,/!/cxc/reports/historial-d
 GBF0,Importar movimientos iniciales por cobrar,"Importar",,/!/batch/taskman/GB/importar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF1,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF2,Limpiar movimientos por cobrar,"Limpiar",,/!/batch/taskman/GB/limpiar.documentos/,0,cxc.documentos,DET01D,0,action
+GBF3,Autoaplicar recibos,"Autoaplicar",,/!/batch/taskman/GB/autoaplicar.recibos/,0,cxc.documentos,DET01D,0,action
