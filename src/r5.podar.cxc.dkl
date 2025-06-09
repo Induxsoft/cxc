@@ -171,10 +171,38 @@ program "Podar movimientos por cobrar"
         }
 
         /**
+        * Comprueba si existe la tabla 'ut_cfd' y quita la relación del cfdi con el documento por cobrar.
+        */
+        function DesvincularUtCfd(&db,&params,truncate)
+        {
+            if dbr.str(db,"SHOW TABLES LIKE 'ut_cfd';",@null) == "" { return }
+            do Log(" * Eliminando relación: ut_cfd -> dcxc")
+
+            if truncate {
+                do dbr.execute(db,"
+                    UPDATE ut_cfd cfd
+                        INNER JOIN dcxc cxc ON cfd.uf_idcxc = cxc.sys_pk
+                    SET cfd.uf_idcxc = NULL
+                    WHERE cxc.fecha <= @ff
+                ",params)
+            }
+            else {
+                do dbr.execute(db,ftext("
+                    UPDATE ut_cfd cfd
+                        INNER JOIN dcxc cxc ON cfd.uf_idcxc = cxc.sys_pk
+                    SET cfd.uf_idcxc = NULL
+                    WHERE cxc.sys_info = '#<@id_to_delete>'
+                "),@null)
+            }
+        }
+
+        /**
         * Elimina los documentos marcados
         */
         function EliminarDocumentos(&db)
         {
+            do DesvincularUtCfd(db,@null,@false)
+
             do Log(" + Eliminando las aplicaciones relacionadas a los documentos")
             do dbr.execute(db,ftext("
                 DELETE apl
@@ -218,6 +246,8 @@ program "Podar movimientos por cobrar"
         function Truncate(&db,ff)
         {
             ff >> params
+
+            do DesvincularUtCfd(db,params,@true)
 
             do Log("- Limpiando aplicaciones de cuentas por cobrar")
             do dbr.execute(db,ftext("DELETE FROM #<@table_aplcxc>"),@null)
