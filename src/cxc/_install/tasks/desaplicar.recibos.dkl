@@ -1,0 +1,180 @@
+#include "dkli.dkh"
+#!
+program "Desaplicar recibos a facturas PPD"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.events.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+    #include "cxc/movimientos.dkh"
+
+    do @context.begin(@batch_context)
+
+    //#region >CONSTANTES
+    do errordet(@false)
+
+    @action = "GBF4"
+    @qname = @("$qname")
+    @token = @("$job/token")
+    @program = @("$job/program")
+    // cdocumentos (documentos de cuentas por cobrar)
+    @cRemision = 3
+    @cFactura = 4
+    @cNotaCredito = 5
+    @cTicket = 6
+    @cNotaCargo = 17
+    @cPagare = 18
+    @cRecibo = 19
+    //#endregion
+
+    //#region >FUNCIONES
+    function Log(text)
+    {
+        do batch.saveLog(@("$job/token"),text)
+    }
+
+    function UpdatePercent(value)
+    {
+        new params
+        {
+            @"token":@("$job/token")
+        }
+        new data
+        {
+            @"percentage":value
+            @"progress_type":2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",params)
+    }
+
+    function UserId(&db)
+    {
+        if isset("@_user_id") { return @_user_id }
+        
+        ref job = @("&job")
+        @_user_id = dbr.str(db,"SELECT tu.userid FROM job jb INNER JOIN tuser tu ON jb.sys_user = tu.userid WHERE jb.sys_guid = @token LIMIT 1",job)
+        exception
+        {
+            do pop_exception()
+            @_user_id = ""
+        }
+
+        return @_user_id
+    }
+
+    function ObtenerRecibosAplicados(&db,&params)
+    {
+        sql = "
+        SELECT
+            a.fk_dcxc_aplicadoa AS _entity_id,
+            d.referencia,
+            d.icliente,
+            CONCAT(c.codigo,' - ',c.nombre) AS `cliente`
+        FROM aplcxc a
+            INNER JOIN dcxc d ON a.fk_dcxc_aplicadoa = d.sys_pk
+            INNER JOIN cliente c ON d.icliente = c.sys_pk
+        WHERE
+            d.documento = #<@cRecibo>
+            AND (TRIM(IFNULL(a.uf_cfdi,''))='' OR a.uf_cfdi='0')
+            #<where>
+        GROUP BY
+            a.fk_dcxc_aplicadoa,
+            d.referencia,
+            d.icliente,
+            c.codigo,
+            c.nombre
+        ORDER BY
+            d.icliente
+        "
+        where = ""
+
+        if @@(params,"#tcliente") > 0 {
+            where = where + " AND c.tipo = @tcliente"
+
+            tipocliente = dbr.str(db,"select concat(codigo,' - ',descripcion) from tipocliente where sys_pk = @tcliente",params)
+            do Log(tipocliente)
+        }
+        if @@(params,"#icliente") > 0 {
+            where = where + " AND d.icliente = @icliente"
+        }
+
+        return dbr.list(db,ftext(sql),params)
+    }
+
+    function Desaplicar(&db,&params)
+    {
+        ref documentos = ObtenerRecibosAplicados(db,params)
+        length = list.count(documentos)
+        if length < 1 {
+            do Log("Nada para desaplicar.")
+            do UpdatePercent(100)
+            return
+        }
+
+        do Log(">> Desaplicar recibos sin timbrar <<")
+        progress = (100 / length)
+        affected_rows = 0
+        percent = 0
+        icliente = 0
+
+        for i = 0; i < length
+        {
+            ref recibo = list.obj(documentos,i)
+            
+            if icliente != @@(recibo,"#icliente") {
+                icliente = @@(recibo,"#icliente")
+                do Log("> " + @@(recibo,"$cliente"))
+            }
+
+            do erp.cxc.movimientos.desaplicarCobros(db,recibo)
+            do Log(" + " + @@(recibo,"$referencia"))
+            
+            affected_rows = affected_rows + 1
+
+            exception
+            {
+                code = last_error_code()
+                error = last_error()
+                do pop_exception()
+
+                if code >= 511 && code <= 589 {
+                    do Log(" * " + @@(recibo,"$referencia") +": "+ error)
+                }
+                else {
+                    do rise_error(code,error)
+                }
+            }
+
+            percent = percent + progress
+            do UpdatePercent(percent)
+        }
+
+        do Log("** Recibos desaplicados ("+str(affected_rows)+"/"+str(length)+")")
+    }
+    //#endregion
+
+    //#region >EJECUCIÓN
+    do batch.v12.grant(@action)
+
+    ref params = @("&params")
+    ref db = @("&database")
+
+    do Desaplicar(db,params)
+
+    exception
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if isset("db") {
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+        }
+        do rise_error(code,error)
+    }
+    //#endregion
+
+    do @context.end()
+}

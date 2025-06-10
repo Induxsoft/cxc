@@ -11,5 +11,14 @@
             "columns":"codigo,nombre",
             "ccaptions":"Código,Nombre"
         }
+    },
+    "confirm": {
+        "control":"bool",
+        "name":"confirm_GBF2",
+        "required":"true",
+        "caption":"Confirmo y entiendo que al ejecutar esta tarea los datos no se podrán recuperar.",
+        "wrp_attr": {
+            "class":"form-check ms-3"
+        }
     }
 }

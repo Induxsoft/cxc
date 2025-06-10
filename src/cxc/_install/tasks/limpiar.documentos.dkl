@@ -44,11 +44,15 @@ program "Limpiar movimientos por cobrar"
         ref params = @("&params")
         ref db = @("&database")
 
-        if @@(params,"#icliente") == 0 { params<"icliente"> : -1 }
+        icliente = @@(params,"#icliente")
+        confirmed = parse.bool(@@(params,"$confirm_GBF2"))
+        
+        if not(confirmed) { do rise_error(511,"No se confirmo la acción.") }
+        params<"icliente"> : icliente
 
         do dbr.begin(db)
 
-        if @@(params,"#icliente") > 0 {
+        if icliente > 0 {
             cliente = dbr.str(db,"select concat(codigo,' - ',nombre) from cliente where sys_pk = @icliente",params)
             do batch.saveLog(@token,"> "+cliente)
         }

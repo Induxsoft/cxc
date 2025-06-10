@@ -1,0 +1,33 @@
+{
+    "icliente": {
+        "control":"input-key",
+        "caption":"Filtrar por cliente",
+        "source": {
+            "type":"service",
+            "source":"/!/cxc/clientes/?_view=buscar-cliente&search=@search",
+            "keyfield":"sys_pk",
+            "searchfield":"codigo",
+            "showfield":"nombre",
+            "columns":"codigo,nombre",
+            "ccaptions":"Código,Nombre"
+        },
+        "wrp_attr": {
+            "class":"col-md-8"
+        }
+    },
+    "tcliente": {
+        "control":"select",
+        "caption":"Filtrar por tipo de cliente",
+        "source": {
+            "type":"query",
+            "query":"select sys_pk, concat(codigo,' - ',descripcion) descripcion from tipocliente where not ifnull(sys_deleted,0)",
+            "keyfield":"sys_pk",
+            "showfield":"descripcion",
+            "first_value":"-1",
+            "first_text":"Todos"
+        },
+        "wrp_attr": {
+            "class":"col-md-4"
+        }
+    }
+}
