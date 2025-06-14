@@ -98,6 +98,20 @@ program "Importar Cuentas por Cobrar"
             return id
         }
 
+        function getIVenta(&db,referencia)
+        {
+            referencia >> params
+            sys_pk = dbr.num(db,"SELECT sys_pk FROM venta WHERE referencia = @referencia",params)
+
+            exception
+            {
+                do pop_exception()
+                sys_pk = 0
+            }
+
+            return sys_pk
+        }
+
         function import(&db,&data)
         {
             length = list.count(data)
@@ -162,6 +176,10 @@ program "Importar Cuentas por Cobrar"
                     @"xaplicar": if(idocumento==@cNotaCredito || idocumento==@cRecibo, pHaber, 0)
                     @"tipocambio": pTCambio
                     @"notas": pNotas
+                }
+                if idocumento == @cFactura || idocumento == @cRemision {
+                    iventa = getIVenta(db,pReferencia)
+                    if iventa > 0 { dcxc<"iventa"> : iventa }
                 }
                 do erp.cxc.movimientos.saveCxC(db,dcxc)
                 affected_rows = affected_rows + 1
