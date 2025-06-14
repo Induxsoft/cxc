@@ -66,6 +66,26 @@ program "Limpiar movimientos por cobrar"
         ",params)
         do UpdatePercent(33)
 
+        codeblock "Quitar relación. ut_cfd -> dcxc"
+        {
+            if dbr.str(db,"SHOW TABLES LIKE 'ut_cfd';",@null) != ""
+            {
+                do batch.saveLog(@token,"Limpiando relación: ut_cfd -> dcxc")
+                do dbr.execute(db,"
+                    UPDATE ut_cfd cfd
+                        INNER JOIN dcxc cxc ON cfd.uf_idcxc = cxc.sys_pk
+                    SET cfd.uf_idcxc = NULL
+                    WHERE IF(@icliente < 1, TRUE, cxc.icliente = @icliente)
+                ",params)
+            }
+            exception
+            {
+                error = last_error()
+                do pop_exception()
+                do batch.saveLog(@token,"No fue posible desvincular los documentos timbrados: "+error)
+            }
+        }
+
         do batch.saveLog(@token,"Limpiando movimientos por cobrar...")
         do dbr.execute(db,"DELETE FROM dcxc WHERE IF(@icliente < 1, TRUE, icliente = @icliente)",params)
         do UpdatePercent(66)
