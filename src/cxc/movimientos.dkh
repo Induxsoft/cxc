@@ -224,7 +224,7 @@ module ":erp.cxc.movimientos"
         {
             cxc<"debe"> : 0
             cxc<"haber"> : importe
-            cxc<"xaplicar"> : importe
+            //cxc<"xaplicar"> : importe
         }
         else
         {
