@@ -307,7 +307,8 @@ module "model"
             IFNULL(cxc.haber,0) AS haber,
             (IFNULL(cxc.haber,0) - IFNULL(cxc.xaplicar,0)) AS aplicado,
             IFNULL(cxc.xaplicar,0) AS xaplicar,
-            cxc.icliente
+            cxc.icliente,
+            ((select count(a.sys_pk) from aplcxc a where a.fk_dcxc_aplicadoa = cxc.sys_pk and (ifnull(a.uf_cfdi,'')!='' and a.uf_cfdi!='0')) > 0) has_cfdi
         FROM dcxc AS cxc
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.sys_pk = @_entity_id

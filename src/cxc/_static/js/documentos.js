@@ -330,6 +330,7 @@ var documento =
 
     aplicar: {
         tbl_xaplicar:null, arr_xaplicar:[], tbl_aplicados:null, arr_aplicados:[],
+        _rowdata:null,
         source:{}, decimals:2,
 
         init()
@@ -340,7 +341,7 @@ var documento =
             const btn_desaplicar = document.getElementById("btn_desaplicar");
 
             btn_aplicar.addEventListener("click", (e) => this.aplicar());
-            btn_desaplicar.addEventListener("click", (e) => this.desaplicar());
+            if (btn_desaplicar) btn_desaplicar.addEventListener("click", (e) => this.desaplicar());
 
             this.setTableEvents();
         },
@@ -439,12 +440,13 @@ var documento =
         importesAplicar(e)
         {
             let cur_row = e.sender.RowIndexOfTd(e.td);
-            let arr_xaplicar = this.tbl_xaplicar.DataArray;
+            let arr_xaplicar = e.sender.DataArray;//this.tbl_xaplicar.DataArray;
                         
             let saplicado = this.source.aplicado;
             let sxaplicar = this.source.xaplicar;
 
             let saldo = Number(e.sender.DataArray[cur_row]["saldo"]);
+            let oaplicar = Number(e.sender.DataArray[cur_row]["aplicar"]);
             let aplicar = Number(e.text.trim());
             let sfinal = (saldo - aplicar);
 
@@ -454,7 +456,7 @@ var documento =
                 const impAplicar = Number(arr_xaplicar[i]["aplicar"]);
                 aplicado = Math.add(aplicado,impAplicar);
             }
-            aplicado = Math.RoundTo(Math.add(aplicado,aplicar), this.decimals);
+            aplicado = Math.RoundTo(Math.add(Math.sub(aplicado,oaplicar),aplicar), this.decimals);
             xaplicar = Math.RoundTo(Math.sub(sxaplicar,aplicado), this.decimals);
 
             let rst = 
@@ -464,40 +466,45 @@ var documento =
                 aplicado: aplicado,
                 xaplicar: xaplicar,
             }
-
             return rst
         },
 
         validarImportes(e)
         {
-            if (e.coldef.field === "aplicar")
+            let field = e.coldef.field;
+            let index = e.sender.RowIndexOfTd(e.td);
+            this._rowdata = JSON.parse(JSON.stringify(e.sender.DataArray[index]));
+
+            if (field === "aplicar" && !e.cancel)
             {
                 let rst = this.importesAplicar(e);
 
                 if (rst.aplicar < 0) {
                     alert("El importe a aplicar no puede ser menor a 0.");
-                    e.cancel = true;
-                    return;
+                    e.text = this._rowdata[field].toString();
+                    return
                 }
 
                 if (rst.sfinal < 0) {
                     alert("El importe a aplicar no puede ser mayor al saldo del documento.");
-                    e.cancel = true;
-                    return;
+                    e.text = this._rowdata[field].toString();
+                    return
                 }
 
                 if (rst.xaplicar < 0) {
                     alert("El importes aplicado no puede superar al saldo disponible para aplicar.");
-                    e.cancel = true;
-                    return;
+                    e.text = this._rowdata[field].toString();
+                    return
                 }
             }
         },
 
         actualizarImportes(e)
         {
-            let cur_row = e.sender.RowIndexOfTd(e.td);
-                        
+            let field = e.coldef.field;
+            let index = e.sender.RowIndexOfTd(e.td);
+            
+            if (this._rowdata[field] == e.text) return;
             if (e.coldef.field === "aplicar")
             {
                 let lbl_saldo = document.getElementById("lbl_saldo");
@@ -506,9 +513,9 @@ var documento =
 
                 let rst = this.importesAplicar(e);
 
-                e.sender.DataArray[cur_row]["aplicar"] = rst.aplicar;
-                e.sender.DataArray[cur_row]["sfinal"] = rst.sfinal;
-                e.sender.UpdateRow(cur_row);
+                e.sender.DataArray[index]["aplicar"] = rst.aplicar;
+                e.sender.DataArray[index]["sfinal"] = rst.sfinal;
+                e.sender.UpdateRow(index);
 
                 let langcode = (new Intl.NumberFormat()).resolvedOptions().locale;
                 const formatter = new Intl.NumberFormat(langcode, {
