@@ -127,9 +127,20 @@ module "cxp.aplicar.dk"
                 div(class="tab-pane fade #<ifstr(show_tab=='xaplicar','show active','')>" id="nav-xaplicar" role="tabpanel" "aria-labelledby"="nav-xaplicar-tab")
                 {
                     div(class="d-flex justify-content-end align-items-center gap-1 px-2 my-2" id="tbl_action_bar")
-                    {
-                        small(class="flex-grow-1 text-muted"){$"Indique el importe a 'Aplicar' a los documentos en la cuadrícula"}
-                        button(class="btn btn-sm btn-primary no-print" type="button" id="btn_aplicar"){$"Aplicar"}
+                    {""
+                        // small(class="flex-grow-1 text-muted"){"Indique el importe a 'Aplicar' a los documentos en la cuadrícula"}
+                        #!
+                        if not(@@(xaplicar,"#has_cfdi")) {
+                            #$ div(class="alert alert-info my-0 py-1 flex-grow-1" role="alert")
+                            {
+                                "Cuando el cobro/bonificación se encuentre aplicado en su totalidad, puede timbrarlo en: "b{"GX10 - Facturación electrónica"}
+                            }
+                        }
+                        #!
+                        if @@(xaplicar,"#xaplicar") > 0 {
+                            #$ button(class="btn btn-sm btn-primary no-print" type="button" id="btn_aplicar"){"Aplicar"}
+                        }
+                        #$
                     }
                     div(class="" id="div_tbl_xaplicar" style="width:auto; min-width:100%; max-height:60vh; display:flex;")
                     {
@@ -166,17 +177,17 @@ module "cxp.aplicar.dk"
                 div(class="tab-pane fade #<ifstr(show_tab=='aplicados','show active','')>" id="nav-aplicados" role="tabpanel" "aria-labelledby"="nav-aplicados-tab")
                 {
                     div(class="d-flex justify-content-end align-items-center gap-1 px-2 my-2" id="tbl_action_bar")
-                    {
+                    {""
                         #!
                         if @@(xaplicar,"#has_cfdi") {
-                            #$ div(class="alert alert-warning my-0 py-1 w-100" role="alert")
+                            #$ div(class="alert alert-warning my-0 py-1 flex-grow-1" role="alert")
                             {
                                 "No es posible desaplicar el cobro/bonificación debido a que tiene un cfdi relacionado. Para desaplicar, primero cancele el CFDI en: "b{"GX10 - Facturación electrónica"}
                             }
                         }
                         #!
-                        else {
-                            #$ button(class="btn btn-sm btn-primary no-print" type="button" id="btn_desaplicar"){$"Desaplicar todo"}
+                        if @@(xaplicar,"#xaplicar") == 0 && not(@@(xaplicar,"#has_cfdi")) {
+                            #$ button(class="btn btn-sm btn-primary no-print" type="button" id="btn_desaplicar"){"Desaplicar todo"}
                         }
                         #$
                     }

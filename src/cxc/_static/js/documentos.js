@@ -340,7 +340,7 @@ var documento =
             const btn_aplicar = document.getElementById("btn_aplicar");
             const btn_desaplicar = document.getElementById("btn_desaplicar");
 
-            btn_aplicar.addEventListener("click", (e) => this.aplicar());
+            if (btn_aplicar) btn_aplicar.addEventListener("click", (e) => this.aplicar());
             if (btn_desaplicar) btn_desaplicar.addEventListener("click", (e) => this.desaplicar());
 
             this.setTableEvents();
