@@ -385,6 +385,7 @@ module "model"
 
         return saldos
     }
+
     cte.getConditionFilter::&params
     {
         // fdr_init
@@ -471,6 +472,7 @@ module "model"
 
         return conditions
     }
+
     cte.obtenerBalance::&db,&params
     {
         do dbr.apps.action.grant("GB23")
@@ -496,7 +498,7 @@ module "model"
             INNER JOIN cdocumentos AS doc ON doc.id = cxc.documento
         WHERE cxc.icliente = @_entity_id 
             #<conditions>
-        ORDER BY cxc.fecha
+        ORDER BY cxc.fecha DESC
         LIMIT #<@default_max_rows>;
         "
         // AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
@@ -551,7 +553,7 @@ module "model"
         WHERE cxc.icliente = @_entity_id
             AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
             #<conditions>
-        ORDER BY cxc.fecha
+        ORDER BY cxc.fecha DESC
         LIMIT #<@default_max_rows>;
         "
         // AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
@@ -604,7 +606,7 @@ module "model"
                 AND IFNULL(cxc.xaplicar,0) > 0
                 -- AND (IFNULL(cxc.haber,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
                 #<conditions>
-            ORDER BY cxc.fecha
+            ORDER BY cxc.fecha DESC
             LIMIT #<@default_max_rows>;
         "
         // AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))

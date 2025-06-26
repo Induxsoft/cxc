@@ -291,10 +291,102 @@ module "model"
         }
     }
 
+    cxc.getConditionFilter::&params
+    {
+        // fdr_init
+        if not(field.exist(params,"fdr_mode")) { params<"fdr_mode"> : "month" }
+        // [month]
+        if not(field.exist(params,"fdr_year")) { params<"fdr_year"> : @curr_year }
+        if not(field.exist(params,"fdr_month")) { params<"fdr_month"> : @curr_month }
+        // [lastdays]
+        if not(field.exist(params,"fdr_range")) { params<"fdr_range"> : 30 }
+        // [range]
+        if not(field.exist(params,"fdr_from")) { params<"fdr_from"> : "" }
+        if not(field.exist(params,"fdr_to")) { params<"fdr_to"> : "" }
+        //#endregion
+
+        conditions = ""
+
+        //#region filter-date-range
+        new vnt_date_fields
+        {
+            @"1": "cxc.fecha" // Emisión
+            @"2": "cxc.aplicacion" // Vencimiento
+        }
+        fdr_field = @@(vnt_date_fields,str(@@(params,"#fil_fdr_field")))
+        if trim(fdr_field)==""{fdr_field=@@(vnt_date_fields,"1")}
+        
+        switch @@(params,"$fdr_mode")
+        {
+            case "month"
+            {
+                curr_ndt = ndatetime.now()
+                curr_year = ndatetime.year(curr_ndt)
+                curr_month = ndatetime.month(curr_ndt)
+                curr_day = ndatetime.day(curr_ndt)
+
+                if not(field.exist(params,"fdr_year")) { params<"fdr_year"> : curr_year }
+                if not(field.exist(params,"fdr_month")) { params<"fdr_month"> : curr_month }
+
+                conditions = conditions + " AND YEAR(#<fdr_field>) = @fdr_year AND MONTH(#<fdr_field>) = @fdr_month"
+                break
+            }
+            case "lastdays"
+            {
+                if not(field.exist(params,"fdr_range")) { params<"fdr_range"> : 30 } // Últimos 30 días
+
+                conditions = conditions + " AND DATE(#<fdr_field>) BETWEEN ADDDATE(DATE(NOW()), INTERVAL -@fdr_range DAY) AND DATE(NOW())"
+                break
+            }
+            case "range"
+            {
+                if not(field.exist(params,"fdr_from"))
+                {
+                    curr_ndt = ndatetime.now()
+                    subt_ndt = ndatetime.add(curr_ndt, -30, "d")
+                    ult_30_days = ndatetime.tostr(subt_ndt, "yyyy-MM-dd")
+
+                    params<"fdr_from"> : ult_30_days
+                }
+                if not(field.exist(params,"fdr_to")) { params<"fdr_to"> : date_str(now(),"yyyy-MM-dd") }
+
+                if trim(@@(params,"$fdr_from")) != "" && trim(@@(params,"$fdr_to")) != ""
+                {
+                    conditions = conditions + " AND DATE(#<fdr_field>) BETWEEN @fdr_from AND @fdr_to"
+                }
+                else if trim(@@(params,"$fdr_from")) != "" && trim(@@(params,"$fdr_to")) == ""
+                {
+                    conditions = conditions + " AND DATE(#<fdr_field>) >= @fdr_from"
+                }
+                else if trim(@@(params,"$fdr_from")) == "" && trim(@@(params,"$fdr_to")) != ""
+                {
+                    conditions = conditions + " AND DATE(#<fdr_field>) <= @fdr_to"
+                }
+
+                break
+            }
+        }
+
+        if @@(params,"$s") != "" {
+            conditions = conditions + " AND cxc.referencia LIKE CONCAT('%',@s,'%')"
+        }
+
+        conditions=ftext(conditions)
+        params<"fdr_field">:fdr_field
+        params<"conditions">:conditions
+
+        return conditions
+    }
+
     cxc.obtenerDocumentosPorAplicar::&db,&params
     {
         do errordet(@false)
+        
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
+        params<"year">: ifstr(trim(@@(params,"year"))!="", @@(params,"year"), str(ndatetime.year(ndatetime.now())))
+        params<"month">: ifstr(trim(@@(params,"month"))!="", @@(params,"month"), str(ndatetime.month(ndatetime.now())))
+
+        conditions = cxc.getConditionFilter(params)
         
         sql_xaplicar = "
         SELECT
@@ -348,14 +440,16 @@ module "model"
         WHERE cxc.icliente = @icliente
             AND (IFNULL(cxc.debe,0) + IFNULL(cxc.intmoratorios,0) - IFNULL(cxc.pagos,0) - IFNULL(cxc.bonificaciones,0)) > 0
             AND NOT IFNULL(mor.sys_pk,0)
-            AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
-            AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
-            AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
-            AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
-            AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+            #<conditions>
         ")
+        // AND IF(IFNULL(@s,'')='', true, cxc.referencia LIKE CONCAT('%',@s,'%'))
+        // AND IF(IFNULL(@year,'')='', true, YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@year)
+        // AND IF(IFNULL(@month,'')='', true, (YEAR(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=IFNULL(@year,YEAR(NOW())) AND MONTH(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion))=@month))
+        // AND IF(IFNULL(@range,'-99')='-99', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE_ADD(NOW(), INTERVAL -"+str(@@(params,"#range"))+" DAY) AND NOW()))
+        // AND IF(IFNULL(@datefrom,'')='', true, (DATE(IF(IFNULL(@tdate,'0')='0',cxc.fecha,cxc.aplicacion)) BETWEEN DATE(@datefrom) AND DATE(@dateto)))
+        
         // Documentos con saldo del cliente
-        ref pendientes = dbr.list(db,sql_pendientes,params)
+        ref pendientes = dbr.list(db,ftext(sql_pendientes),params)
 
         sql_aplicados = "
         SELECT
