@@ -42,7 +42,11 @@ module "cxc.crear.dk"
     fn_print_buttons::
     {
         act_btn_cls = "btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"
-        
+        if not(@is_new)
+        {
+            #$
+            button(class="#<act_btn_cls>" type="button" id="btn_delete" onclick="documento.Delete();"){$"#<@ICON_TRASH> Eliminar"}
+        }
         #$
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action #<ifstr(@is_new,'','disable-ctrl')>" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
         #!
@@ -222,6 +226,7 @@ module "cxc.crear.dk"
             {$'
                 document.addEventListener("DOMContentLoaded", () => {
                     documento.crear.init();
+                    documento.url_exit="#<replace(@CTE_DOCS_XCOBRAR,"{_cliente}",@@(cliente,"$sys_pk"))>";
                     InduxsoftNumberFields.Init();
 
                     _bitacora._url="#<@URL_BITACORA>";

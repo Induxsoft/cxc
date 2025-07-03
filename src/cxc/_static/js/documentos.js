@@ -1,7 +1,7 @@
 var documento =
 {
     tableId: "", table: null,
-
+    url_exit:"",
     init()
     {
         if (this.tableId.trim() != "") { this.table = document.getElementById(this.tableId); }
@@ -69,7 +69,24 @@ var documento =
 
         v12navbar.toggleButtonInteraction(true);
     },
+    Delete()
+    {
+        if(!confirm("¿Esta seguro de eliminar el documento?"))return;
+        
+        let onSuccess=(data)=>
+        {
+            if(documento.url_exit.trim()!="")window.location.href=documento.url_exit.trim();
+            else window.location.href="..";
+        }
+        let onFailure=(failure)=>{alert(failure.message??JSON.stringify(failure));}
+        let url=".";
 
+        var data=
+        {
+            delete:true
+        }
+        InduxsoftCrudlModel.InvokeService(url,data,onSuccess,onFailure,"DELETE",false,false);
+    },
     list: {},
 
     form: {},
