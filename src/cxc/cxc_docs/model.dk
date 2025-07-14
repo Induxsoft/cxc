@@ -739,20 +739,34 @@ module "model"
         do dbr.apps.action.pre("GB19")
         do dbr.begin(db)
         
-        ref documento=dbr.rec(db,"select * from dcxc where sys_pk=@_entity_id;",params)
-        if isnull(documento){do rise_error(500,"No se encontró datos del documento")}
-        ref documento=record.caseinsensitive(documento)
+        ref dcxc = dbr.rec(db,"select sys_pk, documento, ifnull(debe,0) debe, ifnull(haber,0) haber, pagos, bonificaciones, icliente, iventa, imovcaja, imovcuenta from dcxc where sys_pk = @_entity_id;",params)
+        
+        if isnull(dcxc) { do rise_error(511,"No se encontró datos del documento") }
+        /**
+        * 5 - cNota_de_crédito = Bonificación
+        * 19 - cRecibo = Pago
+        */
+        isPaymentOrBonus = (@@(dcxc,"#documento") == 5 || @@(dcxc,"#documento") == 19)
+        if isPaymentOrBonus
+        {
+            aplicados = dbr.num(db,"select count(*) from aplcxc where fk_dcxc_aplicadoa = @sys_pk",dcxc)
+            if aplicados > 0 { do rise_error(512,"No es posible eliminar, el documento ya fue aplicado.") }
+        }
+        else
+        {
+            aplicados = @@(dcxc,"#pagos") + @@(dcxc,"#bonificaciones") 
+            if aplicados > 0 { do rise_error(512,"No es posible eliminar, el documento ya fue aplicado") }
 
-        aplicados=@@(documento,"#pagos") + @@(documento,"#bonificaciones") 
-        if aplicados > 0{ do rise_error(500,"No se puede eliminar el documento, el documento ya fue aplicado")}
+            if @@(dcxc,"#iventa") > 0 { do rise_error(513,"No es posible eliminar, El documento esta relacionado a una venta") }
+            if @@(dcxc,"#imovcaja") > 0 { do rise_error(514,"No es posible eliminar, El documento tiene un movimiento de caja") }
+            if @@(dcxc,"#imovcuenta") > 0 { do rise_error(515,"No es posible eliminar, El documento tiene un movimiento de cuenta") }
+        }
 
-        if @@(documento,"#iventa") > 0 {do rise_error(500,"No se puede eliminar el documento, El documento esta relacionado a una venta")}
-        if @@(documento,"#imovcaja") > 0 {do rise_error(500,"No se puede eliminar el documento, El documento tiene un movimiento de caja")}
-        if @@(documento,"#imovcuenta") > 0 {do rise_error(500,"No se puede eliminar el documento, El documento tiene un movimiento de cuenta")}
+        ref entity = entity.delete(db,params)
+        if isPaymentOrBonus && @@(dcxc,"#imovcuenta") > 0 { do dbr.delete(db,"movcuenta","sys_pk = @imovcuenta",dcxc) }
 
-        ref entity= entity.delete(db,params)
-        r= dbr.execute(db,"update cliente set saldo=ifnull(saldo,0) - ifnull(@debe,0) where sys_pk=@icliente",documento)
-        if r < 1{do rise_error(500,"No se logró afectar el saldo del cliente, revise sus datos")}
+        r = dbr.execute(db,"update cliente set saldo = (ifnull(saldo,0) - @debe + @haber) where sys_pk = @icliente",dcxc)
+        if r < 1 { do rise_error(500,"No se logró afectar el saldo del cliente, revise sus datos") }
 
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)

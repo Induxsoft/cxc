@@ -1,7 +1,8 @@
 var documento =
 {
     tableId: "", table: null,
-    url_exit:"",
+    url_exit: "",
+
     init()
     {
         if (this.tableId.trim() != "") { this.table = document.getElementById(this.tableId); }
@@ -69,24 +70,27 @@ var documento =
 
         v12navbar.toggleButtonInteraction(true);
     },
-    Delete()
+    
+    Delete(sys_pk)
     {
-        if(!confirm("¿Esta seguro de eliminar el documento?"))return;
+        if (!confirm("¿Esta seguro de eliminar el documento?")) return;
         
-        let onSuccess=(data)=>
-        {
-            if(documento.url_exit.trim()!="")window.location.href=documento.url_exit.trim();
-            else window.location.href="..";
-        }
-        let onFailure=(failure)=>{alert(failure.message??JSON.stringify(failure));}
-        let url=".";
+        const onSuccess = (response) => {
+            alert("¡El documento se ha eliminado!");
 
-        var data=
-        {
-            delete:true
+            if (this.url_exit.trim()!="") window.location.href = this.url_exit.trim();
+            else window.location.href = '/!/cxc/documentos/';
         }
-        InduxsoftCrudlModel.InvokeService(url,data,onSuccess,onFailure,"DELETE",false,false);
+        const onFailure = (failure) => {
+            if (failure.message) alert(failure.message);
+            else console.error(failure);
+        }
+
+        let endpoint = "/!/cxc/documentos/"+sys_pk+"/";
+
+        InduxsoftCrudlModel.InvokeService(endpoint,null,onSuccess,onFailure,"DELETE",false,false);
     },
+
     list: {},
 
     form: {},

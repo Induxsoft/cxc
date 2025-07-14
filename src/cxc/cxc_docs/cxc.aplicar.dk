@@ -18,16 +18,28 @@ module "cxp.aplicar.dk"
     ref aplicados = ifnull(@("&./aplicados"),list.create())
 
     @DECIMAL_PRECISION = @("#parameters/decimals")
+    @_entity_id = @("$parameters/_entity_id")
+
+    url_exit = replace(@CTE_COBROS_XAPLICAR,"{_cliente}",@@(xaplicar,"#icliente"))
     show_tab = ""
 
     if @("$parameters/_act") == "desaplicar" { show_tab = "aplicados" }
     else { show_tab = "xaplicar" }
 
+    print_buttons::
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners"
+
+        #$
+        button(class="#<cls>" type="button" onclick="documento.Delete(#<@_entity_id>);"){$"#<@ICON_TRASH> Eliminar"}
+        #!
+    }
+    point buttons to print_buttons
     new nav_config
     {
         @"title": "Aplicación de cobro o bonificación"
-        @"buttons*": @null //general_act
-        @"urlexit": "javascript:window.history.back()" //@CXC_DOCUMENTOS
+        @"buttons*": buttons
+        @"urlexit": "javascript:window.history.back()"
     }
 
     ref list_years = list_years(11,0)
@@ -72,11 +84,12 @@ module "cxp.aplicar.dk"
     {
         div(id="top_area")
         {
-            // #! do uie.printMainBar(@null, "Aplicación de cobro o bonificación", @false, @CXC_DOCUMENTOS)
-            #! do uie.printV12FormBar(nav_config)
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
         }
 
-        #$ div(id="work_area")
+        div(id="work_area")
         {
             form(action="./" method="GET" id="form_filter" class="no-print my-1")
             {
@@ -260,6 +273,7 @@ module "cxp.aplicar.dk"
             script(type="text/javascript")
             {$'
                 document.addEventListener("DOMContentLoaded", () => {
+                    documento.url_exit = "#<url_exit>";
                     documento.aplicar.source = #<to.json(xaplicar)> ?? {};
                     documento.aplicar.decimals = #<@DECIMAL_PRECISION>;
                     documento.aplicar.init();

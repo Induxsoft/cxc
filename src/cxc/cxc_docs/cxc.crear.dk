@@ -18,7 +18,8 @@ module "cxc.crear.dk"
     ref documentos = ifnull(@('&./documentos'),list.create())
 
     // do rise_error(0,to.json(@("&.")))
-    @is_new = (@("$parameters/_entity_id") == "_new")
+    @_entity_id = @("$parameters/_entity_id")
+    @is_new = (@_entity_id == "_new")
     @DECIMAL_PRECISION = @("#parameters/decimals")
 
     num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
@@ -45,7 +46,7 @@ module "cxc.crear.dk"
         if not(@is_new)
         {
             #$
-            button(class="#<act_btn_cls>" type="button" id="btn_delete" onclick="documento.Delete();"){$"#<@ICON_TRASH> Eliminar"}
+            button(class="#<act_btn_cls>" type="button" id="btn_delete" onclick="documento.Delete(#<@_entity_id>);"){$"#<@ICON_TRASH> Eliminar"}
         }
         #$
         button(type="button" class="btn btn-sm border-secondary induxsoft-corners btn-main-action #<ifstr(@is_new,'','disable-ctrl')>" id="btn_save"){$"#<@ICON_SAVE> Guardar"}
@@ -57,7 +58,12 @@ module "cxc.crear.dk"
         @"title": ifstr(@is_new, "Nuevo", "Ver") + " documento por cobrar"
         @"buttons*": print_buttons
         @"urlexit": "javascript:window.history.back();"
-        member @"hidden" { @"print": @true }
+        member @"hidden"
+        {
+            @"print": @true
+            @"copy": @true
+            @"csv": @true
+        }
     }
 
     #$
