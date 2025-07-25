@@ -36,6 +36,13 @@ module "controller"
             @form_view = "cte.bonificacion.dk"
             break
         }
+        case "devolucion"
+        {
+            point @read to cte.blank
+            point @update to cte.devolverEfectivo
+            @form_view = "cte.devolucion.dk"
+            break
+        }
         case "cobrar"
         {
             point @read to cte.blank

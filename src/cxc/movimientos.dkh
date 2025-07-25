@@ -508,6 +508,69 @@ module ":erp.cxc.movimientos"
         }
     }
 
+    devolverEfectivoCliente::&db,&data
+    {
+        namespace "erp.cxc.movimientos"
+        start_transaction = @false
+
+        tcambio_cte = @@(data,"#tcambio")
+        tcambio_ret = @@(data,"#tcambio_retiro")
+
+        importe_cte = @@(data,"#importe")
+        importe_ret = (importe_cte * tcambio_cte)
+        importe_ret = (importe_ret / tcambio_ret)
+
+        new retiro
+        {
+            @"conciliado": parse.bool(@@(data,"$conciliado"))
+            @"beneficiario": @@(data,"$beneficiario")
+            @"referencia": @@(data,"$referencia")
+            @"fecha": @@(data,"$fecha")
+            @"faplicacion": @@(data,"$faplicacion")
+            @"importe": importe_ret
+            @"concepto": @@(data,"$notas")
+            @"documento": @@(data,"#documento_retiro")
+            @"icategoria": @@(data,"#categoria_egreso")
+            @"icuenta": @@(data,"cuenta_retiro")
+        }
+
+        new dcxc
+        {
+            @"aplicable": @false
+            @"aplicacion": @@(data,"$faplicacion")
+            @"basecm": 0
+            @"documento": @@(data,"#documento_cargo")
+            @"fecha": @@(data,"$fecha")
+            @"fultmoratorios": @@(data,"$faplicacion")
+            @"notas": @@(data,"$notas")
+            @"referencia": @@(data,"$referencia")
+            @"tipocambio": tcambio_cte
+            @"xaplicar": importe_cte
+            @"icliente": @@(data,"#icliente")
+        }
+
+        if not(dbr.in_transaction(db)) {
+            do dbr.begin(db)
+            start_transaction = @true
+        }
+
+        // Realizar deposito a la cuenta.
+        dcxc<"imovcuenta"> : erp.efectivo.movimientos.retiro(db,retiro)
+        // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
+        do determinarImporteCxC(dcxc,importe_cte)
+        pk_dcxc = saveCxC(db,dcxc)
+
+        if start_transaction { do dbr.commit(db) }
+        return pk_dcxc
+
+        exception
+        {
+            do errordet(@false)
+            if start_transaction { do dbr.rollback(db) }
+            do rise_error(last_error_code(),last_error())
+        }
+    }
+
     cobrarCliente::&db,&data
     {
         namespace "erp.cxc.movimientos"

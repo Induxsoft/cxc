@@ -598,6 +598,156 @@ var cliente =
         },
     },
 
+    devolucion: {
+        formId: "", form: null, ff:null,
+        cliente: {},
+        dvspred: {},
+        decimals: 2,
+
+        init()
+        {
+            this.form = document.getElementById(this.formId);
+            this.ff = this.form.elements;
+            
+            this.setEvents();
+        },
+
+        setEvents()
+        {
+            if (!this.form) return;
+
+            this.ff["sel_cuenta_retiro"].addEventListener("change", (event) => {
+                let option = event.target.options[event.target.selectedIndex];
+                let codigo = option.getAttribute("data-divisa").toUpperCase();
+                let cambio = Number(option.getAttribute("data-tcambio"));
+
+                this.pedirTCambio();
+
+                this.ff["txt_tcambio_retiro"].value = Math.RoundTo(cambio, this.decimals);
+                cliente.trigger(this.ff["txt_tcambio_retiro"],"change");
+            });
+            
+            this.ff["txt_tcambio_retiro"].addEventListener("change", (event) => {
+                let tcambio_dep = Number(event.target.value);
+                let tcambio_cte = Number(this.ff["txt_tcambio"].value);
+                
+                let importe_cte = Number(this.ff["txt_importe"].value);
+                let importe_dep = Math.mul(importe_cte,tcambio_cte);
+                importe_dep = Math.div(importe_dep,tcambio_dep);
+                
+                this.ff["txt_importe_retiro"].value = Math.RoundTo(importe_dep, this.decimals);
+            });
+            this.ff["txt_importe_retiro"].addEventListener("change", (event) => {
+                let tcambio_cte = Number(this.ff["txt_tcambio"].value);
+                let tcambio_dep = Number(this.ff["txt_tcambio_retiro"].value);
+                
+                let importe_dep = Number(event.target.value);
+                let importe_cte = Math.mul(importe_dep,tcambio_dep);
+                importe_cte = Math.div(importe_cte,tcambio_cte);
+
+                this.ff["txt_importe"].value = Math.RoundTo(importe_cte, this.decimals);
+            });
+
+            this.ff["txt_importe"].addEventListener("change", (event) => {
+                let tcambio_cte = Number(this.ff["txt_tcambio"].value);
+                let tcambio_dep = Number(this.ff["txt_tcambio_retiro"].value);
+                
+                let importe_cte = Number(event.target.value);
+                let importe_dep = Math.mul(importe_cte,tcambio_cte);
+                importe_dep = Math.div(importe_dep,tcambio_dep);
+
+                this.ff["txt_importe_retiro"].value = Math.RoundTo(importe_dep, this.decimals);
+            });
+
+            const btnSubmit = document.getElementById("btn-submit");
+            btnSubmit.addEventListener("click", (e) => cliente.trigger(this.form,"submit"));
+        },
+
+        pedirTCambio(){
+            let optCtaR = this.ff["sel_cuenta_retiro"].options[this.ff["sel_cuenta_retiro"].selectedIndex];
+            let cDvsPred = (this.dvspred.codigo).toUpperCase();
+            let cDvsProv = (this.cliente.divisa).toUpperCase();
+            let cDvsCtaR = optCtaR.getAttribute("data-divisa").toUpperCase();
+
+            let hide_tcambio_dep = false;
+            let hide_importe_dep = false;
+            let hide_tcambio_cte = false;
+
+            let div_tcambio_cte = document.getElementById("div_tcambio");
+            let txt_tcambio_cte = document.getElementById("txt_tcambio");
+            let txt_importe_cte = document.getElementById("txt_importe");
+
+            let div_tcambio_dep = document.getElementById("div_tcambio_retiro");
+            let div_importe_dep = document.getElementById("div_importe_retiro");
+            let txt_tcambio_dep = document.getElementById("txt_tcambio_retiro");
+            let spn_tcambio_dep = document.getElementById("spn_tcambio_retiro");
+            let txt_importe_dep = document.getElementById("txt_importe_retiro");
+            let spn_importe_dep = document.getElementById("spn_importe_retiro");
+
+            if (cDvsPred == cDvsProv && cDvsPred == cDvsCtaR)
+            {
+                txt_tcambio_cte.value = 1;
+                txt_tcambio_dep.value = 1;
+
+                hide_tcambio_cte = true;
+                hide_tcambio_dep = true;
+                hide_importe_dep = true;
+            }
+            else if (cDvsPred != cDvsProv && cDvsProv == cDvsCtaR)
+            {
+                let tcambio_cte = Number(txt_tcambio_cte.value);
+
+                txt_tcambio_cte.value = (tcambio_cte <= 0) ? Number(this.cliente.tcambio) : tcambio_cte;
+                txt_tcambio_dep.value = (tcambio_cte <= 0) ? Number(this.cliente.tcambio) : tcambio_cte;
+
+                hide_tcambio_dep = true;
+                hide_importe_dep = true;
+            }
+            else if (cDvsPred == cDvsProv && cDvsPred != cDvsCtaR)
+            {
+                let tcambio_dep = Number(txt_tcambio_dep.value);
+
+                txt_tcambio_cte.value = 1;
+                txt_tcambio_dep.value = (tcambio_dep <= 0) ? Number(optCtaR.getAttribute("data-tcambio")) : tcambio_dep;
+                
+                spn_tcambio_dep.innerText = cDvsPred + " = 1 " + cDvsCtaR;
+                spn_importe_dep.innerText = cDvsCtaR;
+
+                hide_tcambio_cte = true;
+            }
+            else if (cDvsPred != cDvsProv && cDvsPred == cDvsCtaR)
+            {
+                let tcambio_cte = Number(txt_tcambio_cte.value);
+
+                txt_tcambio_cte.value = (tcambio_cte <= 0) ? Number(this.cliente.tcambio) : tcambio_cte;
+                txt_tcambio_dep.value = 1;
+
+                spn_tcambio_dep.innerText = cDvsPred + " = 1 " + cDvsCtaR;
+                spn_importe_dep.innerText = cDvsCtaR;
+
+                hide_tcambio_dep = true;
+            }
+            else if (cDvsPred != cDvsProv && cDvsPred != cDvsCtaR)
+            {
+                let tcambio_cte = Number(txt_tcambio_cte.value);
+                let tcambio_dep = Number(txt_tcambio_dep.value);
+
+                txt_tcambio_cte.value = (tcambio_cte <= 0) ? Number(this.cliente.tcambio) : tcambio_cte;
+                txt_tcambio_dep.value = (tcambio_dep <= 0) ? Number(optCtaR.getAttribute("data-tcambio")) : tcambio_dep;
+                
+                spn_tcambio_dep.innerText = cDvsPred + " = 1 " + cDvsCtaR;
+                spn_importe_dep.innerText = cDvsCtaR;
+            }
+
+            txt_importe_cte.value = Number(txt_importe_cte.value);
+            txt_importe_dep.value = Number(txt_importe_dep.value);
+
+            div_tcambio_dep.classList.toggle("d-none",hide_tcambio_dep);
+            div_importe_dep.classList.toggle("d-none",hide_importe_dep);
+            div_tcambio_cte.classList.toggle("d-none",hide_tcambio_cte);
+        },
+    },
+
     bonificacion: {
         formBonificacion: null,
         elements: null,
@@ -617,6 +767,7 @@ var cliente =
             if (this.formBonificacion) { this.elements = this.formBonificacion.elements; }
         },
     },
+
     precioventa:
     {
         init()

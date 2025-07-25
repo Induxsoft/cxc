@@ -211,6 +211,7 @@ module "model"
 
     cte.prepareView::&db,&params,&data
     {
+        //#region prepareView()
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
         switch @@(params,"$_view")
@@ -220,6 +221,20 @@ module "model"
                 data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
                 sql = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_bonific,0);"
                 data<"documentos*"> : dbr.list(db,sql,@null)
+                break
+            }
+            case "devolucion"
+            {
+                sql_cuentas = "SELECT c.sys_pk, d.codigo AS divisa, d.tcambio, CONCAT(c.nombre,' (',d.codigo,')') nombre FROM chequera c INNER JOIN divisa d ON d.sys_pk = c.idivisa WHERE NOT IFNULL(c.sys_deleted,0) ORDER BY c.sys_pk;"
+                sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 2 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
+                sql_doc_cargos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_int_mor,0);"
+                sql_doc_retiros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.retiros,0);"
+
+                data<"cliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
+                data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
+                data<"categorias*"> : dbr.list(db,sql_categorias,@null)
+                data<"doc_retiros*"> : dbr.list(db,sql_doc_retiros,@null)
+                data<"doc_cargos*"> : dbr.list(db,sql_doc_cargos,@null)
                 break
             }
             case "cobrar"
@@ -475,6 +490,7 @@ module "model"
 
     cte.obtenerBalance::&db,&params
     {
+        //#region Balance()
         do dbr.apps.action.grant("GB23")
 
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
@@ -526,6 +542,7 @@ module "model"
 
     cte.obtenerDocsPorCobrar::&db,&params
     {
+        //#region DocsPorCobrar()
         do dbr.apps.action.grant("GB24")
         
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
@@ -580,6 +597,7 @@ module "model"
 
     cte.obtenerCobrosPorAplicar::&db,&params
     {
+        //#region CobrosPorAplicar()
         do dbr.apps.action.grant("GB25")
         
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
@@ -631,8 +649,41 @@ module "model"
         }
     }
     
+    cte.devolverEfectivo::&db,&params,&data
+    {
+        //#region devolverEfectivo()
+        @use_transaction = @false
+        do dbr.apps.action.pre("GB2A")
+        do dbr.begin(db)
+
+        do erp.cxc.movimientos.devolverEfectivoCliente(db,data)
+
+        do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
+        @url_redir = @CXC_CLIENTES
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+
+            ref formData = record.copy(data,"*")
+            code = last_error_code()
+            error = last_error()
+
+            do record.clear(data)
+            data<"form*"> : formData
+            
+            do cte.prepareView(db,params,data)
+            do dbr.apps.action.log()
+            do rise_error(code,error)
+        }
+    }
+    
     cte.cobrarCliente::&db,&params,&data
     {
+        //#region cobrarCliente()
         @use_transaction = @false
 
         do dbr.apps.action.pre("GB26")
@@ -666,6 +717,7 @@ module "model"
 
     cte.bonificarCliente::&db,&params,&data
     {
+        //#region bonificarCliente()
         @use_transaction = @false
 
         do dbr.apps.action.pre("GB27")
@@ -693,6 +745,7 @@ module "model"
 
     cte.list::&db,&params
     {
+        //#region list()
         do dbr.apps.action.grant("GB20")
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
         
@@ -749,6 +802,7 @@ module "model"
 
     cte.read::&db,&params
     {
+        //#region read()
         do dbr.apps.action.grant("GB20")
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
@@ -768,6 +822,7 @@ module "model"
 
     cte.blank::&db,&params
     {
+        //#region blank()
         do dbr.apps.action.grant("GB20")
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
 
@@ -846,6 +901,7 @@ module "model"
 
     cte.create::&db,&params,&data
     {
+        //#region create()
         @use_transaction = @false
         do dbr.apps.action.pre("GB21")
 
@@ -984,6 +1040,7 @@ module "model"
 
     cte.update::&db,&params,&data
     {
+        //#region update()
         @use_transaction = @false
         do dbr.apps.action.pre("GB22")
 

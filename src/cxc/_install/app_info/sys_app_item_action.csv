@@ -7,6 +7,7 @@ GB14,Bonificar documento por cobrar,Bonificar,,/!/cxc/documentos/@_src_context_i
 GB15,Aplicar intereses moratorios a documento por cobrar,Int. Moratorios,,/!/cxc/documentos/@_src_context_item_id/intmoratorios/,0,cxc.documentos,DET01D,1,action
 GB16,Aplicar abonos a documentos por cobrar,Aplicar abonos,,/!/cxc/documentos/@_src_context_item_id/aplicar/?_act=aplicar,0,cxc.documentos,DET01D,1,action
 GB17,Desaplicar abonos de documentos por cobrar,Desaplicar abonos,,/!/cxc/documentos/@_src_context_item_id/aplicar/?_act=desaplicar,0,cxc.documentos,DET01D,1,action
+
 GB21,Nuevo cliente,Agregar,,/!/cxc/clientes/_new/,0,cxc.clientes,DET014,0,action
 GB22,Editar cliente,Editar,,/!/cxc/clientes/@_src_context_item_id/,0,cxc.clientes,DET014,1,action
 GB23,Estado de cuenta del cliente,Edo. Cuenta,,/!/cxc/clientes/@_src_context_item_id/balance/,0,cxc.clientes,DET014,1,action
@@ -16,6 +17,8 @@ GB26,Cobro a cliente,Cobrar,,/!/cxc/clientes/@_src_context_item_id/cobrar/,0,cxc
 GB27,Bonificación a cliente,Bonificar,,/!/cxc/clientes/@_src_context_item_id/bonificacion/,0,cxc.clientes,DET014,1,action
 GB28,Importar clientes,Importar,,/!/batch/taskman/GB/importar.cliente/,0,cxc.clientes,DET014,0,action
 GB29,"Precios de venta","Precioventa","","/!/cxc/precioventa/@_src_context_item_id/","0","cxc.clientes","DET014","1","action"
+GB2A,Devolución de efectivo a cliente,Devolución,,/!/cxc/clientes/@_src_context_item_id/devolucion/,0,cxc.clientes,DET014,1,action
+
 GB30,Informe de antigüedad de saldos por cobrar,Antigüedad de saldos,,/!/cxc/reports/antiguedad-saldos/,0,cxc.reports,DET014,0,report
 GB31,Origen y aplicación,Origen y aplicación,,/!/cxc/reports/origen-aplicacion/,0,cxc.reports,DET01D,0,report
 GB32,Historial de pagos por clientes,HPagos XCliente,,/!/cxc/reports/historial-de-pagos-por-cliente/,0,cxc.reports,DET014,0,report

@@ -800,6 +800,6 @@ module "model"
         if @@(params,"#doc")<1{return}
         
         aplicable=dbr.num(db,"select aplicable from dcxc where sys_pk=@doc",params)
-        if not(aplicable){do rise_error(500,"El documento proporcionado es no aplicable")}
+        if not(aplicable){do rise_error(500,"El documento proporcionado no es aplicable")}
     }
 }
