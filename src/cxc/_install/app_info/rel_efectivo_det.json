@@ -1,7 +1,7 @@
 [
     {
         "det":"DET01D",
-        "query":"select d.sys_pk id, trim(d.fecha)fecha, d.referencia, d.debe importe,dvs.codigo divisa, dvs.tcambio from dcxc d INNER JOIN cliente c ON d.icliente=c.sys_pk inner join divisa dvs ON c.idivisa=dvs.sys_pk WHERE d.imovcuenta=@key",
+        "query":"select d.sys_pk id, trim(d.fecha)fecha, d.referencia, if(IFNULL(d.debe,0)>0,d.debe,d.haber) importe,dvs.codigo divisa, dvs.tcambio from dcxc d INNER JOIN cliente c ON d.icliente=c.sys_pk inner join divisa dvs ON c.idivisa=dvs.sys_pk WHERE d.imovcuenta=@key",
         "c_divisa":"divisa",
         "c_tcambio":"tcambio",
         "c_fecha":"fecha",
