@@ -33,7 +33,48 @@ var cliente =
         const id = (this.table?.DataArray[this.table.CurrentRowIndex()]?.sys_pk ?? "");
         return { item_id:id, context: {} }
     },
+    CreateElementsSelectCuenta(obj)
+    {
+        if(!obj)return;
+        
+        obj.selectmovcuenta=null;
+        obj.select_movcuenta=null;
+        obj.create_movcuenta=null;
+        obj.imovcuenta=null;
 
+        obj.selectmovcuenta=document.getElementById("selectmovcuenta");
+        obj.select_movcuenta=document.getElementById("select_movcuenta");
+        obj.create_movcuenta=document.getElementById("create_movcuenta");
+        obj.imovcuenta=document.getElementById("imovcuenta");
+    },
+    CreateEventsSelectCuenta(obj)
+    {
+        if(obj.imovcuenta)obj.imovcuenta.onBeforeSearch=(uri)=>
+        {
+            let url=uri.replace("@importe", Number(obj.elements["txt_importe"].value ?? 0)).replace("@divisa",obj.dtCliente.divisa??"");
+            return url.replace("@tcambio",Number(obj.elements["txt_tcambio"].value ?? 0));
+        }
+        if(obj.selectmovcuenta)
+        {
+            obj.selectmovcuenta.addEventListener("change",()=>
+            {
+                if(obj.selectmovcuenta.checked)
+                {
+                    if(obj.elements["txt_tcambio"])obj.elements["txt_tcambio"].setAttribute("readonly",true);
+                    if(obj.select_movcuenta)obj.select_movcuenta.classList.remove("d-none");
+                    if(obj.create_movcuenta)obj.create_movcuenta.classList.add("d-none");
+                }
+                else
+                {
+                    if(obj.elements["txt_tcambio"])obj.elements["txt_tcambio"].removeAttribute("readonly");
+                    if(obj.imovcuenta)obj.imovcuenta.setValue({});
+                    if(obj.select_movcuenta){obj.select_movcuenta.classList.add("d-none");}
+                    if(obj.create_movcuenta)obj.create_movcuenta.classList.remove("d-none");
+                }
+            });
+            if(obj.selectmovcuenta.checked)tools.trigger(obj.selectmovcuenta,"change");
+        }
+    },
     list: {
         tbl_clientes: null,
         tEvents: {},
@@ -459,6 +500,7 @@ var cliente =
         {
             this.formCobro = document.getElementById("form_cobro");
             this.btnSave = document.getElementById("btn_save");
+            cliente.CreateElementsSelectCuenta(this);
             this.setEvents();
         },
 
@@ -511,6 +553,9 @@ var cliente =
                     this.elements["txt_importe_deposito"].value = Math.RoundTo(importe_dep, this.decimals);
                 });
             }
+
+            //seleccionar movimiento de cuenta
+            cliente.CreateEventsSelectCuenta(this);
         },
 
         pedirTCambio(){
@@ -608,7 +653,9 @@ var cliente =
         {
             this.form = document.getElementById(this.formId);
             this.ff = this.form.elements;
-            
+            this.elements=this.ff;
+            cliente.CreateElementsSelectCuenta(this);
+
             this.setEvents();
         },
 
@@ -661,6 +708,8 @@ var cliente =
 
             const btnSubmit = document.getElementById("btn-submit");
             btnSubmit.addEventListener("click", (e) => cliente.trigger(this.form,"submit"));
+
+            cliente.CreateEventsSelectCuenta(this);
         },
 
         pedirTCambio(){

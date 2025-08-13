@@ -555,7 +555,10 @@ module ":erp.cxc.movimientos"
         }
 
         // Realizar deposito a la cuenta.
-        dcxc<"imovcuenta"> : erp.efectivo.movimientos.retiro(db,retiro)
+        if field.exist(data,"_imovchequera") && @@(data,"#_imovchequera")> 0{dcxc<"imovcuenta">:@@(data,"#_imovchequera")}
+        else if field.exist(data,"_imovcuenta") && @@(data,"#_imovcuenta")> 0{dcxc<"imovcuenta">:@@(data,"#_imovcuenta")}
+        else{dcxc<"imovcuenta"> : erp.efectivo.movimientos.retiro(db,retiro)}
+        
         // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,importe_cte)
         pk_dcxc = saveCxC(db,dcxc)
@@ -624,7 +627,9 @@ module ":erp.cxc.movimientos"
         }
 
         // Realizar deposito a la cuenta.
-        dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)
+        if field.exist(data,"_imovchequera") && @@(data,"#_imovchequera")> 0{dcxc<"imovcuenta">:@@(data,"#_imovchequera")}
+        else if field.exist(data,"_imovcuenta") && @@(data,"#_imovcuenta")> 0{dcxc<"imovcuenta">:@@(data,"#_imovcuenta")}
+        else{dcxc<"imovcuenta"> : erp.efectivo.movimientos.deposito(db,deposito)}
         // Generar documento por cobrar (dcxc) y Afectar saldo del cliente.
         do determinarImporteCxC(dcxc,importe_cte)
         pk_dcxc = saveCxC(db,dcxc)
