@@ -48,8 +48,8 @@ module
 	@CXC_MENU = "/!/cxc/"
 	@BATCH_TASKMAN="/!/batch/taskman/"
 
-	@efectivo_retiro="/!/efectivo/movcuenta/retiro/rel_efect_mov/?importe=@importe&divisa=@divisa&tcambio=@tcambio&s=@search"
-	@efectivo_deposito="/!/efectivo/movcuenta/deposito/rel_efect_mov/?importe=@importe&divisa=@divisa&tcambio=@tcambio&s=@search"
+	@efectivo_retiro="/!/efectivo/movcuenta/retiro/rel_efect_mov/?importe=@importe&divisa=@divisa&tcambio=@tcambio&cuenta=@cuenta&s=@search"
+	@efectivo_deposito="/!/efectivo/movcuenta/deposito/rel_efect_mov/?importe=@importe&divisa=@divisa&tcambio=@tcambio&cuenta=@cuenta&s=@search"
 	
 	//bitacora
 	@URL_BITACORA="/!/webshell/log/DET01D/@guid/"
