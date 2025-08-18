@@ -650,7 +650,7 @@ module "model"
     }
     cte.movimiento.relacionable.validate::&db,&params,&data
     {
-        if parse.bool(@@(data,"$selectmovcuenta")){if @@(data,"#_imovcuenta") < 1{do rise_error(500,"No ha seleccionado un movimiento de cuenta")}}
+        if @@(data,"#selectmovcuenta")== 2{if @@(data,"#_imovcuenta") < 1{do rise_error(500,"No ha seleccionado un movimiento de cuenta")}}
         else
         {
             switch @@(params,"$_view")
@@ -670,7 +670,6 @@ module "model"
                     break
                 }
             }
-            
         }
         if @@(data,"#_imovcuenta") > 0
         {
