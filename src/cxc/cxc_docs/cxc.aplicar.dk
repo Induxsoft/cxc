@@ -144,15 +144,27 @@ module "cxp.aplicar.dk"
 
             h5(class="text-center text-muted"){$"Aplicación de cobros o bonificación a uno o más documentos"}
 
-            div(class="d-flex justify-content-between my-1")
+            div(class="d-flex align-items-end justify-content-between flex-wrap my-1")
             {
                 b{$"Documento: "}
                 b(title="Tipo de documento"){$"#<@@(xaplicar,'$documento')>"}
                 b(title="Referencia del documento"){$"#<@@(xaplicar,'$referencia')>"}
                 b(title="Fecha de emisión del documento"){$"#<@@(xaplicar,'$emision')>"}
-                b(id="lbl_saldo" title="Haber del documento"){$"$ #<number_format(@@(xaplicar,'#haber'))>"}
-                b(id="lbl_aplicado" title="Saldo aplicado del documento"){$"$ #<number_format(@@(xaplicar,'#aplicado'))>"}
-                b(id="lbl_xaplicar" title="Saldo por aplicar del documento"){$"$ #<number_format(@@(xaplicar,'#xaplicar'))>"}
+                div
+                {
+                    b(class="d-block"){"Haber:"}
+                    span(id="lbl_saldo" title="Haber del documento"){$"$ #<number_format(@@(xaplicar,'#haber'))>"}
+                }
+                div
+                {
+                    b(class="d-block"){"Saldo aplicado:"}
+                    span(id="lbl_aplicado" title="Saldo aplicado del documento"){$"$ #<number_format(@@(xaplicar,'#aplicado'))>"}
+                }
+                div
+                {
+                    b(class="d-block"){"Saldo por aplicar:"}
+                    span(id="lbl_xaplicar" title="Saldo por aplicar del documento"){$"$ #<number_format(@@(xaplicar,'#xaplicar'))>"}
+                }
             }
 
             nav(class="")
