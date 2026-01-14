@@ -74,7 +74,7 @@ module "list.dk"
         }
         @"buttons*": @null
         @"urlexit": "/"
-        @"main": "GB28,GB21,GB22,GB23,GB24,GB25,GB26,GB27,GB2A"
+        @"main": "GB28,GB21,GB22,GB2C,GB23,GB24,GB25,GB26,GB27,GB2A"
         @"actions*": dbr.apps.itemactions(@('&database'),"DET014","action","",0)
         @"reports*": dbr.apps.itemactions(@('&database'),"DET014","report","",0)
         @"jscurrentcontext": "cliente.getCurrentContext"

@@ -10,6 +10,8 @@ GB17,Desaplicar abonos de documentos por cobrar,Desaplicar abonos,,/!/cxc/docume
 
 GB21,Nuevo cliente,Agregar,,/!/cxc/clientes/_new/,0,cxc.clientes,DET014,0,action
 GB22,Editar cliente,Editar,,/!/cxc/clientes/@_src_context_item_id/,0,cxc.clientes,DET014,1,action
+GB2C,Eliminar cliente,Eliminar,,javascript:cliente.delete(@_src_context_item_id),0,cxc.clientes,DET014,1,action
+
 GB23,Estado de cuenta del cliente,Edo. Cuenta,,/!/cxc/clientes/@_src_context_item_id/balance/,0,cxc.clientes,DET014,1,action
 GB24,Documentos por cobrar del cliente,Documentos,,/!/cxc/clientes/@_src_context_item_id/pendientes/,0,cxc.clientes,DET014,1,action
 GB25,Cobros por aplicar del cliente,Por aplicar,,/!/cxc/clientes/@_src_context_item_id/xaplicar/,0,cxc.clientes,DET014,1,action

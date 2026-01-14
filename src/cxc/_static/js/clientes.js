@@ -91,6 +91,20 @@ var cliente =
             });
         }
     },
+    delete(sys_pk)
+    {
+        if(!confirm("¿Está seguro de realizar el proceso?"))return;
+
+        let url = `/!/cxc/clientes/${sys_pk}/`;
+
+        let onSuccess = (data) => {window.location.reload();}
+        let onFailure = (error) => 
+        {
+            alert(error.message??error);
+            console.error(error);
+        }
+        InduxsoftCrudlModel.InvokeService(url,null,onSuccess,onFailure,"DELETE",false,false);
+    },
     list: {
         tbl_clientes: null,
         tEvents: {},

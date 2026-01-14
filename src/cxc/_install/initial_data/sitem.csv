@@ -4,6 +4,7 @@ cxc.clientes,Clientes y cuentas por cobrar,cxc
 GB20,Clientes y CxC,cxc.clientes
 GB21,Nuevo cliente,cxc.clientes
 GB22,Editar cliente,cxc.clientes
+GB2C,Eliminar cliente,cxc.clientes
 GB23,Estado de cuenta del cliente,cxc.clientes
 GB24,Documentos por cobrar del cliente,cxc.clientes
 GB25,Cobros por aplicar del cliente,cxc.clientes
