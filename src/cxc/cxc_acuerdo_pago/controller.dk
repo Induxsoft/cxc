@@ -1,0 +1,23 @@
+#include "dkli.dkh"
+#!
+module "AcuerdoPagoController"
+{
+    switch @@(params,"$_action")
+    {
+        case "search-document-with-balance"
+        {
+            point @list to AcuerdoPago.searchDocumentWithBalance
+            break
+        }
+        default
+        {
+            point @list   to AcuerdoPago.list
+            point @read   to AcuerdoPago.read
+            point @blank  to AcuerdoPago.blank
+            point @create to AcuerdoPago.create
+            point @update to AcuerdoPago.update
+            point @delete to AcuerdoPago.delete
+            break
+        }
+    }
+}

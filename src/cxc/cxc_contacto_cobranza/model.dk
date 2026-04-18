@@ -1,0 +1,257 @@
+#include "dkli.dkh"
+#!
+module "Contactos de cobranza"
+{
+    @table_name = "cxc_contacto_cobranza"
+    @keyfield = "sys_pk"
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "
+    SELECT
+        c.sys_pk, c.sys_guid,
+        cl.codigo  AS cliente_codigo,
+        cl.nombre  AS cliente_nombre,
+        c.nombre   AS contacto,
+        c.puesto,
+        c.whatsapp,
+        c.email,
+        c.telefono
+    FROM cxc_contacto_cobranza c
+        INNER JOIN cliente cl ON cl.sys_pk = c.icliente
+    WHERE
+        NOT IFNULL(c.sys_deleted,0)
+        AND (
+            IFNULL(@search,'') = ''
+            OR cl.codigo = @search
+            OR cl.nombre LIKE CONCAT('%',@search,'%')
+            OR c.nombre LIKE CONCAT('%',@search,'%')
+        )
+    ORDER BY
+        cl.nombre,
+        c.nombre
+    LIMIT #<@default_max_rows>
+    "
+
+    @read_query = "
+    SELECT
+        c.sys_pk, c.sys_guid, c.sys_recver,
+        c.icliente, c.nombre, c.puesto,
+        c.telefono, c.whatsapp, c.email, c.notas,
+        cl.codigo  AS cliente_codigo,
+        cl.nombre  AS cliente_nombre
+    FROM cxc_contacto_cobranza c
+        INNER JOIN cliente cl ON cl.sys_pk = c.icliente
+    WHERE c.#<@keyfield> = @_entity_id
+    LIMIT 1
+    "
+
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        if @@(data,"#icliente") < 1 { do rise_error(511,"Debe seleccionar un cliente.") }
+        if trim(@@(data,"$nombre")) == "" { do rise_error(512,"El nombre del contacto es obligatorio.") }
+    }
+
+    //#region prepareView()
+    function prepareView(&db,&params,&data)
+    {
+        // Cargar datos del cliente vinculado al contacto (para el InputKey en edición)
+        if @@(data,"#icliente") > 0
+        {
+            data<"cliente*"> : dbr.rec(db,"SELECT sys_pk, codigo, nombre FROM cliente WHERE sys_pk = @icliente",data)
+        }
+    }
+
+    //#region setPrintTitles()
+    function setPrintTitles(&db,&data)
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
+    //#region list()
+    function list(&db,&params)
+    {
+        do dbr.apps.action.grant("GB50")
+
+        new data
+        {
+            @"data*": entity.list(db,params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0C1","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0C1","report","",0)
+        }
+        do setPrintTitles(db,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function read(&db,&params)
+    {
+        do dbr.apps.action.grant("GB50")
+
+        ref data = dbr.rec(db,ftext(@read_query),params)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return data }
+
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function blank(&db,&params)
+    {
+        do dbr.apps.action.grant("GB50")
+
+        new data { @"entity*": record.create() }
+        do prepareView(db,params,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB51")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.create(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB52")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.update(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function delete(&db,&params)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB53")
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do dbr.begin(db)
+
+            do entity.delete(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            deleted = @true
+            do dbr.apps.action.ext(entity)
+
+            exception
+            {
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            do dbr.begin(db)
+
+            params<"lastuser"> : @@(@http_context,"$session/user/uid")
+            sql = ftext("
+                UPDATE #<@table_name> SET
+                    sys_timestamp = NOW(),
+                    sys_lastuser  = @lastuser,
+                    sys_deleted   = 1
+                WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity : entity.read(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code  = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data : record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+            do prepareView(db,params,data)
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error")
+            {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    point @list   to list
+    point @read   to read
+    point @blank  to blank
+    point @create to create
+    point @update to update
+    point @delete to delete
+}

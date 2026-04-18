@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+program "Notificar a contactos de cobranza"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"
+    #include "batch.v12.dkl"
+
+    do @context.begin(@batch_context)
+
+    do batch.v12.grant("GB74")
+    #include "cxc-notif-task.dkl"
+
+    do @context.end()
+}

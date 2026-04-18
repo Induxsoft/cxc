@@ -1,0 +1,35 @@
+[
+    {
+        "id": "cxc",
+        "caption": "Clientes y CxC",
+        "help": "Variables del paquete: cxc",
+        "vars": [
+            {
+                "varname": "cxc_notif_hora_inicio",
+                "vardefault": "",
+                "varvalue": "08:00:00",
+                "varcaption": "Horario de notificaciones (de)",
+                "varhelp": "Hora a partir de la cual se permite el envío de mensajes",
+                "vartype": "text",
+                "varinput": { "control": "time" }
+            },
+            {
+                "varname": "cxc_notif_hora_fin",
+                "vardefault": "",
+                "varvalue": "20:00:00",
+                "varcaption": "Horario de notificaciones (a)",
+                "varhelp": "Hora límite para el envío de mensajes",
+                "vartype": "text",
+                "varinput": { "control": "time" }
+            },
+            {
+                "varname": "cxc_notif_dias",
+                "vardefault": "",
+                "varvalue": "D L M X J V S",
+                "varcaption": "Días para envío",
+                "varhelp": "Días de la semana habilitados para envío: D L M X J V S",
+                "vartype": "text"
+            }
+        ]
+    }
+]

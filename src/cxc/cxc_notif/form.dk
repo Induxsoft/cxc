@@ -1,0 +1,293 @@
+#include "dkli.dkh"
+#!
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "uielements.v12.dkl"
+    #include "dbr.controls.dkl"
+    #include "../_lib/config.dk"
+
+    do @context.begin(@crud_context)
+
+    @_entities_type = @("$parameters/_entities_type")
+    @_entity_id = @("$parameters/_entity_id")
+    @is_new = (@_entity_id == "_new")
+    @form_id = @_entities_type
+    urlexit = "/!/cxc/notif/"
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners no-shadow"
+        #$
+        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){$"Guardar"}
+        #!
+    }
+    point buttons to printNavButtons
+
+    new nav_config
+    {
+        @"title": ifstr(@is_new,"Crear","Editar") + " notificación de cobranza"
+        @"urlexit": urlexit
+        @"buttons*": buttons
+        member "hidden"
+        {
+            @"send":  @true
+            @"copy":  @true
+            @"csv":   @true
+            @"print": @true
+        }
+    }
+
+    new sel_tipo
+    {
+        @"id": "tipo"
+        @"text_field": "const"
+        @"value_field":"id"
+        @"datatable*": ifnull(@("&./tipo_list"), list.create())
+        @"selected": @("./tipo")
+        member "attributes"
+        {
+            @"class": "form-select rounded-0"
+            @"name": "tipo"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$id')=='','disabled','')>": ""
+        }
+    }
+
+    new sel_canal
+    {
+        @"id": "canal"
+        @"text_field": "name"
+        @"value_field":"sys_pk"
+        @"datatable*": ifnull(@("&./canal_list"), list.create())
+        @"selected": @("./canal")
+        member "attributes"
+        {
+            @"class": "form-select rounded-0"
+            @"name": "canal"
+            @"required": ""
+        }
+        member "attr_options"
+        {
+            @"#<ifstr(@@(row,'$sys_pk')=='','disabled','')>": ""
+        }
+    }
+
+    new sel_recipient
+    {
+        @"id": "para"
+        @"text_field": "const"
+        @"value_field": "id"
+        @"datatable*": from.json('[
+            { "id":"", "const":"(Ninguno)" },
+            { "id":"b_contact_whatsapp", "const":"Contacto: WhatsApp > Teléfono" },
+            { "id":"b_contact_phone", "const":"Contacto: Teléfono > WhatsApp" },
+            { "id":"b_contact_email", "const":"Contacto: Email" }
+        ]')
+        @"selected": @("./para")
+        member "attributes"
+        {
+            @"class": "form-select rounded-0"
+            @"name": "para"
+        }
+    }
+
+    // Variables posicionales disponibles para las plantillas de mensajes
+    new tempvars_catalog
+    {
+        // Datos del cliente
+        @"customer_code":         "{{customer_code}} / {{cliente_codigo}} — Código del cliente"
+        @"customer_name":         "{{customer_name}} / {{cliente_nombre}} — Nombre del cliente"
+        @"customer_phone":        "{{customer_phone}} / {{cliente_telefono}} — Teléfono del cliente"
+        @"customer_email":        "{{customer_email}} / {{cliente_email}} — Correo del cliente"
+        @"billing_contact_name":  "{{billing_contact_name}} / {{contacto_nombre}} — Nombre del contacto"
+        // Datos del documento
+        @"doc_reference":         "{{doc_reference}} / {{doc_referencia}} — Referencia del documento"
+        @"doc_amount":            "{{doc_amount}} / {{doc_total}} — Monto total"
+        @"doc_balance":           "{{doc_balance}} / {{doc_saldo}} — Saldo pendiente"
+        @"doc_due_date":          "{{doc_due_date}} / {{doc_vencimiento}} — Fecha de vencimiento"
+        @"doc_currency":          "{{doc_currency}} / {{doc_moneda}} — Divisa del documento"
+        // Datos del acuerdo (tipo=1)
+        @"agreement_due_date":    "{{agreement_due_date}} — Fecha comprometida del acuerdo"
+        @"agreement_amount":      "{{agreement_amount}} — Monto acordado"
+        @"agreement_balance":     "{{agreement_balance}} — Saldo pendiente del acuerdo"
+    }
+
+    ref ch_params_def  = ifnull(@("&./template_controls"), record.create())
+    ref @control_params = @("&./params")
+
+    #$
+    div(class="container-lg" id="view")
+    {
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            #!
+            error = @("$error/message")
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show mb-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<e>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+                #!
+            }
+            #$
+
+            form(class="px-1" action="./" method="POST" id="#<@form_id>")
+            {
+                input(type="hidden" name="sys_pk"     value="#<@('#./sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
+                #!
+                do uie.print_from_url_field()
+                #$
+
+                div(class="row gx-2 gy-3")
+                {
+                    // Aplica sobre 
+                    div(class="col-12 col-sm-6 col-md-3")
+                    {
+                        label(class="form-label" "for"="tipo"){$"Aplica sobre"}
+                        ##
+                        do uie.dbSelect(sel_tipo)
+                        ##
+                    }
+                    // Días 
+                    div(class="col-12 col-sm-6 col-md-3")
+                    {
+                        label(class="form-label" "for"="dias"){$"Días"}
+                        input(
+                            class="form-control rounded-0"
+                            type="number"
+                            name="dias"
+                            id="dias"
+                            value="#<@('#./dias')>"
+                            required=""
+                            title="Positivo = días vencido; negativo = días antes del vencimiento"
+                        )
+                        small(class="text-muted"){$"Negativo: antes del vencimiento"}
+                    }
+                    // Frecuencia 
+                    div(class="col-12 col-sm-6 col-md-3")
+                    {
+                        label(class="form-label" "for"="frecuencia"){$"Frec. máx. por día"}
+                        input(
+                            class="form-control rounded-0"
+                            type="number"
+                            name="frecuencia"
+                            id="frecuencia"
+                            value="#<@('#./frecuencia')>"
+                            min="0"
+                            title="Máximo de envíos por día por documento/acuerdo (0 = sin límite)"
+                        )
+                        small(class="text-muted"){$"0 = sin límite"}
+                    }
+                    // Canal 
+                    div(class="col-12 col-sm-6 col-md-3")
+                    {
+                        label(class="form-label" "for"="canal"){$"Canal"}
+                        ##
+                        do uie.dbSelect(sel_canal)
+                        ##
+                    }
+                    // Resolución de destinatario
+                    div(class="col-auto")
+                    {
+                        label(class="form-label" "for"="para"){"Resolver destinatario con la siguiente precedencia:"}
+                        ##
+                        do uie.dbSelect(sel_recipient)
+                        ##
+                    }
+                    // Desactivada 
+                    div(class="col-auto align-self-end pb-1")
+                    {
+                        #!
+                        disabled_checked = ifstr(@("#./disabled") && not(@is_new), "checked", "")
+                        #$
+                        div(class="form-check")
+                        {
+                            input(class="form-check-input" type="checkbox" name="disabled" value="1" id="disabled" "#<disabled_checked>"="")
+                            label(class="form-check-label" "for"="disabled"){$"Desactivada"}
+                        }
+                    }
+
+                    input(type="hidden" name="tempvars" value='#<@("$./tempvars")>')
+                }
+            }
+
+            // Parámetros del canal (generados dinámicamente) 
+            form(class="row" id="form-params")
+            {""
+                #!
+                do dbr.control.GenerateHtml(@("&database"), ch_params_def)
+                #$
+            }
+
+            // Variables posicionales 
+            div(class="d-flex align-items-center flex-wrap border gap-1 px-2 py-0 mt-3")
+            {
+                small(class="text-muted"){$"Variables posicionales: selecciona en orden las macros a ocupar en la plantilla del canal"}
+                div(class="flex-grow-1 text-end")
+                {
+                    button(class="btn btn-sm rounded-0" type="button" id="btn-add-var"){$"+ Agregar"}
+                    button(class="btn btn-sm rounded-0" type="button" id="btn-del-var"){$"- Quitar"}
+                }
+            }
+            "edit-table"(
+                id="table-vars"
+                "auto-confirm"="true"
+                style="width:100%;"
+                "row-height"="1.2rem"
+                "control-styles"="
+                    tr th { font-size:.9rem; outline:none !important; font-weight:500 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                    tr td { font-size:.8rem; }
+                    #__table_input { font-size:unset !important; }
+                "
+            )
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Select" field="varhelp" keyfield="varname" options='#<to.json(tempvars_catalog)>'){$"Variable"}
+                    }
+                }
+            }
+        }
+
+        section(id="bottom_area")
+        {
+            div(id="_custom_area")
+            {
+                script(src="/$/cxc/js/notif.js"){""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        notif.form_id = "#<@form_id>";
+                        notif.urlexit = "#<urlexit>";
+                        notif.init();
+
+                        // Script injection
+                        #<@@(@crud_context,"$script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

@@ -1,0 +1,130 @@
+#include "dkli.dkh"
+#!
+module "list.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+
+    ref data   = ifnull(@("&./data"),  list.create())
+    ref titles = ifnull(@("&./titles"), record.create())
+
+    @_entities_type = @("$parameters/_entities_type")
+
+    table_id   = "tbl_"+@_entities_type
+    tbtn_style = "cursor:pointer; text-decoration:none; border:none; outline:none; padding: 0px 8px; background-color:#F5F5F5; color:#000000;"
+
+    new table_definition
+    {
+        @"datatable*": data
+        member @"columns"
+        {
+            member @"cliente_codigo"  { @"caption":"Cód. cliente" }
+            member @"cliente_nombre"  { @"caption":"Cliente" }
+            member @"contacto"        { @"caption":"Contacto" }
+            member @"puesto"          { @"caption":"Puesto" }
+            member @"whatsapp"        { @"caption":"WhatsApp" }
+            member @"email"           { @"caption":"Correo" }
+            member @"telefono"        { @"caption":"Teléfono" }
+        }
+        @"table_footer": "Mostrando los primeros # registros"
+    }
+
+    new nav_config
+    {
+        @"title":          "Contactos de cobranza"
+        @"urlexit":        "/"
+        @"actions*":       ifnull(@("&./itemactions"), list.create())
+        @"reports*":       ifnull(@("&./itemreports"), list.create())
+        @"jscurrentcontext": "getCurrentContext"
+    }
+
+    #$
+    div(class="container-fluid" id="view")
+    {
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            form(class="mb-1 d-flex gap-2 align-items-center" action="./" method="GET" id="form-filter")
+            {
+                div(class="flex-grow-1")
+                {
+                    "filter-text"(
+                        class="w-100"
+                        "text-field"="search"
+                        value="#<@('$parameters/search')>"
+                        placeholder="Buscar por código, nombre de cliente o contacto ..."
+                        "form"="#form-filter"
+                        "auto-submit"="true"
+                    ){$""}
+                }
+            }
+        }
+
+        section(id="work_area")
+        {
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){$"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){$"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){$"#<cut(@('$http/session/user/name'),25)>"}
+                        small(class="d-block"){$"#<date_str(now(),'dd/MMM/yyyy')>"}
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4{$"Contactos de Cobranza"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_filter_1"){$""}
+                        small(class="d-block" id="lbl_filter_2"){$""}
+                    }
+                }
+            }
+
+            #!
+            do uie.dbeditable(table_definition, table_id)
+            #$
+
+            div(class="show-on-print")
+            {
+                p(class="fixed-bottom text-center my-1"){$"#<@@(titles,'$footer')>"}
+            }
+        }
+
+        section(id="bottom_area")
+        {
+            div(id="_custom_area")
+            {
+                script(type="text/javascript")
+                {$'
+                    function filter(ff) { ff.form.submit(); }
+
+                    function getCurrentContext() {
+                        const table = document.getElementById("#<table_id>");
+                        const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+                        return { item_id: id, context: {} };
+                    }
+
+                    document.addEventListener("DOMContentLoaded", () => {
+                        #<@@(@crud_context,"script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

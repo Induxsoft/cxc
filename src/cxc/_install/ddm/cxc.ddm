@@ -316,6 +316,27 @@ model "erp.cxc"
         @"ifolio" ref:"foliosdocumentos" required
     }
 
+    entity "snd_provider_tpy" : "EnumModel"
+    {
+        //0-E-Mail
+        //1-TEXT
+        //2-IM
+    }
+    entity "snd_provider" : "TableModel"
+    {
+        @"name" string(32) unique required
+        @"tpy" ref:"snd_provider_tpy" required
+        @"entry_point" string(256)  // URL relativa de acceso a los controles del proveedor
+        @"lib" string(256) required // Ruta hacia la biblioteca que implementa las funciones de la interfaz
+        @"manifest" mmemo 
+    }
+    entity "snd_channel" : "TableModel"
+    {
+        @"prov" ref:"snd_provider" required
+        @"name" string(32) unique required
+        @"config" mmemo
+    }
+
     //* ======================================== [ ENTIDADES PRINCIPALES ]
     // Datos de un cliente
     entity "cliente" : "TableModel"
@@ -391,8 +412,6 @@ model "erp.cxc"
         @"poracuerdopago" bool
         @"acuerdodepago" int
     }
-
-    //* ======================================== [ ... ]
     // Detalle de cobros aplicados
     entity "aplcxc" : "TableModel"
     {
@@ -421,6 +440,82 @@ model "erp.cxc"
         @"retiros" bool
         @"traspasos" bool
     }
+    // Tipo de notificación de cobranza
+    entity "cxc_tipo_doc_notif" : "EnumModel"
+    {
+        // 0 - Documento
+        // 1 - Acuerdo de pago
+    }
+    /**
+     * Contacto de cobranza
+     *
+     * Persona física a quien se contacta para gestionar el cobro de documentos de un cliente.
+     * Un cliente puede tener múltiples contactos de cobranza.
+     */
+    entity "cxc_contacto_cobranza" : "TableModel"
+    {
+        @"icliente"  ref:"cliente"  required
+        @"nombre"    string(80)     required
+        @"puesto"    string(50)
+        @"telefono"  string(25)
+        @"whatsapp"  string(25)
+        @"email"     string(150)
+        @"notas"     memo
+    }
+    /**
+     * Acuerdo de pago
+     *
+     * Compromiso formal registrado entre la empresa y un cliente para liquidar el saldo de un documento en una fecha y monto determinados.
+     * Solo puede existir un acuerdo vigente por documento a la vez.
+     * Un acuerdo está vigente hasta que su `monto_pago` complete el `monto_acuerdo`, hasta su `fecha_pago` o hasta que se marque manualmente como `cumplido`.
+     */
+    entity "cxc_acuerdo_pago" : "TableModel"
+    {
+        @"idoc"           ref:"dcxc"      required   // Documento CXC al que aplica
+        @"fecha_acuerdo"  date                       // Fecha en que se estableció el acuerdo
+        @"fecha_pago"     date                       // Fecha comprometida de pago
+        @"monto_acuerdo"  decimal(12,2)              // Monto acordado (en divisa del documento)
+        @"monto_pago"     decimal(12,2)              // Monto efectivamente pagado (en divisa del documento)
+        @"cumplido"       bool                       // Se marca manualmente cuando el acuerdo es cumplido
+        @"notas"          memo
+        @"contacto"       string(80)                 // Nombre del contacto con quien se acordó
+    }
+    /**
+     * Notificación de cobranza
+     *
+     * Regla que define cuándo, cómo y a través de qué canal se debe enviar un mensaje de recordatorio o solicitud de pago, ya sea sobre un documento o sobre un acuerdo de pago.
+     * Cada notificación se envía de forma individual por contacto de cobranza asociado al cliente.
+     */
+    entity "cxc_notif" : "TableModel"
+    {
+        @"tipo"       ref:"cxc_tipo_doc_notif"  required  // Aplica sobre documento o acuerdo
+        @"dias"       int                       required  // Días vencido (negativo = antes del vencimiento)
+        @"frecuencia" int                                 // Máximo de envíos por día por documento/acuerdo
+        @"canal"      ref:"snd_channel"         required  // Determina el canal y los parámetros esperados
+        @"para"       string(25)
+        @"params"     memo                      required  // JSON con los valores concretos de los parámetros del canal
+        @"tempvars"   memo                                // Variables posicionales a ocupar
+        @"disabled"   bool                                // Indica si la notificación está desactivada
+    }
+    /**
+     * Bitácora de envíos
+     *
+     * Registro de cada mensaje enviado, utilizado para garantizar la no duplicación y la trazabilidad de las comunicaciones de cobranza. Los registros se conservan indefinidamente.
+     */
+    entity "cxc_notif_log" : "TableModel"
+    {
+        @"inotif"       ref:"cxc_notif"             required  // Notificación que originó el envío
+        @"icontacto"    ref:"cxc_contacto_cobranza" required  // Contacto destinatario
+        @"idoc"         ref:"dcxc"                  required  // Documento de referencia
+        @"iacuerdo"     ref:"cxc_acuerdo_pago"                // Acuerdo de referencia (si aplica)
+        @"fecha_envio"  datetime                    required  // Fecha y hora del envío
+        @"canal"        ref:"snd_channel"                     // Canal del mensaje enviado
+        @"destinatario" string(150)                 required  // Valor resuelto del destinatario (número, email, etc.)
+        @"resultado"    bool                                  // Indica si el envío fue exitoso
+        @"detalle"      memo                                  // Detalle del resultado o error
+    }
+
+    //* ======================================== [ ... ]
     // Información de la aplicación
     entity "sys_app_catalog"
     {

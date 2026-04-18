@@ -1,0 +1,255 @@
+#include "dkli.dkh"
+#!
+module "Notificaciones de cobranza"
+{
+    @table_name = "cxc_notif"
+    @keyfield = "sys_pk"
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "
+    SELECT
+        n.sys_pk,
+        n.sys_guid,
+        t.const  AS tipo_label,
+        n.dias,
+        n.frecuencia,
+        c.name   AS canal,
+        IF(n.disabled, 'No', 'Sí') AS activa
+    FROM cxc_notif n
+        INNER JOIN cxc_tipo_doc_notif t ON n.tipo = t.id
+        INNER JOIN snd_channel c ON n.canal = c.sys_pk
+    WHERE
+        NOT IFNULL(n.sys_deleted, 0)
+        AND (IFNULL(@search,'')='' OR c.name LIKE CONCAT('%', @search, '%'))
+    ORDER BY
+        n.tipo,
+        n.dias
+    LIMIT #<@default_max_rows>
+    "
+
+    @read_query = "SELECT * FROM #<@table_name> WHERE #<@keyfield> = @_entity_id LIMIT 1"
+
+    //#region prepareView()
+    function prepareView(&db, &params, &data)
+    {
+        if isanyword(@@(params,"$_operation"),"read,blank,create,update")
+        {
+            // Tipos de doc/acuerdo para el select (enum)
+            ref tipo_list = dbr.list(db,"SELECT id, const FROM cxc_tipo_doc_notif",@null)
+            do list.ins(tipo_list, 0, from.json('{"id":"","const":"Seleccione..."}'))
+
+            // Canales de envío disponibles
+            ref canal_list = dbr.list(db,"SELECT sys_pk, name FROM snd_channel WHERE NOT IFNULL(sys_deleted,0) ORDER BY name",@null)
+            do list.ins(canal_list, 0, from.json('{"sys_pk":"","name":"Seleccione..."}'))
+
+            using data
+            {
+                @"tipo_list*":  tipo_list
+                @"canal_list*": canal_list
+            }
+
+            // Cargar manifest del canal seleccionado para generar controles de params
+            canal = @@(params,"#canal")
+            if canal < 1 { canal = @@(data,"#canal") }
+            if canal > 0
+            {
+                canal >> params
+                json = dbr.str(db,"SELECT IF(IFNULL(p.manifest,'')='','{}',p.manifest) FROM snd_channel c INNER JOIN snd_provider p ON c.prov = p.sys_pk WHERE c.sys_pk = @canal",params)
+                ref manifest = from.json(json)
+                data<"template_controls*"> : @@(manifest,"&template")
+            }
+
+            // Deserializar params para el form
+            json_params = @@(data,"$params")
+            if json_params == "" { json_params = "{}" }
+            data<"params*"> : from.json(json_params)
+        }
+    }
+
+    //#region validateFields()
+    function validateFields(&data)
+    {
+        if @@(data,"#tipo") < 0 { do rise_error(511,"El tipo (Documento/Acuerdo) es requerido.") }
+        if @@(data,"#dias") == 0 { do rise_error(512,"El campo Días es requerido (puede ser negativo).") }
+        if @@(data,"#canal") < 1 { do rise_error(513,"El canal de envío es requerido.") }
+
+        // Serializar params y tempvars si llegan como objetos
+        if field.typeof(data,"params") == 3 { data<"params">   : to.json(@@(data,"&params")) }
+        if field.typeof(data,"tempvars") == 3 { data<"tempvars"> : to.json(@@(data,"&tempvars")) }
+
+        data<"disabled"> : parse.bool(@@(data,"$disabled"))
+    }
+
+    //#region list()
+    function entity.list(&db, &params)
+    {
+        do dbr.apps.action.grant("GB70")
+
+        new data
+        {
+            @"data*": dbr.list(db, ftext(@list_query), params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0C3","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0C3","report","",0)
+        }
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function entity.read(&db, &params)
+    {
+        do dbr.apps.action.grant("GB70")
+
+        ref data = dbr.rec(db, ftext(@read_query), params)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return data }
+
+        if field.exist(params,"tipo") { data.tipo := @@(params,"#tipo") }
+        if field.exist(params,"dias") { data.dias := @@(params,"#dias") }
+        if field.exist(params,"frecuencia") { data.frecuencia := @@(params,"#frecuencia") }
+        if field.exist(params,"canal") { data.canal := @@(params,"#canal") }
+        if field.exist(params,"para") { data.para := @@(params,"$para") }
+
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function entity.blank(&db, &params)
+    {
+        do dbr.apps.action.grant("GB70")
+
+        ref data = record.copy(params,"tipo,dias,frecuencia,template,canal,para,disabled")
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function notif.create(&db, &params, &data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB71")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.create(db, params, data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function notif.update(&db, &params, &data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB72")
+        do dbr.begin(db)
+
+        do validateFields(data)
+        ref entity = entity.update(db, params, data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function notif.delete(&db, &params)
+    {
+        do dbr.apps.action.pre("GB73")
+
+        @use_transaction = @false
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do dbr.begin(db)
+            do entity.delete(db, params)
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            deleted = @true
+            do dbr.apps.action.ext(entity)
+
+            exception
+            {
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            do dbr.begin(db)
+            params<"lastuser"> : @@(@http_context,"$session/user/uid")
+            sql = ftext("
+                UPDATE #<@table_name> SET
+                    sys_timestamp = NOW(),
+                    sys_lastuser  = @lastuser,
+                    sys_deleted   = 1
+                WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db, sql, params)
+            ref entity : dbr.rec(db, ftext(@read_query), params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db, &params, &data)
+    {
+        do errordet(@false)
+        code  = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data : record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+            do prepareView(db,params,data)
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error")
+            {
+                error = "No es posible eliminar, otros registros dependen de esta notificación."
+            }
+        }
+
+        do clear_exceptions()
+        do rise_error(code, error)
+    }
+
+    point @create to notif.create
+    point @update to notif.update
+    point @delete to notif.delete
+}

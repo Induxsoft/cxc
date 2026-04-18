@@ -1,0 +1,333 @@
+#include "dkli.dkh"
+#!
+module ":AcuerdoPago"
+{
+    @table_name = "cxc_acuerdo_pago"
+    @keyfield = "sys_pk"
+    @update_exclude_fields = "sys_pk,sys_guid,sys_dtcreated,sys_user"
+
+    @list_query = "
+    SELECT
+        a.sys_pk, a.sys_guid,
+        c.codigo  AS cliente_codigo,
+        c.nombre  AS cliente_nombre,
+        d.referencia,
+        (IFNULL(d.debe,0) + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
+        m.codigo AS moneda,
+        DATE_FORMAT(a.fecha_acuerdo,'%Y/%m/%d') fecha_acuerdo,
+        a.monto_acuerdo,
+        a.contacto
+    FROM cxc_acuerdo_pago a
+        INNER JOIN dcxc d ON a.idoc = d.sys_pk
+        INNER JOIN cliente c ON d.icliente = c.sys_pk
+        INNER JOIN divisa m ON c.idivisa = m.sys_pk
+    WHERE
+        NOT IFNULL(a.sys_deleted,0)
+        AND (
+            IFNULL(@search,'') = ''
+            OR c.codigo = @search
+            OR c.nombre LIKE CONCAT('%',@search,'%')
+            OR d.referencia LIKE CONCAT('%',@search,'%')
+        )
+    ORDER BY
+        c.nombre,
+        d.referencia
+    LIMIT #<@default_max_rows>
+    "
+
+    @read_query = "
+    SELECT
+        a.sys_pk, a.sys_guid, a.sys_recver,
+        a.idoc,
+        DATE_FORMAT(a.fecha_acuerdo,'%Y-%m-%d') fecha_acuerdo,
+        DATE_FORMAT(a.fecha_pago,'%Y-%m-%d') fecha_pago,
+        a.monto_acuerdo,
+        a.monto_pago,
+        a.cumplido,
+        a.notas,
+        a.contacto
+    FROM cxc_acuerdo_pago a
+    WHERE a.#<@keyfield> = @_entity_id
+    LIMIT 1
+    "
+
+    @sql_document_with_balance = "
+    SELECT
+        d.sys_pk,
+        d.referencia,
+        c.codigo AS cliente_codigo,
+        c.nombre AS cliente_nombre,
+        m.codigo AS moneda,
+        IFNULL(d.debe,0) AS total,
+        (IFNULL(d.debe,0) + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
+        DATE_FORMAT(d.fultmoratorios,'%Y-%m-%d') vencimiento
+    FROM dcxc d
+        INNER JOIN cliente c ON d.icliente = c.sys_pk
+        INNER JOIN divisa m ON c.idivisa = m.sys_pk
+        LEFT JOIN cxc_acuerdo_pago a ON a.idoc = d.sys_pk
+    WHERE
+        #<condition>
+    "
+
+    //#region searchDocumentWithBalance()
+    function searchDocumentWithBalance(&db,&params)
+    {
+        if @@(params,"$search") != ""
+        {
+            condition = "
+            (
+                IFNULL(a.monto_pago,0) >= IFNULL(a.monto_acuerdo,0)
+                OR CURDATE() > a.fecha_pago
+                OR IFNULL(a.cumplido,0)
+            )
+            HAVING saldo > 0
+            "
+            return dbr.list(db,ftext(@sql_document_with_balance),params)
+        }
+        return list.create()
+    }
+
+    //#region getDocumentWithBalance()
+    function getDocumentWithBalance(&db,&params)
+    {
+        if @@(params,"#idoc") > 0
+        {
+            condition = "d.sys_pk = @idoc"
+            return dbr.rec(db,ftext(@sql_document_with_balance),params)
+        }
+        return record.create()
+    }
+
+    //#region validateFields()
+    function validateFields(&db,&params,&data)
+    {
+        is_new = (@@(params,"$_entity_id") == "_new")
+        monto = @@(data,"#monto_acuerdo")
+
+        if @@(data,"#idoc") < 1 { do rise_error(511,"Debe seleccionar un documento.") }
+        if monto <= 0 { do rise_error(512,"El monto del acuerdo debe ser mayor a cero.") }
+
+        if is_new
+        {
+            saldo = dbr.num(db,"SELECT (debe + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0)) FROM dcxc WHERE sys_pk = @idoc",data)
+
+            if saldo <= 0 { do rise_error(513,"No se puede crear un acuerdo sobre un documento con saldo cero o negativo.") }
+            if monto > saldo { do rise_error(514,ftext("El monto del acuerdo (#<format(monto,'#,##0.00')>) excede el saldo pendiente del documento (#<format(saldo,'#,##0.00')>).")) }
+            
+            // Solo puede existir un acuerdo vigente por documento a la vez
+            // Un acuerdo está vigente si: no cumplido, monto_pago < monto_acuerdo y fecha_pago >= hoy
+            sql = "
+            SELECT COUNT(*) FROM cxc_acuerdo_pago
+            WHERE idoc = @idoc
+                AND NOT IFNULL(cumplido,0)
+                AND fecha_pago >= CURDATE()
+                AND monto_pago < monto_acuerdo
+                AND NOT IFNULL(sys_deleted,0)
+            "
+            vigente = dbr.num(db,sql,data)
+            
+            if vigente > 0 { do rise_error(514,"El documento ya tiene un acuerdo de pago vigente.") }
+        }
+
+        using data
+        {
+            @"cumplido": parse.bool(@@(data,"$cumplido"))
+        }
+    }
+
+    //#region prepareView()
+    function prepareView(&db,&params,&data)
+    {
+        // Cargar datos del documento vinculado al acuerdo de pago (para el InputKey en edición)
+        data<"dcxc*"> : getDocumentWithBalance(db,data)
+    }
+
+    //#region setPrintTitles()
+    function setPrintTitles(&db,&data)
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
+    //#region list()
+    function list(&db,&params)
+    {
+        do dbr.apps.action.grant("GB60")
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(@list_query),params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0C2","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0C2","report","",0)
+        }
+        do setPrintTitles(db,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region read()
+    function read(&db,&params)
+    {
+        do dbr.apps.action.grant("GB60")
+
+        ref data = dbr.rec(db,ftext(@read_query),params)
+
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return data }
+
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region blank()
+    function blank(&db,&params)
+    {
+        do dbr.apps.action.grant("GB60")
+
+        new data
+        {
+            @"fecha_acuerdo": date_str(now(),"yyyy-MM-dd")
+        }
+        do prepareView(db,params,data)
+
+        return data
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region create()
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB61")
+        do dbr.begin(db)
+
+        do validateFields(db,params,data)
+        ref entity = entity.create(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region update()
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB62")
+        do dbr.begin(db)
+
+        do validateFields(db,params,data)
+        ref entity = entity.update(db,params,data)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+
+        exception{ do catch(db,params,data) }
+    }
+
+    //#region delete()
+    function delete(&db,&params)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        do dbr.apps.action.pre("GB63")
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            do dbr.begin(db)
+
+            do entity.delete(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            deleted = @true
+            do dbr.apps.action.ext(entity)
+
+            exception
+            {
+                if dbr.in_transaction(db) { do dbr.rollback(db) }
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            do dbr.begin(db)
+
+            params<"lastuser"> : @@(@http_context,"$session/user/uid")
+            sql = ftext("
+                UPDATE #<@table_name> SET
+                    sys_timestamp = NOW(),
+                    sys_lastuser  = @lastuser,
+                    sys_deleted   = 1
+                WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity : entity.read(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+        }
+
+        return entity
+
+        exception{ do catch(db,params,@null) }
+    }
+
+    //#region catch()
+    function catch(&db,&params,&data)
+    {
+        do errordet(@false)
+        code  = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if isnull(data) { ref data : record.create() }
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+            do prepareView(db,params,data)
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error")
+            {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+}

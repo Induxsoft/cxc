@@ -1,0 +1,588 @@
+#include "dkli.dkh"
+#!
+program "cxc-notif-task"
+{
+    if not(isset("@batch_context"))
+    {
+        #include "functions.dkh"
+        #include "serialize.dkh"
+        #include "dbr.dkh"
+    }
+    #include "webcl.dkh"
+    #include "v12.com.dkl"
+
+    //#region >SETTINGS
+    do errordet(@false)
+
+    @_retries_to_extract_json = 1
+
+    @default_retention = 0  // Los registros de cxc_notif_log se conservan indefinidamente
+    //#endregion
+
+    //#region >FUNCTIONS
+
+    print_error :: error
+    {
+        do print("")
+        do print("-  ERROR -")
+        do print(error)
+        do print("------------------------------------------------------------")
+        do print("")
+        do print("- USO DE LA HERRAMIENTA -")
+        do print('./dkl cxc-notif-task db="nombrebd@grupodeapps"')
+        do print("")
+        do print("Donde:")
+        do print("db=Nombre cualificado de conexión a la base de datos.")
+        do print("------------------------------------------------------------")
+    }
+
+    from.djson :: json, djson
+    {
+        if json == "" { json = djson }
+        return from.json(json)
+        exception
+        {
+            do pop_exception()
+            return from.json(djson)
+        }
+    }
+
+    fields.remove :: &record, paths
+    {
+        ref fields = split(paths,",")
+        for i = 0; i < list.count(fields)
+        {
+            do field.remove(record,trim(list.str(fields,i)))
+        }
+    }
+
+    ifempty :: s, d
+    {
+        if trim(str(s)) == "" { return str(d) }
+        return str(s)
+    }
+
+    ExtractJsonAsObject :: input
+    {
+        if not(isset("@_retries_to_extract_json")) { @_retries_to_extract_json = 0 }
+        if not(isset("@_attempts_to_extract_json")) { @_attempts_to_extract_json = 0 }
+
+        string = trim(input)
+        if string == "" { return @null }
+
+        ini = findstr(string,"{")
+        if ini == -1 { return @null }
+
+        strlen = length(string)
+        depth  = 0
+
+        for i = ini; i < strlen
+        {
+            char = substring(string,i,1)
+
+            if char == "{" { depth = depth + 1 }
+            else if char == "}" { depth = depth - 1 }
+
+            if depth == 0
+            {
+                fin  = i - ini + 1
+                json = substring(string,ini,fin)
+                ref object = from.json(json)
+                @_attempts_to_extract_json = 0
+                return object
+
+                exception
+                {
+                    do pop_exception()
+                    if @_attempts_to_extract_json < @_retries_to_extract_json
+                    {
+                        @_attempts_to_extract_json = @_attempts_to_extract_json + 1
+                        return ExtractJsonAsObject(left(string,fin))
+                    }
+                    @_attempts_to_extract_json = 0
+                    break
+                }
+            }
+        }
+
+        return @null
+    }
+
+    UpdatePercent :: value
+    {
+        if not(isset("@batch_context")) { return }
+
+        new data
+        {
+            @"percentage": value
+            @"progress_type": 2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",@("&job"))
+    }
+
+    Log :: tab, text
+    {
+        if isset("@orchestrator_context") {/*ignore*/}
+        else if isset("@batch_context") { do batch.saveLog(@("$job/token"),text) }
+        else
+        {
+            text = padleft("",tab * 4," ") + text
+            do print(text)
+        }
+    }
+
+    SetTimeZone :: &db
+    {
+        ref var = dbr.rec(db,"SELECT vardefault, varvalue FROM globalvar WHERE varname='FXTZ001'",@null)
+        if isnull(var) { return }
+
+        cfg = @@(var,"$varvalue")
+        if cfg == "" { cfg = @@(var,"$vardefault") }
+        ref tz = split(cfg,"|")
+
+        var<"tz_name">   : list.str(tz,0)
+        var<"tz_offset"> : list.str(tz,1)
+
+        has_tz = dbr.num(db,"SELECT CONVERT_TZ('2000-01-01 00:00:00', 'UTC', @tz_name) IS NOT NULL;",var)
+        if has_tz { do dbr.execute(db,"SET time_zone = @tz_name",var) }
+        else      { do dbr.execute(db,"SET time_zone = @tz_offset",var) }
+
+        exception{ do clear_exceptions() }
+    }
+
+    /**
+     * Devuelve @true si la hora actual está dentro del rango y día habilitados en las variables globales cxc_notif_hora_inicio, cxc_notif_hora_fin, cxc_notif_dias
+     */
+    IsWithinSchedule :: &db
+    {
+        hora_ini = dbr.str(db,"SELECT varvalue FROM globalvar WHERE varname='cxc_notif_hora_inicio' LIMIT 1",@null)
+        hora_fin = dbr.str(db,"SELECT varvalue FROM globalvar WHERE varname='cxc_notif_hora_fin'    LIMIT 1",@null)
+        dias_cfg = dbr.str(db,"SELECT varvalue FROM globalvar WHERE varname='cxc_notif_dias'        LIMIT 1",@null)
+
+        if hora_ini != "" && hora_fin != ""
+        {
+            new params
+            {
+                @"hi": hora_ini
+                @"hf": hora_fin
+            }
+            time_in_range = dbr.num(db,"SELECT curtime() BETWEEN time(@hi) AND time(@hf)",params)
+            if not(time_in_range) { return @false }
+        }
+
+        // Verificar día de la semana (L M X J V S D)
+        dias_cfg = toupper(dias_cfg)
+        dias_map = "DLMXJVS"
+        dias_cfg = ranydiffchars(dias_cfg,dias_map," ")
+        dias_cfg = replace(dias_cfg," ","")
+
+        if dias_cfg != ""
+        {
+            // MySQL: DAYOFWEEK 1=Dom,2=Lun...7=Sab
+            dow = dbr.num(db,"SELECT DAYOFWEEK(NOW()) - 1",@null)
+            dia = substring(dias_map,dow,1)
+            if not(contains(dias_cfg,dia)) { return @false }
+        }
+
+        return @true
+    }
+
+    /**
+     * Devuelve la lista de envíos pendientes.
+     *
+     * REGLAS:
+     * 5) Excluye documentos con saldo cero o negativo (ya pagados).
+     * 6) Si un documento tiene un acuerdo de pago vigente, se omiten las notificaciones de tipo `Documento` sobre ese documento y aplica únicamente las notificaciones de tipo `Acuerdo`. Las notificaciones de tipo `Documento` y de tipo `Acuerdo` deben configurarse explícitamente de forma independiente.
+     * 7) Cuando un acuerdo supera su `fecha_pago` sin marcarse como cumplido, deja de estar vigente y vuelven a aplicar las notificaciones de tipo `Documento` sobre el saldo pendiente.
+     * 8) Un acuerdo está vigente hasta que su `monto_pago` complete el `monto_acuerdo`, hasta su `fecha_pago` o hasta que se marque manualmente como `cumplido`.
+     * 9) Solo puede existir un acuerdo vigente por documento a la vez.
+     * 12) Si `cxc_notif.tipo = 1` (Acuerdo) pero el documento no tiene acuerdo vigente, el envío se omite.
+     * 13) Cada notificación se envía de forma individual por cada contacto de cobranza asociado al cliente del documento.
+     * 14) Si un cliente no tiene contactos de cobranza registrados, la tarea intenta el envío al teléfono y correo del cliente directamente.
+     */
+    FindPendingNotifications :: &db
+    {
+        sql = "
+        SELECT
+            -- Notificación configurada
+            n.sys_guid          AS config_guid,
+            n.sys_pk            AS config_pk,
+            n.tipo              AS notif_tipo,
+            n.dias,
+            n.frecuencia,
+            n.canal,
+            n.para,
+            n.params,
+            n.tempvars,
+
+            -- Documento CXC
+            d.sys_pk            AS idoc,
+            d.sys_guid          AS doc_guid,
+            d.referencia        AS doc_reference,
+            d.fecha             AS doc_fecha,
+            d.fultmoratorios    AS doc_due_date,
+            (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.bonificaciones,0) - IFNULL(d.pagos,0)) AS doc_balance,
+
+            -- Cliente
+            cl.sys_pk           AS icliente,
+            cl.codigo           AS customer_code,
+            cl.nombre           AS customer_name,
+            cl.email            AS customer_email,
+            cl.telefonos        AS customer_phone,
+
+            -- Divisa
+            dv.codigo           AS doc_currency,
+            d.debe              AS doc_amount,
+
+            -- Contacto de cobranza (puede ser NULL -> regla 14)
+            cc.sys_pk           AS icontacto,
+            cc.nombre           AS billing_contact_name,
+            cc.email            AS contact_email,
+            cc.telefono         AS contact_phone,
+            cc.whatsapp         AS contact_whatsapp,
+
+            -- Acuerdo vigente (NULL si no aplica)
+            ap.sys_pk           AS iacuerdo,
+            ap.fecha_pago       AS agreement_due_date,
+            ap.monto_acuerdo    AS agreement_amount,
+            (ap.monto_acuerdo - IFNULL(ap.monto_pago,0)) AS agreement_balance
+
+        FROM cxc_notif n
+
+        -- Documentos con saldo pendiente (regla 5)
+        INNER JOIN dcxc d ON
+            (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.bonificaciones,0) - IFNULL(d.pagos,0)) > 0
+
+        INNER JOIN cliente cl ON cl.sys_pk = d.icliente
+        INNER JOIN divisa  dv ON dv.sys_pk = cl.idivisa
+
+        -- Contactos del cliente; LEFT JOIN para incluir clientes sin contacto (regla 14)
+        LEFT JOIN cxc_contacto_cobranza cc ON
+            cc.icliente = cl.sys_pk
+            AND NOT IFNULL(cc.sys_deleted,0)
+
+        -- Acuerdo vigente del documento (regla 8: cumplido = 0, monto_pago < monto_acuerdo, fecha_pago >= hoy)
+        LEFT JOIN cxc_acuerdo_pago ap ON
+            ap.idoc = d.sys_pk
+            AND NOT IFNULL(ap.cumplido,0)
+            AND ap.fecha_pago >= CURDATE()
+            AND IFNULL(ap.monto_pago,0) < ap.monto_acuerdo
+            AND NOT IFNULL(ap.sys_deleted,0)
+
+        WHERE
+            -- Notificación activa
+            NOT IFNULL(n.sys_deleted,0)
+            AND NOT IFNULL(n.disabled,0)
+
+            -- Regla 6/7: tipo Documento solo si no hay acuerdo vigente; tipo Acuerdo solo si lo hay
+            AND ((n.tipo = 0 AND ap.sys_pk IS NULL) OR (n.tipo = 1 AND ap.sys_pk IS NOT NULL))
+
+            -- Regla 12: si tipo=Acuerdo pero no hay acuerdo vigente, ya excluido arriba
+
+            -- Días vencido / anticipación (negativo = antes del vencimiento)
+            AND (
+                CASE
+                    WHEN n.tipo = 0 THEN DATEDIFF(CURDATE(), d.fultmoratorios) = n.dias
+                    WHEN n.tipo = 1 THEN DATEDIFF(CURDATE(), ap.fecha_pago)    = n.dias
+                END
+            )
+
+            -- Frecuencia: no superar los envíos del día (regla 17)
+            AND (
+                n.frecuencia IS NULL
+                OR n.frecuencia = 0
+                OR (
+                    SELECT COUNT(*) FROM cxc_notif_log l
+                    WHERE
+                        l.inotif    = n.sys_pk
+                        AND l.idoc  = d.sys_pk
+                        AND (cc.sys_pk IS NULL OR l.icontacto = cc.sys_pk)
+                        AND DATE(l.fecha_envio) = CURDATE()
+                        AND l.resultado = 1
+                ) < n.frecuencia
+            )
+
+            -- Anti-duplicado del día (regla 17): no re-enviar la misma combinación exitosa hoy
+            AND NOT EXISTS (
+                SELECT 1 FROM cxc_notif_log l
+                WHERE
+                    l.inotif    = n.sys_pk
+                    AND l.idoc  = d.sys_pk
+                    AND (cc.sys_pk IS NULL OR l.icontacto = cc.sys_pk)
+                    AND (ap.sys_pk IS NULL OR l.iacuerdo  = ap.sys_pk)
+                    AND DATE(l.fecha_envio) = CURDATE()
+                    AND l.resultado = 1
+            )
+
+        ORDER BY cl.nombre, d.referencia, n.tipo, n.dias
+        "
+        return dbr.list(db,sql,@null)
+    }
+
+    // Construye el registro de contexto con las macros disponibles para la plantilla
+    GetNotifContext :: &row
+    {
+        ref tempvars = from.djson(@@(row,"$tempvars"),"[]")
+
+        vars = ""
+        for i = 0; i < list.count(tempvars)
+        {
+            ref item = list.obj(tempvars,i)
+            varname = @@(item,"$varname")
+            vars = vars + varname + ","
+        }
+
+        // Si no se definieron variables posicionales, se exponen todas
+        if vars == ""
+        {
+            vars = "customer_code,customer_name,customer_email,customer_phone,billing_contact_name,"
+            vars = vars + "doc_reference,doc_amount,doc_balance,doc_due_date,doc_currency,"
+            vars = vars + "agreement_due_date,agreement_amount,agreement_balance,"
+        }
+        vars = rremove(vars,1)
+
+        // Construir registro plano con las claves que usan las macros {{...}}
+        ref ctx = record.copy(row,vars)
+        return ctx
+    }
+
+    SetContextAlias :: &ctx
+    {
+        // Alias EN/ES simultáneos (todas las macros del spec)
+        if field.exist(ctx,"customer_code") { ctx<"cliente_codigo"> : @@(ctx,"$customer_code") }
+        if field.exist(ctx,"customer_name") { ctx<"cliente_nombre"> : @@(ctx,"$customer_name") }
+        if field.exist(ctx,"customer_phone") { ctx<"cliente_telefono"> : @@(ctx,"$customer_phone") }
+        if field.exist(ctx,"customer_email") { ctx<"cliente_email"> : @@(ctx,"$customer_email") }
+        if field.exist(ctx,"billing_contact_name") { ctx<"contacto_nombre"> : @@(ctx,"$billing_contact_name") }
+        
+        if field.exist(ctx,"doc_reference") { ctx<"doc_referencia"> : @@(ctx,"$doc_reference") }
+        if field.exist(ctx,"doc_amount") { ctx<"doc_total"> : @@(ctx,"$doc_amount") }
+        if field.exist(ctx,"doc_balance") { ctx<"doc_saldo"> : @@(ctx,"$doc_balance") }
+        if field.exist(ctx,"doc_due_date") { ctx<"doc_vencimiento"> : @@(ctx,"$doc_due_date") }
+        if field.exist(ctx,"doc_currency") { ctx<"doc_moneda"> : @@(ctx,"$doc_currency") }
+    }
+
+    ClearContextAlias :: &ctx
+    {
+        alias = "cliente_codigo,cliente_nombre,cliente_telefono,cliente_email,contacto_nombre,"
+        alias = alias + "doc_referencia,doc_total,doc_saldo,doc_vencimiento,doc_moneda,"
+        alias = alias + "recipient"
+
+        do fields.remove(ctx,alias)
+    }
+
+    // Resuelve marcas {{macro}} en los valores de params usando el contexto
+    ResolveMarksInParams :: &row, &context
+    {
+        ref params = from.djson(@@(row,"$params"),"{}")
+        do SetContextAlias(context)
+        context<"recipient"> : @@(row,"$recipient")
+        
+        ref keys  = list.create_from_fields(params)
+        ref marks = list.create_from_fields(context)
+        
+        count_marks = list.count(marks)
+
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys,i)
+            val = @@(params,"$"+key)
+
+            if contains(val,"{{")
+            {
+                for n = 0; n < count_marks
+                {
+                    mark = list.str(marks,n)
+                    val  = replace(val,"{{"+mark+"}}",@@(context,"$"+mark))
+                }
+                params<key> : val
+            }
+        }
+
+        do ClearContextAlias(context)
+        row<"params*"> : params
+        return params
+    }
+
+    // Obtiene nombre del canal y ruta de la biblioteca del proveedor
+    GetChannelSettings :: &db, &row
+    {
+        ref params = @@(row,"&params")
+        ref snd = dbr.rec(db,"SELECT c.name, p.lib FROM snd_channel c INNER JOIN snd_provider p ON c.prov = p.sys_pk WHERE c.sys_pk = @canal",record.copy(row,"canal"))
+        
+        params.channel := @@(snd,"$name")
+        params.lib     := @@(snd,"$lib")
+        
+        return params
+    }
+
+    // Devuelve el destinatario resuelto según orden de precedencia (regla 15 y 16)
+    ResolveRecipient :: &row
+    {
+        // Si hay contacto, usar sus datos; si no, usar datos del cliente (regla 14)
+        icontacto = @@(row,"#icontacto")
+        para = trim(@@(row,"$para"))
+        dest = ""
+
+        if para == "" { return dest }
+
+        if icontacto > 0
+        {
+            whatsapp = @@(row,"$contact_whatsapp")
+            telefono = @@(row,"$contact_phone")
+
+            // Precedencia por tipo de canal (regla 16)
+            if para == "b_contact_whatsapp" { dest = ifempty(whatsapp, telefono) }
+            else if para == "b_contact_phone" { dest = ifempty(telefono, whatsapp) }
+            else if para == "b_contact_email" { dest = @@(row,"$contact_email") }
+        }
+        else
+        {
+            // Sin contacto: usar datos directos del cliente (regla 14)
+            if para == "b_contact_email" { dest = @@(row,"$customer_email") }
+            else { dest = @@(row,"$customer_phone") }
+        }
+
+        // Regla 15: omitir si no hay destinatario resuelto
+        if dest == "" { do rise_error(404,"No se resolvió el destinatario. Envío omitido.") }
+
+        row<"recipient"> : dest
+        return dest
+    }
+
+    // Bitácora
+    SaveNotifLog :: &db, &row, resultado, destinatario, detalle
+    {
+        icontacto = @@(row,"#icontacto")
+        iacuerdo  = @@(row,"#iacuerdo")
+
+        new log
+        {
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver": 0
+
+            @"inotif": @@(row,"#config_pk")
+            @"idoc": @@(row,"#idoc")
+            @"fecha_envio*": dbr.sql("NOW()")
+            @"resultado": resultado
+            @"destinatario": destinatario
+            @"detalle": detalle
+        }
+
+        if icontacto > 0 { log<"icontacto"> : icontacto }
+        if iacuerdo  > 0 { log<"iacuerdo">  : iacuerdo  }
+
+        do dbr.insert(db,"cxc_notif_log",log)
+    }
+    //#endregion
+
+    //#region >MAIN
+    if isset("@orchestrator_context")
+    {
+        ref args = @orchestrator_context
+        ref db   = dbr.open(@@(args,"$db"))
+    }
+    else if isset("@batch_context")
+    {
+        ref args = @("&params")
+        ref db   = @("&database")
+    }
+    else
+    {
+        ref args = commandline("=")
+
+        if @@(args,"$db") == "" { do rise_error(400,"Nombre cualificado de conexión es requerido.") }
+        ref db = dbr.open(@@(args,"$db"))
+    }
+
+    do SetTimeZone(db)
+
+    do Log(0,":: ENVÍO DE NOTIFICACIONES DE COBRANZA ::")
+    
+    // Regla 1: verificar ventana horaria y días habilitados
+    if not(IsWithinSchedule(db))
+    {
+        total = 0
+        do Log(0,"Fuera del horario de envío configurado. Tarea finalizada.")
+    }
+    else
+    {
+        ref pending = FindPendingNotifications(db)
+        total = list.count(pending)
+        do Log(0,"Envíos pendientes: " + str(total))
+    }
+
+    for i = 0; i < total
+    {
+        ref row = list.obj(pending,i)
+
+        documento = @@(row,"$doc_reference")
+        cliente   = @@(row,"$customer_name")
+        contacto  = @@(row,"$billing_contact_name")
+        
+        if contacto == "" { contacto = "(cliente directo)" }
+        do Log(1,"> [" + str(i+1) + "/" + str(total) + "] " + cliente + " | " + documento + " -> " + contacto)
+
+        resultado = @false
+        destinatario = ""
+        detalle = ""
+
+        codeblock "Procesar envío"
+        {
+            destinatario = ResolveRecipient(row)
+
+            ref context = GetNotifContext(row)
+            ref params  = ResolveMarksInParams(row,context)
+            ref message = GetChannelSettings(db,row)
+
+            if isset("@batch_context") || isset("@orchestrator_context")
+            {
+                include @@(message,"$lib")
+            }
+            do field.remove(message,"lib")
+
+            ref response = v12.com.sendMessageV2(db,message,context)
+            if not(isnull(response)) && not(@@(response,"#success"))
+            {
+                do rise_error(500,@@(response,"$message"))
+            }
+
+            resultado = @true
+            detalle   = ifstr(isnull(response),"",to.json(@@(response,"&data")))
+
+            do Log(2,"Enviado a: " + destinatario)
+
+            exception
+            {
+                error     = last_error()
+                ref obj   = ExtractJsonAsObject(error)
+                if not(isnull(obj)) { error = to.json(obj) }
+                detalle   = error
+                resultado = @false
+                do Log(2,"* Error: " + error)
+                do clear_exceptions()
+            }
+        }
+
+        // Regla 4: sin reintentos; registrar siempre el resultado
+        do SaveNotifLog(db,row,resultado,destinatario,detalle)
+        do UpdatePercent((i + 1) * 100 / total)
+    }
+
+    exception
+    {
+        if isset("@batch_context") || isset("@orchestrator_context") { do Log(0,last_error()) }
+        else { do print_error(last_error()) }
+        do clear_exceptions()
+    }
+
+    if isset("db")
+    {
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if not(isset("@batch_context")) { do dbr.close(db) }
+    }
+    if isset("@orchestrator_context") { @orchestrator_context.status := "finished" }
+    //#endregion
+}

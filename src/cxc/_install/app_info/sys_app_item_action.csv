@@ -25,6 +25,24 @@ GB30,Informe de antigüedad de saldos por cobrar,Antigüedad de saldos,,/!/cxc/r
 GB31,Origen y aplicación,Origen y aplicación,,/!/cxc/reports/origen-aplicacion/,0,cxc.reports,DET01D,0,report
 GB32,Historial de pagos por clientes,HPagos XCliente,,/!/cxc/reports/historial-de-pagos-por-cliente/,0,cxc.reports,DET014,0,report
 
+GB50,Contactos de cobranza,Contactos,,/!/cxc/contacto-cobranza/,0,cxc.contacto_cobranza,DET0C1,0,shortcut
+GB51,Nuevo contacto,Agregar,,/!/cxc/contacto-cobranza/_new/,0,cxc.contacto_cobranza,DET0C1,0,action
+GB52,Editar contacto,Editar,,/!/cxc/contacto-cobranza/@_src_context_item_id/,0,cxc.contacto_cobranza,DET0C1,1,action
+GB53,Eliminar contacto,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,cxc.contacto_cobranza,DET0C1,1,action
+GB54,Importar CSV,Importar CSV,,/!/batch/taskman/GB/importar.contactos-cobranza/?exit_url_encode=LyEvY3hjL2NvbnRhY3RvLWNvYnJhbnphLw||,0,cxc.contacto_cobranza,DET0C1,0,action
+
+GB60,Acuerdos de pago,Acuerdos,,/!/cxc/acuerdo-pago/,0,cxc.acuerdo_pago,DET0C2,0,shortcut
+GB61,Nuevo acuerdo,Agregar,,/!/cxc/acuerdo-pago/_new/,0,cxc.acuerdo_pago,DET0C2,0,action
+GB62,Editar acuerdo,Editar,,/!/cxc/acuerdo-pago/@_src_context_item_id/,0,cxc.acuerdo_pago,DET0C2,1,action
+GB63,Eliminar acuerdo,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,cxc.acuerdo_pago,DET0C2,1,action
+GB64,Importar CSV,Importar CSV,,/!/batch/taskman/GB/importar.acuerdos-pago/?exit_url_encode=LyEvY3hjL2FjdWVyZG8tcGFnby8|,0,cxc.acuerdo_pago,DET0C2,0,action
+
+GB70,Notificaciones de cobranza,Notificaciones,,/!/cxc/notif/,0,cxc.notificacion,DET0C3,0,shortcut
+GB71,Nueva notificación de cobranza,Agregar,,/!/cxc/notif/_new/,0,cxc.notificacion,DET0C3,0,action
+GB72,Editar notificación de cobranza,Editar,,/!/cxc/notif/@_src_context_item_id/,0,cxc.notificacion,DET0C3,1,action
+GB73,Eliminar notificación de cobranza,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,cxc.notificacion,DET0C3,1,action
+GB74,Ejecutar notificaciones de cobranza,Notificar,,/!/batch/taskman/GB/notificar-cobranza/?exit_url_encode=LyEvY3hjL25vdGlmLw||,0,cxc.notificacion,DET0C3,0,action
+
 GBF0,Importar movimientos iniciales por cobrar,"Importar",,/!/batch/taskman/GB/importar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF1,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF2,Limpiar movimientos por cobrar,"Limpiar",,/!/batch/taskman/GB/limpiar.documentos/,0,cxc.documentos,DET01D,0,action

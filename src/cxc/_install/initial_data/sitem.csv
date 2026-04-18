@@ -35,3 +35,21 @@ GB31,Origen y aplicación,cxc.reports
 GB32,Historial de pagos por clientes,cxc.reports
 GB40,Ver mensajes documentos por cobrar,cxc.documentos
 GB41,Publicar mensajes documentos por cobrar,cxc.documentos
+cxc.contacto_cobranza,Contactos de cobranza,cxc
+GB50,Solo lectura,cxc.contacto_cobranza
+GB51,Crear contacto,cxc.contacto_cobranza
+GB52,Editar contacto,cxc.contacto_cobranza
+GB53,Eliminar contacto,cxc.contacto_cobranza
+GB54,Importar CSV,cxc.contacto_cobranza
+cxc.acuerdo_pago,Acuerdos de pago,cxc
+GB60,Acuerdos de pago,cxc.acuerdo_pago,
+GB61,Nuevo acuerdo,cxc.acuerdo_pago,
+GB62,Editar acuerdo,cxc.acuerdo_pago,
+GB63,Eliminar acuerdo,cxc.acuerdo_pago,
+GB54,Importar CSV,cxc.acuerdo_pago,
+cxc.notificacion,Notificaciones de cobranza,cxc
+GB70,Notificaciones de cobranza,cxc.notificacion
+GB71,Nueva notificación de cobranza,cxc.notificacion
+GB72,Editar notificación de cobranza,cxc.notificacion
+GB73,Eliminar notificación de cobranza,cxc.notificacion
+GB74,Ejecutar notificaciones de cobranza,cxc.notificacion

@@ -2,3 +2,6 @@
 "cxc","cxc.documentos","Documentos por cobrar",2023-12-05T23:59:59,"Administración de documentos por cobrar"
 "cxc","cxc.clientes","Clientes y cuentas por cobrar",2023-12-05T23:59:59,"Administración de cuentas por cobrar"
 "cxc","cxc.reports","Informes de Cuentas por Cobrar",2024-04-18T23:59:59,"Informes de Cuentas por Cobrar"
+"cxc","cxc.contacto_cobranza","Contactos de cobranza","2026-04-15T23:59:59","Administración de los contactos de cobro de un cliente"
+"cxc","cxc.acuerdo_pago","Acuerdos de pago","2026-04-15T23:59:59","Administración de los acuerdos de pago de un documento"
+"cxc","cxc.notificacion","Notificaciones de cobranza","2026-04-15T23:59:59","Configuración de las notificaciones de cobranza"
