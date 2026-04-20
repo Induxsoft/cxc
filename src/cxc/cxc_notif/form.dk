@@ -101,21 +101,25 @@ module "form.dk"
     new tempvars_catalog
     {
         // Datos del cliente
-        @"customer_code":         "{{customer_code}} / {{cliente_codigo}} — Código del cliente"
-        @"customer_name":         "{{customer_name}} / {{cliente_nombre}} — Nombre del cliente"
-        @"customer_phone":        "{{customer_phone}} / {{cliente_telefono}} — Teléfono del cliente"
-        @"customer_email":        "{{customer_email}} / {{cliente_email}} — Correo del cliente"
-        @"billing_contact_name":  "{{billing_contact_name}} / {{contacto_nombre}} — Nombre del contacto"
+        @"customer_code":         "{{customer_code}} / {{cliente_codigo}} - Código del cliente"
+        @"customer_name":         "{{customer_name}} / {{cliente_nombre}} - Nombre del cliente"
+        @"customer_phone":        "{{customer_phone}} / {{cliente_telefono}} - Teléfono del cliente"
+        @"customer_email":        "{{customer_email}} / {{cliente_email}} - Correo del cliente"
+        // Datos del contacto
+        @"contact_name":          "{{contact_name}} / {{contacto_nombre}} - Nombre del contacto"
+        @"contact_email":         "{{contact_email}} / {{contacto_email}} - Correo del contacto"
+        @"contact_phone":         "{{contact_phone}} / {{contacto_telefono}} - Teléfono del contacto"
+        @"contact_whatsapp":      "{{contact_whatsapp}} / {{contacto_whatsapp}} - WhatsApp del contacto"
         // Datos del documento
-        @"doc_reference":         "{{doc_reference}} / {{doc_referencia}} — Referencia del documento"
-        @"doc_amount":            "{{doc_amount}} / {{doc_total}} — Monto total"
-        @"doc_balance":           "{{doc_balance}} / {{doc_saldo}} — Saldo pendiente"
-        @"doc_due_date":          "{{doc_due_date}} / {{doc_vencimiento}} — Fecha de vencimiento"
-        @"doc_currency":          "{{doc_currency}} / {{doc_moneda}} — Divisa del documento"
+        @"doc_reference":         "{{doc_reference}} / {{doc_referencia}} - Referencia del documento"
+        @"doc_amount":            "{{doc_amount}} / {{doc_total}} - Monto total"
+        @"doc_balance":           "{{doc_balance}} / {{doc_saldo}} - Saldo pendiente"
+        @"doc_due_date":          "{{doc_due_date}} / {{doc_vencimiento}} - Fecha de vencimiento"
+        @"doc_currency":          "{{doc_currency}} / {{doc_moneda}} - Divisa del documento"
         // Datos del acuerdo (tipo=1)
-        @"agreement_due_date":    "{{agreement_due_date}} — Fecha comprometida del acuerdo"
-        @"agreement_amount":      "{{agreement_amount}} — Monto acordado"
-        @"agreement_balance":     "{{agreement_balance}} — Saldo pendiente del acuerdo"
+        @"agreement_due_date":    "{{agreement_due_date}} - Fecha comprometida del acuerdo"
+        @"agreement_amount":      "{{agreement_amount}} - Monto acordado"
+        @"agreement_balance":     "{{agreement_balance}} - Saldo pendiente del acuerdo"
     }
 
     ref ch_params_def  = ifnull(@("&./template_controls"), record.create())
@@ -211,15 +215,25 @@ module "form.dk"
                         do uie.dbSelect(sel_recipient)
                         ##
                     }
-                    // Desactivada 
-                    div(class="col-auto align-self-end pb-1")
+                    
+                    div(class="col-auto")
                     {
+                        // Recurrente
                         #!
-                        disabled_checked = ifstr(@("#./disabled") && not(@is_new), "checked", "")
+                        checked = ifstr(@("#./recurrent") && not(@is_new), "checked", "")
                         #$
                         div(class="form-check")
                         {
-                            input(class="form-check-input" type="checkbox" name="disabled" value="1" id="disabled" "#<disabled_checked>"="")
+                            input(class="form-check-input" type="checkbox" name="recurrent" id="recurrent" "#<checked>"="")
+                            label(class="form-check-label" "for"="recurrent"){span(id="spn-recurrent"){""} "Notificar indefinidamente hasta nuevo acuerdo o se salde el documento"}
+                        }
+                        // Desactivada
+                        #!
+                        checked = ifstr(@("#./disabled") && not(@is_new), "checked", "")
+                        #$
+                        div(class="form-check")
+                        {
+                            input(class="form-check-input" type="checkbox" name="disabled" id="disabled" "#<checked>"="")
                             label(class="form-check-label" "for"="disabled"){$"Desactivada"}
                         }
                     }

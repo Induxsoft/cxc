@@ -12,11 +12,22 @@ module ":AcuerdoPago"
         c.codigo  AS cliente_codigo,
         c.nombre  AS cliente_nombre,
         d.referencia,
-        (IFNULL(d.debe,0) + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
+        (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
         m.codigo AS moneda,
         DATE_FORMAT(a.fecha_acuerdo,'%Y/%m/%d') fecha_acuerdo,
         a.monto_acuerdo,
-        a.contacto
+        DATE_FORMAT(a.fecha_pago,'%Y/%m/%d') fecha_pago,
+        IF((NOT IFNULL(a.cumplido,0)
+            AND a.fecha_pago >= CURDATE()
+            AND IFNULL(a.monto_pago,0) < a.monto_acuerdo)
+            , 'Sí'
+            , 'No'
+        ) AS vigente,
+        IF((IFNULL(a.cumplido,0)
+            OR (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) <= 0)
+            , 'Sí'
+            , 'No'
+        ) AS cumplido
     FROM cxc_acuerdo_pago a
         INNER JOIN dcxc d ON a.idoc = d.sys_pk
         INNER JOIN cliente c ON d.icliente = c.sys_pk
@@ -24,11 +35,31 @@ module ":AcuerdoPago"
     WHERE
         NOT IFNULL(a.sys_deleted,0)
         AND (
+            CASE
+                WHEN @fi != '' && @ff != '' THEN (DATE(a.fecha_pago) BETWEEN DATE(@fi) AND DATE(@ff))
+                WHEN @fi != '' && @ff = '' THEN (DATE(a.fecha_pago) >= DATE(@fi))
+                WHEN @fi = '' && @ff != '' THEN (DATE(a.fecha_pago) <= DATE(@ff))
+                ELSE TRUE
+            END
+        )
+        AND (
             IFNULL(@search,'') = ''
             OR c.codigo = @search
             OR c.nombre LIKE CONCAT('%',@search,'%')
             OR d.referencia LIKE CONCAT('%',@search,'%')
         )
+    HAVING
+        (CASE @vigentes
+            WHEN 1 THEN vigente = 'Sí'
+            WHEN 0 THEN vigente = 'No'
+            ELSE TRUE
+        END)
+        AND
+        (CASE @cumplidos
+            WHEN 1 THEN cumplido = 'Sí'
+            WHEN 0 THEN cumplido = 'No'
+            ELSE TRUE
+        END)
     ORDER BY
         c.nombre,
         d.referencia
@@ -79,6 +110,11 @@ module ":AcuerdoPago"
                 IFNULL(a.monto_pago,0) >= IFNULL(a.monto_acuerdo,0)
                 OR CURDATE() > a.fecha_pago
                 OR IFNULL(a.cumplido,0)
+            )
+            AND (
+                c.codigo = @search OR
+                c.nombre LIKE CONCAT('%',@search,'%') OR
+                d.referencia LIKE CONCAT('%',@search,'%')
             )
             HAVING saldo > 0
             "
@@ -161,6 +197,16 @@ module ":AcuerdoPago"
     function list(&db,&params)
     {
         do dbr.apps.action.grant("GB60")
+
+        vigentes = @@(params,"#vigentes")
+        cumplidos = @@(params,"#cumplidos")
+        
+        if not(field.exist(params,"fi")) { params<"fi"> : date_str(now(),"yyyy-MM-dd") }
+        if not(field.exist(params,"ff")) { params<"ff"> : ndatetime.tostr(ndatetime.add(ndatetime.now(),1,"m"),"yyyy-MM-dd") }
+        if not(field.exist(params,"vigentes")) { vigentes = -1 }
+        if not(field.exist(params,"cumplidos")) { cumplidos = -1 }
+
+        vigentes, cumplidos >> params
 
         new data
         {

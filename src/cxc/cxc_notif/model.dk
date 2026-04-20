@@ -44,7 +44,7 @@ module "Notificaciones de cobranza"
 
             using data
             {
-                @"tipo_list*":  tipo_list
+                @"tipo_list*": tipo_list
                 @"canal_list*": canal_list
             }
 
@@ -60,9 +60,14 @@ module "Notificaciones de cobranza"
             }
 
             // Deserializar params para el form
-            json_params = @@(data,"$params")
-            if json_params == "" { json_params = "{}" }
-            data<"params*"> : from.json(json_params)
+            if field.exist(data,"params") {
+                if field.typeof(data,"params") == 1
+                {
+                    json_params = @@(data,"$params")
+                    if json_params == "" { json_params = "{}" }
+                    data<"params*"> : from.json(json_params)
+                }
+            }
         }
     }
 
@@ -70,14 +75,15 @@ module "Notificaciones de cobranza"
     function validateFields(&data)
     {
         if @@(data,"#tipo") < 0 { do rise_error(511,"El tipo (Documento/Acuerdo) es requerido.") }
-        if @@(data,"#dias") == 0 { do rise_error(512,"El campo Días es requerido (puede ser negativo).") }
+        // if @@(data,"#dias") == 0 { do rise_error(512,"El campo Días es requerido (puede ser negativo).") }
         if @@(data,"#canal") < 1 { do rise_error(513,"El canal de envío es requerido.") }
 
         // Serializar params y tempvars si llegan como objetos
-        if field.typeof(data,"params") == 3 { data<"params">   : to.json(@@(data,"&params")) }
+        if field.typeof(data,"params") == 3 { data<"params"> : to.json(@@(data,"&params")) }
         if field.typeof(data,"tempvars") == 3 { data<"tempvars"> : to.json(@@(data,"&tempvars")) }
 
         data<"disabled"> : parse.bool(@@(data,"$disabled"))
+        data<"recurrent"> : parse.bool(@@(data,"$recurrent"))
     }
 
     //#region list()
@@ -224,7 +230,6 @@ module "Notificaciones de cobranza"
     //#region catch()
     function catch(&db, &params, &data)
     {
-        do errordet(@false)
         code  = last_error_code()
         error = last_error()
 

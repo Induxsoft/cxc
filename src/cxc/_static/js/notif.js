@@ -7,6 +7,7 @@ var notif = {
     {
         const form = document.getElementById(this.form_id);
         const type = document.getElementById('tipo');
+        const days = document.getElementById('dias');
         const channel = document.getElementById('canal');
         const to = document.getElementById('para');
 
@@ -14,6 +15,18 @@ var notif = {
             e.preventDefault();
             this._submit(e.target);
         });
+
+        const spn_recurrent = document.getElementById('spn-recurrent');
+        days.addEventListener('input', (e) => {
+            let dias = Number(e.target.value);
+            let span = "Desde el vencimiento. "
+            
+            if (dias < 0) span = `A partir de ${Math.abs(dias)} días antes del vencimiento. `;
+            else if (dias > 0) span = `A partir de ${dias} días después del vencimiento. `;
+
+            spn_recurrent.textContent = span;
+        });
+        tools.trigger(days,'input');
 
         channel.addEventListener('change', e => {
             let url = window.location.href;
@@ -75,9 +88,21 @@ var notif = {
                 label: "Correo del cliente",
                 aliases: ["cliente_email"]
             },
-            billing_contact_name: {
+            contact_name: {
                 label: "Nombre del contacto",
                 aliases: ["contacto_nombre"]
+            },
+            contact_email: {
+                label: "Correo del contacto",
+                aliases: ["contacto_email"]
+            },
+            contact_phone: {
+                label: "Teléfono del contacto",
+                aliases: ["contacto_telefono"]
+            },
+            contact_whatsapp: {
+                label: "WhatsApp del contacto",
+                aliases: ["contacto_whatsapp"]
             },
             recipient: {
                 label: "Resolver destinatario según orden de precedencia"

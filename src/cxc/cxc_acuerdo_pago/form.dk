@@ -100,19 +100,19 @@ module "form.dk"
                     // Fecha acuerdo
                     div(class="col-md-3")
                     {
-                        label(class="form-label" "for"="fecha_acuerdo"){"Fecha acuerdo"}
+                        label(class="form-label" "for"="fecha_acuerdo"){"Fecha del acuerdo"}
                         input(class="form-control rounded-0" type="date" name="fecha_acuerdo" value="#<@('$./fecha_acuerdo')>" id="fecha_acuerdo")
                     }
                     // Monto acuerdo
                     div(class="col-md-3")
                     {
-                        label(class="form-label" "for"="monto_acuerdo"){"Monto acuerdo"}
+                        label(class="form-label" "for"="monto_acuerdo"){"Monto acordado"}
                         input(class="form-control rounded-0" type="number" name="monto_acuerdo" value="#<@('#./monto_acuerdo')>" id="monto_acuerdo" min="0" step="0.01")
                     }
                     // Fecha pago
                     div(class="col-md-3")
                     {
-                        label(class="form-label" "for"="fecha_pago"){"Fecha pago"}
+                        label(class="form-label" "for"="fecha_pago"){"Fecha comprometida de pago"}
                         input(class="form-control rounded-0" type="date" name="fecha_pago" value="#<@('$./fecha_pago')>" id="fecha_pago")
                     }
                     // Cumplido

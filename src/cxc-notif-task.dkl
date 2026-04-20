@@ -236,7 +236,7 @@ program "cxc-notif-task"
 
             -- Contacto de cobranza (puede ser NULL -> regla 14)
             cc.sys_pk           AS icontacto,
-            cc.nombre           AS billing_contact_name,
+            cc.nombre           AS contact_name,
             cc.email            AS contact_email,
             cc.telefono         AS contact_phone,
             cc.whatsapp         AS contact_whatsapp,
@@ -279,11 +279,17 @@ program "cxc-notif-task"
 
             -- Regla 12: si tipo=Acuerdo pero no hay acuerdo vigente, ya excluido arriba
 
-            -- Días vencido / anticipación (negativo = antes del vencimiento)
+            -- Días vencido / anticipación ó recurrente a partir de n.dias
             AND (
                 CASE
-                    WHEN n.tipo = 0 THEN DATEDIFF(CURDATE(), d.fultmoratorios) = n.dias
-                    WHEN n.tipo = 1 THEN DATEDIFF(CURDATE(), ap.fecha_pago)    = n.dias
+                    WHEN n.tipo = 0 AND NOT IFNULL(n.recurrent,0)
+                        THEN DATEDIFF(CURDATE(), d.fultmoratorios) = n.dias
+                    WHEN n.tipo = 0 AND IFNULL(n.recurrent,0)
+                        THEN DATEDIFF(CURDATE(), d.fultmoratorios) >= n.dias
+                    WHEN n.tipo = 1 AND NOT IFNULL(n.recurrent,0)
+                        THEN DATEDIFF(CURDATE(), ap.fecha_pago) = n.dias
+                    WHEN n.tipo = 1 AND IFNULL(n.recurrent,0)
+                        THEN DATEDIFF(CURDATE(), ap.fecha_pago) >= n.dias
                 END
             )
 
@@ -319,6 +325,29 @@ program "cxc-notif-task"
         return dbr.list(db,sql,@null)
     }
 
+    // Marca a los acuerdos vigentes como cumplidos cuando su documento origen ya ha sido saldado.
+    UpdateCompletedAgreements :: &db
+    {
+        sql = "
+        UPDATE
+            cxc_acuerdo_pago a
+            INNER JOIN dcxc d ON a.idoc = d.sys_pk
+        SET
+            a.sys_timestamp = NOW(),
+            a.sys_recver = (IFNULL(a.sys_recver,0) + 1),
+            a.monto_pago = (IFNULL(d.pagos,0) + IFNULL(d.bonificaciones,0)),
+            a.cumplido = TRUE,
+            a.notas = 'Documento del acuerdo saldado'
+        WHERE
+            NOT IFNULL(a.sys_deleted,0)
+            AND NOT IFNULL(a.cumplido,0)
+            AND a.fecha_pago >= CURDATE()
+            AND IFNULL(a.monto_pago,0) < a.monto_acuerdo
+            AND (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) <= 0
+        "
+        do dbr.execute(db,sql,@null)
+    }
+
     // Construye el registro de contexto con las macros disponibles para la plantilla
     GetNotifContext :: &row
     {
@@ -335,7 +364,8 @@ program "cxc-notif-task"
         // Si no se definieron variables posicionales, se exponen todas
         if vars == ""
         {
-            vars = "customer_code,customer_name,customer_email,customer_phone,billing_contact_name,"
+            vars = "customer_code,customer_name,customer_email,customer_phone,"
+            vars = vars + "contact_name,contact_email,contact_phone,contact_whatsapp,"
             vars = vars + "doc_reference,doc_amount,doc_balance,doc_due_date,doc_currency,"
             vars = vars + "agreement_due_date,agreement_amount,agreement_balance,"
         }
@@ -353,7 +383,11 @@ program "cxc-notif-task"
         if field.exist(ctx,"customer_name") { ctx<"cliente_nombre"> : @@(ctx,"$customer_name") }
         if field.exist(ctx,"customer_phone") { ctx<"cliente_telefono"> : @@(ctx,"$customer_phone") }
         if field.exist(ctx,"customer_email") { ctx<"cliente_email"> : @@(ctx,"$customer_email") }
-        if field.exist(ctx,"billing_contact_name") { ctx<"contacto_nombre"> : @@(ctx,"$billing_contact_name") }
+        
+        if field.exist(ctx,"contact_name") { ctx<"contacto_nombre"> : @@(ctx,"$contact_name") }
+        if field.exist(ctx,"contact_email") { ctx<"contacto_email"> : @@(ctx,"$contact_email") }
+        if field.exist(ctx,"contact_phone") { ctx<"contacto_telefono"> : @@(ctx,"$contact_phone") }
+        if field.exist(ctx,"contact_whatsapp") { ctx<"contacto_whatsapp"> : @@(ctx,"$contact_whatsapp") }
         
         if field.exist(ctx,"doc_reference") { ctx<"doc_referencia"> : @@(ctx,"$doc_reference") }
         if field.exist(ctx,"doc_amount") { ctx<"doc_total"> : @@(ctx,"$doc_amount") }
@@ -364,7 +398,8 @@ program "cxc-notif-task"
 
     ClearContextAlias :: &ctx
     {
-        alias = "cliente_codigo,cliente_nombre,cliente_telefono,cliente_email,contacto_nombre,"
+        alias = "cliente_codigo,cliente_nombre,cliente_telefono,cliente_email,"
+        alias = alias + "contacto_nombre,contacto_email,contacto_telefono,contacto_whatsapp,"
         alias = alias + "doc_referencia,doc_total,doc_saldo,doc_vencimiento,doc_moneda,"
         alias = alias + "recipient"
 
@@ -509,6 +544,7 @@ program "cxc-notif-task"
     }
     else
     {
+        do UpdateCompletedAgreements(db)
         ref pending = FindPendingNotifications(db)
         total = list.count(pending)
         do Log(0,"Envíos pendientes: " + str(total))
@@ -520,7 +556,7 @@ program "cxc-notif-task"
 
         documento = @@(row,"$doc_reference")
         cliente   = @@(row,"$customer_name")
-        contacto  = @@(row,"$billing_contact_name")
+        contacto  = @@(row,"$contact_name")
         
         if contacto == "" { contacto = "(cliente directo)" }
         do Log(1,"> [" + str(i+1) + "/" + str(total) + "] " + cliente + " | " + documento + " -> " + contacto)

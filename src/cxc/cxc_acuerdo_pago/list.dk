@@ -23,7 +23,7 @@ module "list.dk"
         {
             member @"cliente_codigo" { @"caption":"Cód. cliente" }
             member @"cliente_nombre" { @"caption":"Cliente" }
-            member @"referencia" { @"caption":"Referencia" }
+            member @"referencia" { @"caption":"Documento" }
             member @"saldo"
             {
                 @"caption":"Saldo"
@@ -50,7 +50,21 @@ module "list.dk"
                 @"thousandssep": @true
                 @"decs": 2
             }
-            member @"contacto" { @"caption":"Contacto" }
+            member @"fecha_pago"
+            {
+                @"caption":"F. Pago"
+                @"align":"center"
+            }
+            member @"vigente"
+            {
+                @"caption":"Vigente"
+                @"align":"center"
+            }
+            member @"cumplido"
+            {
+                @"caption":"Cumplido"
+                @"align":"center"
+            }
         }
         @"table_footer": "Mostrando los primeros # registros"
     }
@@ -64,6 +78,50 @@ module "list.dk"
         @"jscurrentcontext": "getCurrentContext"
     }
 
+    new date_range
+    {
+        @"start": @("$parameters/fi")
+        @"end": @("$parameters/ff")
+    }
+
+    new fil_vigentes
+    {
+        @"id": "vigentes"
+        @"text_field": "const"
+        @"value_field": "id"
+        @"datatable*": from.json('[
+            { "id":-1, "const": "(Vigentes / Vencidos)" },
+            { "id": 1, "const": "Vigentes" },
+            { "id": 0, "const": "Vencidos" }
+        ]')
+        @"selected": @("parameters/vigentes")
+        member "attributes"
+        {
+            @"class": "form-select rounded-0"
+            @"name": "vigentes"
+            @"onchange": "filter(this)"
+        }
+    }
+
+    new fil_cumplidos
+    {
+        @"id": "cumplidos"
+        @"text_field": "const"
+        @"value_field": "id"
+        @"datatable*": from.json('[
+            { "id":-1, "const": "(Cumplidos / Pendientes)" },
+            { "id": 1, "const": "Cumplidos" },
+            { "id": 0, "const": "Pendientes" }
+        ]')
+        @"selected": @("parameters/cumplidos")
+        member "attributes"
+        {
+            @"class": "form-select rounded-0"
+            @"name": "cumplidos"
+            @"onchange": "filter(this)"
+        }
+    }
+
     #$
     div(class="container-fluid" id="view")
     {
@@ -75,16 +133,28 @@ module "list.dk"
 
             form(class="mb-1 d-flex gap-2 align-items-center" action="./" method="GET" id="form-filter")
             {
-                div(class="flex-grow-1")
+                div(class="d-flex align-items-center gap-2 flex-wrap w-100 py-1")
                 {
-                    "filter-text"(
-                        class="w-100"
-                        "text-field"="search"
-                        value="#<@('$parameters/search')>"
-                        placeholder="Buscar por código, nombre de cliente, contacto o referencia del documento ..."
-                        "form"="#form-filter"
-                        "auto-submit"="true"
-                    ){$""}
+                    div(class="d-flex gap-2")
+                    {
+                        div
+                        {
+                            "date-range"(class="w-100" "hidden-input-name-start"="fi" "hidden-input-name-end"="ff" data='#<to.json(date_range)>'){""}
+                        }
+                        div{ #! do uie.dbSelect(fil_vigentes) } #$
+                        div{ #! do uie.dbSelect(fil_cumplidos) } #$
+                    }
+                    div(class="flex-grow-1")
+                    {
+                        "filter-text"(
+                            class="w-100"
+                            "text-field"="search"
+                            value="#<@('$parameters/search')>"
+                            placeholder="Buscar por cliente o referencia del documento ..."
+                            "form"="#form-filter"
+                            "auto-submit"="true"
+                        ){$""}
+                    }
                 }
             }
         }
@@ -141,6 +211,11 @@ module "list.dk"
                     }
 
                     document.addEventListener("DOMContentLoaded", () => {
+                        const date_range = document.querySelector("date-range");
+
+                        date_range.onChanging = (oldData,newData) => { date_range.setData(newData) };
+                        date_range.onChange = (data) => { filter(date_range._hiddenInputStr) };
+
                         #<@@(@crud_context,"script")>
                     });
                 '}
