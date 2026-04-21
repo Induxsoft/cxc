@@ -138,17 +138,25 @@ module ":AcuerdoPago"
     function validateFields(&db,&params,&data)
     {
         is_new = (@@(params,"$_entity_id") == "_new")
-        monto = @@(data,"#monto_acuerdo")
+        fecha_acuerdo = @@(data,"$fecha_acuerdo")
+        fecha_pago = @@(data,"$fecha_pago")
+        monto_acuerdo = @@(data,"#monto_acuerdo")
 
         if @@(data,"#idoc") < 1 { do rise_error(511,"Debe seleccionar un documento.") }
-        if monto <= 0 { do rise_error(512,"El monto del acuerdo debe ser mayor a cero.") }
+        if fecha_acuerdo == "" { do rise_error(512,"Debe indicar la fecha del acuerdo.") }
+        if monto_acuerdo <= 0 { do rise_error(513,"El monto del acuerdo debe ser mayor a cero.") }
+        if fecha_pago == "" { do rise_error(513,"Debe indicar la fecha comprometida de pago.") }
+
+        ndt_acuerdo = ndatetime.fromstr(fecha_acuerdo,"yyyy-MM-dd")
+        ndt_pago = ndatetime.fromstr(fecha_pago,"yyyy-MM-dd")
+        if ndatetime.diff(ndt_pago,ndt_acuerdo,"d") < 0 { do rise_error(514,"La fecha de pago no puede ser inferior a la fecha del acuerdo.") }
 
         if is_new
         {
             saldo = dbr.num(db,"SELECT (debe + IFNULL(intmoratorios,0) - IFNULL(bonificaciones,0) - IFNULL(pagos,0)) FROM dcxc WHERE sys_pk = @idoc",data)
 
-            if saldo <= 0 { do rise_error(513,"No se puede crear un acuerdo sobre un documento con saldo cero o negativo.") }
-            if monto > saldo { do rise_error(514,ftext("El monto del acuerdo (#<format(monto,'#,##0.00')>) excede el saldo pendiente del documento (#<format(saldo,'#,##0.00')>).")) }
+            if saldo <= 0 { do rise_error(515,"No se puede crear un acuerdo sobre un documento con saldo cero o negativo.") }
+            if monto_acuerdo > saldo { do rise_error(516,ftext("El monto del acuerdo (#<format(monto_acuerdo,'#,##0.00')>) excede el saldo pendiente del documento (#<format(saldo,'#,##0.00')>).")) }
             
             // Solo puede existir un acuerdo vigente por documento a la vez
             // Un acuerdo está vigente si: no cumplido, monto_pago < monto_acuerdo y fecha_pago >= hoy
@@ -157,12 +165,12 @@ module ":AcuerdoPago"
             WHERE idoc = @idoc
                 AND NOT IFNULL(cumplido,0)
                 AND fecha_pago >= CURDATE()
-                AND monto_pago < monto_acuerdo
+                AND IFNULL(monto_pago,0) < monto_acuerdo
                 AND NOT IFNULL(sys_deleted,0)
             "
             vigente = dbr.num(db,sql,data)
             
-            if vigente > 0 { do rise_error(514,"El documento ya tiene un acuerdo de pago vigente.") }
+            if vigente > 0 { do rise_error(517,"El documento ya tiene un acuerdo de pago vigente.") }
         }
 
         using data

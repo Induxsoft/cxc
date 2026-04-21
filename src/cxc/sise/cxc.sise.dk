@@ -1,0 +1,150 @@
+#include "dkli.dkh"
+#!
+module "Integración SISE de cuentas por cobrar :cxc.sise"
+{
+    GetAgreement :: &db, agreement_id
+    {
+        agreement_id >> p
+        sql = "
+        SELECT
+            a.sys_guid AS id_acuerdo,
+            c.codigo AS cliente_codigo,
+            c.nombre AS cliente_nombre,
+            d.referencia AS documento,
+            a.idoc,
+            DATE_FORMAT(a.fecha_acuerdo,'%Y-%m-%d') fecha_acuerdo,
+            a.monto_acuerdo,
+            DATE_FORMAT(a.fecha_pago,'%Y-%m-%d') fecha_pago,
+            IFNULL(a.cumplido,0) cumplido,
+            IFNULL(a.notas,'') notas,
+            IFNULL(a.contacto,'') contacto
+        FROM cxc_acuerdo_pago a
+            INNER JOIN dcxc d ON a.idoc = d.sys_pk
+            INNER JOIN cliente c ON d.icliente = c.sys_pk
+        WHERE a.sys_guid = @agreement_id
+        "
+
+        return dbr.rec(db,sql,p)
+    }
+
+    SaveAgreement :: &db, &params, &payload
+    {
+        valid_fields = "id_acuerdo,cliente,documento,fecha_acuerdo,monto_acuerdo,fecha_pago"
+        // Filtrar campos validos de 'params'
+        ref fields_in_params = filter_args(params, valid_fields)
+        // Filtrar campos validos de 'payload.data'
+        ref fields_in_data = filter_args(@@(payload,"&data"), valid_fields)
+        // Combinar resultados prefiriendo los valores de 'payload.data'
+        ref data = record.copyexin(fields_in_data, fields_in_params, "*", ",", "", ":")
+
+        // Validación de campos
+        id_acuerdo = @@(data,"$id_acuerdo")
+        cliente = trim(@@(data,"$cliente"))
+        documento = trim(@@(data,"$documento"))
+        idoc = 0
+        fecha_acuerdo = @@(data,"$fecha_acuerdo")
+        monto_acuerdo = @@(data,"#monto_acuerdo")
+        fecha_pago = @@(data,"$fecha_pago")
+
+        if id_acuerdo != ""
+        {
+            ref agreement = GetAgreement(db,id_acuerdo)
+            if isnull(agreement) { do rise_error(404,"No se encontro el id de acuerdo proporcionado.") }
+        }
+
+        is_new = (id_acuerdo == "")
+        new acuerdo {}
+
+        if is_new
+        {
+            if cliente == "" { do rise_error(400,"No se proporciono el cliente.") }
+            if documento == "" { do rise_error(400,"No se proporciono un documento.") }
+            if fecha_acuerdo == "" { fecha_acuerdo = date_str(now(),"yyyy-MM-dd") }
+            if monto_acuerdo <= 0 { do rise_error(400,"El monto del acuerdo debe ser mayor a cero.") }
+            if fecha_pago == "" { do rise_error(400,"No se proporciono la fecha comprometida del pago.") }
+        }
+        else
+        {
+            idoc = @@(agreement,"#idoc")
+            if fecha_acuerdo == "" { fecha_acuerdo = @@(agreement,"$fecha_acuerdo") }
+            if monto_acuerdo <= 0 { monto_acuerdo = @@(agreement,"#monto_acuerdo") }
+            if fecha_pago == "" { fecha_pago = @@(agreement,"$fecha_pago") }
+        }
+        
+        fecha_acuerdo = date_format(fecha_acuerdo,"yyyy-MM-dd")
+        if fecha_acuerdo == "" { do rise_error(400,"La fecha del acuerdo no tiene un formato válido, se esperaba: yyyy-MM-dd") }
+        
+        fecha_pago = date_format(fecha_pago,"yyyy-MM-dd")
+        if fecha_pago == "" { do rise_error(400,"La fecha de pago no tiene un formato válido, se esperaba: yyyy-MM-dd") }
+        
+        ndt_acuerdo = ndatetime.fromstr(fecha_acuerdo,"yyyy-MM-dd")
+        ndt_pago = ndatetime.fromstr(fecha_pago,"yyyy-MM-dd")
+        if ndatetime.diff(ndt_pago,ndt_acuerdo,"d") < 0 { do rise_error(400,"La fecha de pago no puede ser inferior a la fecha del acuerdo.") }
+
+        fecha_acuerdo, monto_acuerdo, fecha_pago >> acuerdo
+
+        if cliente != "" && documento != ""
+        {
+            cliente, documento, idoc >> params
+            sql = "
+            SELECT
+                d.sys_pk,
+                (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
+                (d.sys_pk != @idoc) AS change_doc
+            FROM cliente c
+                INNER JOIN dcxc d ON d.icliente = c.sys_pk
+            WHERE
+                d.referencia = @documento
+                AND c.codigo = @cliente
+            "
+            ref doc = dbr.rec(db,sql,params)
+            if isnull(doc) { do rise_error(404,"No se encontro el documento proporcionado para el cliente indicado.") }
+            
+            if @@(doc,"#change_doc")
+            {
+                idoc = @@(doc,"#sys_pk")
+                saldo = @@(doc,"#saldo")
+
+                if saldo <= 0 { do rise_error(400,"No se puede crear un acuerdo sobre un documento con saldo cero o negativo.") }
+                if monto_acuerdo > saldo { do rise_error(400,ftext("El monto del acuerdo (#<format(monto_acuerdo,'#,##0.00')>) excede el saldo pendiente del documento (#<format(saldo,'#,##0.00')>).")) }
+
+                sql = "
+                SELECT COUNT(*) FROM cxc_acuerdo_pago
+                WHERE idoc = @sys_pk
+                    AND NOT IFNULL(cumplido,0)
+                    AND fecha_pago >= CURDATE()
+                    AND IFNULL(monto_pago,0) < monto_acuerdo
+                    AND NOT IFNULL(sys_deleted,0)
+                "
+                vigente = dbr.num(db,sql,doc)
+                if vigente > 0 { do rise_error(400,"El documento ya tiene un acuerdo de pago vigente.") }
+
+                idoc >> acuerdo
+            }
+        }
+        
+        if is_new
+        {
+            id_acuerdo = uuid()
+            using acuerdo
+            {
+                @"sys_guid": id_acuerdo
+                @"sys_dtcreated*": dbr.sql("now()")
+                @"sys_timestamp*": dbr.sql("now()")
+                @"sys_recver": 0
+            }
+            do dbr.insert(db,"cxc_acuerdo_pago",acuerdo)
+        }
+        else
+        {
+            using acuerdo
+            {
+                @"sys_timestamp*": dbr.sql("now()")
+                @"sys_recver*": dbr.sql("ifnull(sys_recver,0) + 1")
+            }
+            do dbr.update(db,"cxc_acuerdo_pago",acuerdo,"sys_guid=@id_acuerdo",data)
+        }
+
+        return GetAgreement(db,id_acuerdo)
+    }
+}

@@ -1,0 +1,34 @@
+#include "dkli.dkh"
+#!
+program "Agregar/Actualizar acuerdos de pago"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "lib.sise.dk"
+    #include "cxc.sise.dk"
+
+    
+    do errordet(@false)
+    go sise_base_service(params:params, payload:payload, response:response)
+    {
+        ref db = _db()
+
+        ref data = cxc.sise.SaveAgreement(db, params, payload)
+        
+        id_acuerdo, documento, cliente_codigo, cliente_nombre << data
+        
+        response<"data*"> : data
+        response<"message"> : ftext("Información del acuerdo guardada exitosamente (id_acuerdo: #<id_acuerdo>) para el documento: #<documento> del cliente: #<cliente_codigo> (#<cliente_nombre>)")
+
+        exception
+        {
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            using response
+            {
+                @"success": @false
+                @"message": last_error()
+            }
+        }
+    }
+}

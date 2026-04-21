@@ -129,8 +129,11 @@ module "Notificaciones de cobranza"
     {
         do dbr.apps.action.grant("GB70")
 
+        if not(field.exist(params,"frecuencia")) { params<"frecuencia"> : 1 }
+        
         ref data = record.copy(params,"tipo,dias,frecuencia,template,canal,para,disabled")
         do prepareView(db,params,data)
+        
         return data
 
         exception{ do catch(db,params,@null) }

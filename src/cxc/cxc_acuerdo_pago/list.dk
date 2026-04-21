@@ -133,9 +133,9 @@ module "list.dk"
 
             form(class="mb-1 d-flex gap-2 align-items-center" action="./" method="GET" id="form-filter")
             {
-                div(class="d-flex align-items-center gap-2 flex-wrap w-100 py-1")
+                div(class="d-flex align-items-center gap-1 flex-wrap w-100 py-1")
                 {
-                    div(class="d-flex gap-2")
+                    div(class="d-flex gap-1")
                     {
                         div
                         {

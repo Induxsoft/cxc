@@ -23,7 +23,8 @@ program "instalador"
         "divisa.csv",
         "tipocliente.csv",
         "cliente.csv",
-        "cxc_tipo_doc_notif.csv"
+        "cxc_tipo_doc_notif.csv",
+        "sys_rest_integration.csv"
     ]')
 
     // Lista de privilegios iniciales (arreglo de id de privilegios)
