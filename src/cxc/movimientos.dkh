@@ -8,6 +8,7 @@ module ":erp.cxc.movimientos"
 
         fecha = trim(@@(data,"$fecha"))
         aplicacion = trim(@@(data,"$aplicacion"))
+        fultmoratorios=trim(@@(data,"$fultmoratorios"))
 
         if trim(@@(data,"$referencia")) == "" { do rise_error(511,"Debe indicar una referencia `referencia`.") }
         if aplicacion == "" { do rise_error(512,"Debe indicar la fecha límite de pago `aplicacion`.") }
@@ -17,7 +18,12 @@ module ":erp.cxc.movimientos"
 
         ndt_fecha = ndatetime.fromstr(fecha,"yyyy-MM-dd")
         ndt_aplicacion = ndatetime.fromstr(aplicacion,"yyyy-MM-dd")
-        if ndatetime.diff(ndt_aplicacion,ndt_fecha,"d") < 0 { do rise_error(516,"La fecha límite no puede ser inferior a la fecha de emisión.") }
+        // if fultmoratorios !=""
+        // {
+        //     ndt_fultmoratorios=ndatetime.fromstr(fultmoratorios,"yyyy-MM-dd")
+        //     if ndatetime.diff(ndt_fultmoratorios,ndt_fecha,"d") < 0 { do rise_error(516,"La fecha límite no puede ser inferior a la fecha de emisión.") }
+        // }
+        
 
         new dcxc
         {
