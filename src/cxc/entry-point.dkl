@@ -49,6 +49,7 @@ module "Controller configs"
 	do crudl.routes.entity("/acuerdo-pago/","cxc_acuerdo_pago")
 	do crudl.routes.entity("/notif/","cxc_notif")
 	do crudl.routes.entity("/precioventa/","precioventa")
+	do crudl.routes.entity("/cfg-docs/","cfg_cxc_docs")
 
 	do crudl.routes.entity("/reports/","reports")
 	

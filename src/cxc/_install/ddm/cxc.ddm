@@ -422,9 +422,11 @@ model "erp.cxc"
         @"fk_dcxc_aplicadoa" ref:"dcxc" required
         @"uf_cfdi" string(50)
     }
-    // Configuración de documentos por pagar
+    // Configuración de documentos por cobrar
     entity "cfg_cxc_docs"
     {
+        @"sys_recver" int
+
         @"documento" ref:"cdocumentos" key
         @"pagable" bool     // Si es true, puede agregarse como documento por pagar al que se le pueden aplicar cargos, bonificaciones y pagos
         @"apl_int_fin" bool // Si es true, puede usarse para aplicarse como intereses financieros

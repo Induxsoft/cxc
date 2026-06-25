@@ -53,3 +53,6 @@ GB71,Nueva notificación de cobranza,cxc.notificacion
 GB72,Editar notificación de cobranza,cxc.notificacion
 GB73,Eliminar notificación de cobranza,cxc.notificacion
 GB74,Ejecutar notificaciones de cobranza,cxc.notificacion
+cxc.cfg_cxc_docs,Configuración de documentos por cobrar,cxc
+GB80,Configuración de documentos,cxc.cfg_cxc_docs
+GB81,Guardar Configuración de documentos,cxc.cfg_cxc_docs

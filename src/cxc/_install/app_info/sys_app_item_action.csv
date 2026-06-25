@@ -43,6 +43,8 @@ GB72,Editar notificación de cobranza,Editar,,/!/cxc/notif/@_src_context_item_id
 GB73,Eliminar notificación de cobranza,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,cxc.notificacion,DET0C3,1,action
 GB74,Ejecutar notificaciones de cobranza,Notificar,,/!/batch/taskman/GB/notificar-cobranza/?exit_url_encode=LyEvY3hjL25vdGlmLw||,0,cxc.notificacion,DET0C3,0,action
 
+GB80,Configuración de documentos por cobrar,cfg-docs,,/!/cxc/cfg-docs/,0,cxc.cfg_cxc_docs,DET0C5,0,shortcut
+
 GBF0,Importar movimientos iniciales por cobrar,"Importar",,/!/batch/taskman/GB/importar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF1,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF2,Limpiar movimientos por cobrar,"Limpiar",,/!/batch/taskman/GB/limpiar.documentos/,0,cxc.documentos,DET01D,0,action
