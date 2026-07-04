@@ -961,7 +961,13 @@ module "model"
             data<"codigo"> : codigo
         }
         do cleanFormData(fieldsCliente,data,cliente)
-        if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
+
+        if field.exist(data,"chq_otorgar_credito") 
+        {
+            if otorgar_credito && field.exist(data,"rd_limitar_credito") && not(limitar_credito) { cliente<"limitecredito"> : -1 }
+        }
+        else{cliente<"limitecredito"> :0}
+        
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
         do validateFields(cliente)
@@ -1105,7 +1111,13 @@ module "model"
             data<"codigo"> : codigo
         }
         do cleanFormData(fieldsCliente,data,cliente)
-        if otorgar_credito && not(limitar_credito) { cliente<"limitecredito"> : -1 }
+
+        if field.exist(data,"chq_otorgar_credito") 
+        {
+            if otorgar_credito && field.exist(data,"rd_limitar_credito") && not(limitar_credito) { cliente<"limitecredito"> : -1 }
+        }
+        else{cliente<"limitecredito"> :0}
+
         cliente<"uf_addenda"> : parse.bool(@@(data,"$chq_addenda"))
 
         do validateFields(cliente)

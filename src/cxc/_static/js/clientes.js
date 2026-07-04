@@ -333,6 +333,13 @@ var cliente =
                 this.elements["chq_otorgar_credito"].addEventListener("change", (event) => {
                     let div_credito = document.getElementById("div_otorgar_credito");
                     (event.target.checked) ? div_credito.classList.remove("disable-form") : div_credito.classList.add("disable-form");
+                    if(!event.target.checked)
+                    {
+                        this.elements["rd_credito_ilimitado"].checked=false;
+                        this.elements["rd_credito_limitado"].checked=false;
+                        this.elements["limitecredito"].value=0;
+                        this.elements["limitecredito"].type = "hidden";
+                    }
                 });
                 this.elements["rd_credito_ilimitado"].addEventListener("change", (event) => {
                     this.elements["limitecredito"].type = "hidden";
