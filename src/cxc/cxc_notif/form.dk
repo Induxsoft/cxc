@@ -151,7 +151,7 @@ module "form.dk"
             }
             #$
 
-            form(class="px-1" action="./" method="POST" id="#<@form_id>")
+            form(class="mb-3 px-1" action="./" method="POST" id="#<@form_id>")
             {
                 input(type="hidden" name="sys_pk"     value="#<@('#./sys_pk')>")
                 input(type="hidden" name="sys_recver" value="#<@('#./sys_recver')>")
@@ -161,6 +161,14 @@ module "form.dk"
 
                 div(class="row gx-2 gy-3")
                 {
+                    // Canal 
+                    div(class="col-12 col-sm-6 col-md-3")
+                    {
+                        label(class="form-label" "for"="canal"){$"Canal"}
+                        ##
+                        do uie.dbSelect(sel_canal)
+                        ##
+                    }
                     // Aplica sobre 
                     div(class="col-12 col-sm-6 col-md-3")
                     {
@@ -199,14 +207,6 @@ module "form.dk"
                         )
                         small(class="text-muted"){$"0 = sin límite"}
                     }
-                    // Canal 
-                    div(class="col-12 col-sm-6 col-md-3")
-                    {
-                        label(class="form-label" "for"="canal"){$"Canal"}
-                        ##
-                        do uie.dbSelect(sel_canal)
-                        ##
-                    }
                     // Resolución de destinatario
                     div(class="col-auto")
                     {
@@ -242,18 +242,42 @@ module "form.dk"
                 }
             }
 
-            // Parámetros del canal (generados dinámicamente) 
-            form(class="row" id="form-params")
-            {""
-                #!
-                do dbr.control.GenerateHtml(@("&database"), ch_params_def)
-                #$
+            // Parámetros del canal (generados dinámicamente)
+            form(class="mb-3" id="form-params")
+            {
+                fieldset(style="all:revert;")
+                {
+                    legend(style="all:revert;"){"Parámetros del canal seleccionado"}
+
+                    div(class="mb-2")
+                    {
+                        span(class="d-block"){"> Utilice " code{"{{variable}}"} " para hacer referencia a los valores dinámicos."}
+                    }
+
+                    div(class="row")
+                    {
+                        #!
+                        if list.count(list.create_from_fields(ch_params_def)) > 0 {
+                            do dbr.control.GenerateHtml(@("&database"), ch_params_def)
+                        }
+                        #!
+                        else
+                        {
+                            #$
+                            div(class="text-center")
+                            {
+                                h6(class="py-5 px-0" style="background-color:#F5F5F5;"){"No se ha seleccionado un canal"}
+                            }
+                        }
+                        #$
+                    }
+                }
             }
 
             // Variables posicionales 
             div(class="d-flex align-items-center flex-wrap border gap-1 px-2 py-0 mt-3")
             {
-                small(class="text-muted"){$"Variables posicionales: selecciona en orden las macros a ocupar en la plantilla del canal"}
+                small(class="text-muted"){$"Variables posicionales de plantillas externas: selecciona en orden las variables a ocupar."}
                 div(class="flex-grow-1 text-end")
                 {
                     button(class="btn btn-sm rounded-0" type="button" id="btn-add-var"){$"+ Agregar"}

@@ -91,7 +91,7 @@ module ":AcuerdoPago"
         m.codigo AS moneda,
         IFNULL(d.debe,0) AS total,
         (IFNULL(d.debe,0) + IFNULL(d.intmoratorios,0) - IFNULL(d.pagos,0) - IFNULL(d.bonificaciones,0)) AS saldo,
-        DATE_FORMAT(d.fultmoratorios,'%Y-%m-%d') vencimiento
+        DATE_FORMAT(d.aplicacion,'%Y-%m-%d') vencimiento
     FROM dcxc d
         INNER JOIN cliente c ON d.icliente = c.sys_pk
         INNER JOIN divisa m ON c.idivisa = m.sys_pk

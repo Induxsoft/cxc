@@ -134,7 +134,7 @@ module "cxc.crear.dk"
                 div(class="col-lg-4") {
                     #!
                     fecha_limite = form("flimite","dt",@null)
-                    if @("$parameters/_entity_id") != "_new" { fecha_limite = @@(infoDoc,"$fultmoratorios") }
+                    if @("$parameters/_entity_id") != "_new" { fecha_limite = @@(infoDoc,"$aplicacion") }
                     #$
                     label(class="form-label" "for"="txt_flimite"){$"Fecha límite de pago:"}
                     input(type="date" class="form-control rounded-0" name="flimite" id="txt_flimite" value="#<fecha_limite>" required="true")

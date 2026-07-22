@@ -220,8 +220,8 @@ program "cxc-notif-task"
             d.sys_guid          AS doc_guid,
             d.referencia        AS doc_reference,
             d.fecha             AS doc_fecha,
-            d.fultmoratorios    AS doc_due_date,
-            (d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.bonificaciones,0) - IFNULL(d.pagos,0)) AS doc_balance,
+            d.aplicacion        AS doc_due_date,
+            ROUND((d.debe + IFNULL(d.intmoratorios,0) - IFNULL(d.bonificaciones,0) - IFNULL(d.pagos,0)),2) AS doc_balance,
 
             -- Cliente
             cl.sys_pk           AS icliente,
@@ -232,7 +232,7 @@ program "cxc-notif-task"
 
             -- Divisa
             dv.codigo           AS doc_currency,
-            d.debe              AS doc_amount,
+            ROUND(d.debe,2)     AS doc_amount,
 
             -- Contacto de cobranza (puede ser NULL -> regla 14)
             cc.sys_pk           AS icontacto,
@@ -244,8 +244,8 @@ program "cxc-notif-task"
             -- Acuerdo vigente (NULL si no aplica)
             ap.sys_pk           AS iacuerdo,
             ap.fecha_pago       AS agreement_due_date,
-            ap.monto_acuerdo    AS agreement_amount,
-            (ap.monto_acuerdo - IFNULL(ap.monto_pago,0)) AS agreement_balance
+            ROUND(ap.monto_acuerdo,2) AS agreement_amount,
+            ROUND(ap.monto_acuerdo - IFNULL(ap.monto_pago,0),2) AS agreement_balance
 
         FROM cxc_notif n
 
@@ -283,9 +283,9 @@ program "cxc-notif-task"
             AND (
                 CASE
                     WHEN n.tipo = 0 AND NOT IFNULL(n.recurrent,0)
-                        THEN DATEDIFF(CURDATE(), d.fultmoratorios) = n.dias
+                        THEN DATEDIFF(CURDATE(), d.aplicacion) = n.dias
                     WHEN n.tipo = 0 AND IFNULL(n.recurrent,0)
-                        THEN DATEDIFF(CURDATE(), d.fultmoratorios) >= n.dias
+                        THEN DATEDIFF(CURDATE(), d.aplicacion) >= n.dias
                     WHEN n.tipo = 1 AND NOT IFNULL(n.recurrent,0)
                         THEN DATEDIFF(CURDATE(), ap.fecha_pago) = n.dias
                     WHEN n.tipo = 1 AND IFNULL(n.recurrent,0)
@@ -303,13 +303,14 @@ program "cxc-notif-task"
                         l.inotif    = n.sys_pk
                         AND l.idoc  = d.sys_pk
                         AND (cc.sys_pk IS NULL OR l.icontacto = cc.sys_pk)
+                        AND (ap.sys_pk IS NULL OR l.iacuerdo  = ap.sys_pk)
                         AND DATE(l.fecha_envio) = CURDATE()
                         AND l.resultado = 1
                 ) < n.frecuencia
             )
 
             -- Anti-duplicado del día (regla 17): no re-enviar la misma combinación exitosa hoy
-            AND NOT EXISTS (
+            /*AND NOT EXISTS (
                 SELECT 1 FROM cxc_notif_log l
                 WHERE
                     l.inotif    = n.sys_pk
@@ -318,7 +319,9 @@ program "cxc-notif-task"
                     AND (ap.sys_pk IS NULL OR l.iacuerdo  = ap.sys_pk)
                     AND DATE(l.fecha_envio) = CURDATE()
                     AND l.resultado = 1
-            )
+            )*/
+
+        HAVING doc_balance > 1
 
         ORDER BY cl.nombre, d.referencia, n.tipo, n.dias
         "
@@ -348,32 +351,38 @@ program "cxc-notif-task"
         do dbr.execute(db,sql,@null)
     }
 
-    // Construye el registro de contexto con las macros disponibles para la plantilla
+    // Construye el objeto con las macros disponibles para la plantilla
     GetNotifContext :: &row
     {
-        ref tempvars = from.djson(@@(row,"$tempvars"),"[]")
+        // Se exponen todas las variables dinámicas
+        vars = "customer_code,customer_name,customer_email,customer_phone,"
+        vars = vars + "contact_name,contact_email,contact_phone,contact_whatsapp,"
+        vars = vars + "doc_reference,doc_amount,doc_balance,doc_due_date,doc_currency,"
+        vars = vars + "agreement_due_date,agreement_amount,agreement_balance"
 
+        // Devolver registro plano con las claves que se usan como macros {{...}}
+        return record.copy(row,vars)
+    }
+
+    // Devuelve solo las variables seleccionadas o todo el contexto si no se establecio ninguna
+    FullContextOrTempvars :: &ctx, &row
+    {
+        ref tempvars = from.djson(@@(row,"$tempvars"),"[]")
         vars = ""
+
         for i = 0; i < list.count(tempvars)
         {
             ref item = list.obj(tempvars,i)
-            varname = @@(item,"$varname")
-            vars = vars + varname + ","
+            varname = trim(@@(item,"$varname"))
+            if varname != "" { vars = vars + varname + "," }
         }
 
-        // Si no se definieron variables posicionales, se exponen todas
-        if vars == ""
+        if vars == "" { return ctx }
+        else
         {
-            vars = "customer_code,customer_name,customer_email,customer_phone,"
-            vars = vars + "contact_name,contact_email,contact_phone,contact_whatsapp,"
-            vars = vars + "doc_reference,doc_amount,doc_balance,doc_due_date,doc_currency,"
-            vars = vars + "agreement_due_date,agreement_amount,agreement_balance,"
+            vars = rremove(vars,1)
+            return record.copy(ctx,vars)
         }
-        vars = rremove(vars,1)
-
-        // Construir registro plano con las claves que usan las macros {{...}}
-        ref ctx = record.copy(row,vars)
-        return ctx
     }
 
     SetContextAlias :: &ctx
@@ -510,6 +519,12 @@ program "cxc-notif-task"
         if iacuerdo  > 0 { log<"iacuerdo">  : iacuerdo  }
 
         do dbr.insert(db,"cxc_notif_log",log)
+
+        exception
+        {
+            do Log(2, last_error())
+            do pop_exception()
+        }
     }
     //#endregion
 
@@ -579,14 +594,19 @@ program "cxc-notif-task"
             }
             do field.remove(message,"lib")
 
-            ref response = v12.com.sendMessageV2(db,message,context)
+            ref vars = FullContextOrTempvars(context,row)
+            ref response = v12.com.sendMessageV2(db,message,vars)
             if not(isnull(response)) && not(@@(response,"#success"))
             {
                 do rise_error(500,@@(response,"$message"))
             }
 
             resultado = @true
-            detalle   = ifstr(isnull(response),"",to.json(@@(response,"&data")))
+            detalle   = ""
+
+            if isnull(response) {}
+            else if field.exist(response,"data") { detalle = to.json(@@(response,"&data")) }
+            else { detalle = to.json(response) }
 
             do Log(2,"Enviado a: " + destinatario)
 

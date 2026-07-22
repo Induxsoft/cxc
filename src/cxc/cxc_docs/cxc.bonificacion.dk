@@ -106,7 +106,7 @@ module "cxc.bonificacion.dk"
                         div(class="col-lg-6 col-md-6 col-sm-12") {
                             p(class="mb-0") {
                                 b{$"Vencimiento: "}
-                                $"#<@@(infoDoc,'$fultmoratorios')>"
+                                $"#<@@(infoDoc,'$aplicacion')>"
                             }
                         }
                     }
