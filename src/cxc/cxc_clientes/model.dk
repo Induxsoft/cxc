@@ -527,6 +527,7 @@ module "model"
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
         data<"docs*"> : dbr.list(db,ftext(sql),params)
+        do setPrintTitles(db,data)
 
         return data
 
@@ -582,6 +583,7 @@ module "model"
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
         data<"docs*"> : dbr.list(db,ftext(sql),params)
+        do setPrintTitles(db,data)
 
         return data
 
@@ -636,6 +638,7 @@ module "model"
         ref data = cte.obtenerCliente(db,@@(params,"_entity_id"))
         data<"saldos*"> : cte.obtenerSaldos(db,params)
         data<"docs*"> : dbr.list(db,ftext(sql),params)
+        do setPrintTitles(db,data)
 
         return data
 
