@@ -15,7 +15,7 @@ module ":grupo.clientes"
         gc.iclientes,
         c.codigo,
         c.nombre,
-        tc.tipo
+        tc.descripcion as tipo
     FROM
         cliente_grupoclientes_ gc
         INNER JOIN cliente c ON gc.iclientes = c.sys_pk
@@ -39,7 +39,7 @@ module ":grupo.clientes"
         {
             if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
 
-            // do prepareView(db,params,data)
+            do prepareView(db,params,data)
         }
         else if @@(params,"$_operation") == "delete"
         {
@@ -57,8 +57,9 @@ module ":grupo.clientes"
     {
         is_new = (@@(params,"$_entity_id") == "_new")
         
-        if isnull(@@(data,"&entity")) && not(is_new) {
-            data<"entity*"> : entity.read(db,params)
+        if not(is_new) 
+        {
+            if isnull(@@(data,"&entity")) {data<"entity*"> : entity.read(db,params)}
             data<"clientes*"> : dbr.list(db,@childs_query,params)
         }
 
@@ -74,6 +75,7 @@ module ":grupo.clientes"
         }
 
         if grupo.nombre == "" { do rise_error(511,"No se proporciono un 'nombre' para el grupo.") }
+
         if field.exist(data,"clientes")
         {
             fields = ifstr(@@(data,"#sys_pk")>0, "sys_pk,sys_recver,", "") + "iclientes"
@@ -94,12 +96,13 @@ module ":grupo.clientes"
                 }
             }
         }
-
+        
         return grupo
     }
 
     function list(&db,&params)
     {
+        ref data=record.create()
         do dbr.apps.action.grant("GB90")
 
         new data
@@ -115,6 +118,7 @@ module ":grupo.clientes"
 
     function read(&db,&params)
     {
+        ref data=record.create()
         do dbr.apps.action.grant("GB90")
 
         ref entity = entity.read(db,params)
@@ -130,9 +134,8 @@ module ":grupo.clientes"
 
     function blank(&db,&params)
     {
-        do dbr.apps.action.grant("GB90")
-
         new data {}
+        do dbr.apps.action.grant("GB90")
 
         return data
         exception{ do catch(db,params,data) }
@@ -168,7 +171,15 @@ module ":grupo.clientes"
         do dbr.apps.action.pre("GB92")
         do dbr.begin(db)
 
-        ref entity = entity.create(db,params,grupo)
+        ref gp=dbr.rec(db,"SELECT sys_pk,sys_recver FROM grupoclientes WHERE nombre=@nombre or sys_pk=@sys_pk",data)
+
+        if not(isnull(gp))
+        {
+            grupo.sys_pk := gp.sys_pk
+            grupo.sys_recver := gp.sys_recver
+        }
+
+        ref entity = entity.update(db,params,grupo)
 
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)

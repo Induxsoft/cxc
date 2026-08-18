@@ -26,6 +26,7 @@ var grupo = {
         this.table.Events['fieldupdated'] = function(e) {
             grupo.setDetail();
         }
+        grupo.setDetail();
     },
 
     addCustomer(data) {
