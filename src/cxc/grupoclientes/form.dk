@@ -1,0 +1,159 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "../_lib/config.dk"
+    #include "../_lib/lib.dk"
+
+    do @context.begin(@crud_context)
+
+    ref titles = ifnull(@("&./titles"),record.create())
+    ref entity = ifnull(@("&./entity"),record.create())
+    ref detail = ifnull(@("&./clientes"),list.create())
+
+	@_entities_type = @("$parameters/_entities_type")
+	@_entity_id = @("$parameters/_entity_id")
+	@is_new = (@_entity_id == "_new")
+    @form_id = "frm_"+@_entities_type
+    @table_id = "tbl_"+@_entities_type
+
+    editable_sm = "
+    tr th { font-size:.9rem; font-weight:500 !important; outline:none !important; }
+    tr td { font-size:.8rem; }
+    th,td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; -o-text-overflow:ellipsis; }
+    #__table_input { font-size:unset !important; }
+    "
+
+    // do AutoFillRows(detail,10)
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners"
+        #$
+        // button(class="#<cls>" type="button" id="btn-submit" title="Guardar"){"Guardar"}
+        button(class="#<cls>" type="submit" form="#<@form_id>" title="Guardar"){"Guardar"}
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": ifstr(@is_new, "Agregar", "Editar") +" grupo"
+        @"buttons*": buttons
+        @"urlexit": "/!/cxc/grupos/"
+        
+        member @"hidden"
+        {
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+            @"send": @true
+        }
+    }
+
+    // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
+    #$
+    div(class="container-lg" id="view")
+    {
+        // link(href="/$/{_pack}/css/styles.css" rel="stylesheet"){""}
+
+        // Filtros y acciones
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        // Contenido principal
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            #!
+            error = @("$error/message")
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show mb-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<error>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+            }
+            #$
+            form(class="px-1" action="./" method="POST" id="#<@form_id>")
+            {
+                input(type="hidden" name="sys_pk" value="#<@@(entity,'#sys_pk')>")
+                input(type="hidden" name="sys_recver" value="#<@@(entity,'#sys_recver')>")
+                input(type="hidden" name="clientes" value="[]")
+                #!
+                do uie.print_from_url_field()
+                #$
+
+                div(class="row")
+                {
+                    div(class="col-sm-8 col-md-6 col-lg-4")
+                    {
+                        label(class="" "for"="nombre"){"Nombre"}
+                        input(class="form-control" type="text" name="nombre" value="#<@@(entity,'$nombre')>" id="nombre" maxlength="25" required="")
+                    }
+                    div(class="w-100"){""}
+                    div(class="col-12")
+                    {
+                        label(class="" "for"="notas"){"Notas"}
+                        textarea(class="form-control" name="notas" id="notas"){"#<@@(entity,'$notas')>"}
+                    }
+                }
+            }
+
+            div(class="d-flex justify-content-between mt-3 mb-1")
+            {
+                h6(class="mb-0"){"Clientes"}
+                div(class="d-inline-flex gap-1")
+                {
+                    button(class="btn btn-sm btn-light border" type="button" id="btn-add-row"){"+ Nueva fila"}
+                    button(class="btn btn-sm btn-light border" type="button" id="btn-del-row"){"- Remover fila"}
+                }
+            }
+            "edit-table"(data='#<to.json(detail)>' id="#<@table_id>" "auto-confirm"="true")
+            {
+                "edit-thead"
+                {
+                    "edit-tr"
+                    {
+                        "edit-th"(type="Text" field="codigo" button="true"){"Código"}
+                        "edit-th"(type="Text" field="nombre" button="true"){"Nombre"}
+                        "edit-th"(type="NoEditable" field="tipo"){"Tipo"}
+                    }
+                }
+            }
+
+            div
+            {
+                "input-key"(id="cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="descripcion" "data-source"="#<@CXC_BUSCAR_CLIENTE>" columns="codigo,nombre,tipo" colcaptions="Código,Nombre,Tipo" "box-title-text"="Seleccione un cliente" "hidden-input"="false" "control-styles"="#container{display:none !important;}"){""}
+            }
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                script(src="/$/cxc/js/grupoclientes.js"){""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", () => {
+                        grupo.table_id = "#<@table_id>";
+                        grupo.init();
+
+                        // Script injection
+                        #<@@(@crud_context,"$script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+    
+    do @context.end()
+}

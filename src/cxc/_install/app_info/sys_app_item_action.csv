@@ -1,4 +1,5 @@
 ﻿id,title,shorttitle,icon16x16,href,_blank,appid,itemtype,req_context_item_id,act_type
+
 GB10,Ver todos los documentos por cobrar,Ver todos,,/!/cxc/documentos/,0,cxc.documentos,DET01D,0,action
 GB11,Nuevo documento por cobrar,Agregar,,/!/cxc/documentos/_new/,0,cxc.documentos,DET01D,0,action
 GB12,Consultar documento por cobrar,Consultar,,/!/cxc/documentos/@_src_context_item_id/,0,cxc.documentos,DET01D,1,action
@@ -44,6 +45,11 @@ GB73,Eliminar notificación de cobranza,Eliminar,,"javascript:InduxsoftCrudlMode
 GB74,Ejecutar notificaciones de cobranza,Notificar,,/!/batch/taskman/GB/notificar-cobranza/?exit_url_encode=LyEvY3hjL25vdGlmLw||,0,cxc.notificacion,DET0C3,0,action
 
 GB80,Configuración de documentos por cobrar,cfg-docs,,/!/cxc/cfg-docs/,0,cxc.cfg_cxc_docs,DET0C5,0,shortcut
+
+GB90,Grupos de clientes,Grupos,,/!/cxc/grupos/,0,cxc.grupoclientes,DET0C6,0,shortcut
+GB91,Crear grupo de clientes,Crear,,/!/cxc/grupos/_new/,0,cxc.grupoclientes,DET0C6,0,action
+GB92,Editar grupo de clientes,Editar,,/!/cxc/grupos/@_src_context_item_id/,0,cxc.grupoclientes,DET0C6,1,action
+GB93,Eliminar grupo de clientes,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,cxc.grupoclientes,DET0C6,1,action
 
 GBF0,Importar movimientos iniciales por cobrar,"Importar",,/!/batch/taskman/GB/importar.documentos/,0,cxc.documentos,DET01D,0,action
 GBF1,Podar movimientos por cobrar,"Podar",,/!/batch/taskman/GB/podar.documentos/,0,cxc.documentos,DET01D,0,action

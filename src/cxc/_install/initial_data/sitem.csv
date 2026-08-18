@@ -56,3 +56,8 @@ GB74,Ejecutar notificaciones de cobranza,cxc.notificacion
 cxc.cfg_cxc_docs,Configuración de documentos por cobrar,cxc
 GB80,Configuración de documentos,cxc.cfg_cxc_docs
 GB81,Guardar Configuración de documentos,cxc.cfg_cxc_docs
+cxc.grupoclientes,Grupos de clientes,cxc
+GB90,Grupos de clientes,cxc.grupoclientes
+GB91,Crear grupo de clientes,cxc.grupoclientes
+GB92,Editar grupo de clientes,cxc.grupoclientes
+GB93,Eliminar grupo de clientes,cxc.grupoclientes

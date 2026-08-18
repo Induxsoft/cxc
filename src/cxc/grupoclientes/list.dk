@@ -1,0 +1,139 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+
+    ref data = ifnull(@("&./data"),list.create())
+    ref titles = ifnull(@("&./titles"),record.create())
+
+	@_entities_type = @("$parameters/_entities_type")
+
+    table_id = "tbl_"+@_entities_type
+    tbtn_style = "cursor:pointer; text-decoration:none; border:none; outline:none; padding: 0px 8px; background-color:#F5F5F5; color:#000000;"
+    
+    new table_definition
+    {
+        @"datatable*": data
+        member @"columns"
+        {
+            member @"nombre" { @"caption":"Grupo" }
+            member @"notas" { @"caption":"Notas" }
+            // member @"_actions" 
+            // {
+            //     @"caption":"Acciones"
+            //     @"no-print":@true
+            //     @"template":ftext('
+            //         <div style="display:flex;gap:8px;justify-content:center;width:100%;" class="no-print">
+            //             <a href="./${DataRow.sys_pk}/" style="#<tbtn_style>">Editar</a>
+            //             <button onclick="InduxsoftCrudlModel.Delete(${DataRow.sys_pk})" style="#<tbtn_style>">Eliminar</button>
+            //         </div>
+            //     ')
+            // }
+        }
+        @"table_footer": "Mostrando los primeros # registros"
+    }
+
+    new nav_config
+    {
+        @"title": "Grupos de clientes"
+        @"urlexit": "/"
+
+        @"actions*": ifnull(@("&./itemactions"),list.create())
+        @"reports*": ifnull(@("&./itemreports"),list.create())
+        @"jscurrentcontext": "getCurrentContext"
+
+        member "hidden"
+        {
+            @"send": @true
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+        }
+    }
+
+    // Encapsula a la vista en su totalidad, todo lo que hay antes o después no se considera 
+    #$
+    div(class="container" id="view")
+    {
+        // Filtros y acciones
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+
+            form(class="mb-1" action="./" method="GET" id="form-filter")
+            {
+                "filter-text"(class="w-100" id="search" "text-field"="search" value="#<@('$parameters/search')>" placeholder="Buscar ..." "form"="#form-filter" "auto-submit"="true"){""}
+            }
+        }
+        // Contenido principal
+        section(id="work_area")
+        {
+            div(class="show-on-print")
+            {
+                p(class="text-center my-0"){"#<@@(titles,'$title')>"}
+                p(class="text-center my-0"){"#<@@(titles,'$subtitle')>"}
+                p(class="text-center my-0"){"#<@@(titles,'$subtitle_2')>"}
+
+                div(class="row")
+                {
+                    div(class="col-3 text-start")
+                    {
+                        small(class="d-block"){"#<cut(@('$http/session/user/name'),25)>"}
+                        small(class="d-block"){"#<date_str(now(),'dd/MMM/yyyy')>"}
+                    }
+                    div(class="col-6 text-center")
+                    {
+                        h4(class=""){"Informe general de #<@_entities_type>"}
+                        // h4(class=""){$"#<@@(nav_config,'$title')>"}
+                    }
+                    div(class="col-3 text-end")
+                    {
+                        small(class="d-block" id="lbl_filter_1"){""}
+                        small(class="d-block" id="lbl_filter_2"){""}
+                        small(class="d-block" id="lbl_filter_3"){""}
+                    }
+                }
+            }
+
+            #!
+            do uie.dbeditable(table_definition,table_id)
+            #$
+
+            div(class="show-on-print"){p(class="fixed-bottom text-center my-1"){"#<@@(titles,'$footer')>"}}
+        }
+        // Resúmenes y datos al pie
+        section(id="bottom_area")
+        {
+            //////////////////////////////////////////////////////////////////
+            div(id="_custom_area")
+            {
+                // script(src=""){$""}
+                script(type="text/javascript")
+                {$'
+                    function filter(ff) { ff.form.submit(); }
+                    
+                    function getCurrentContext() {
+                        const table = document.getElementById("#<table_id>");
+                        const id = (table?.DataArray[table.CurrentRowIndex()]?.sys_pk ?? "");
+                        return { item_id:id, context: {} }
+                    }
+                    
+                    document.addEventListener("DOMContentLoaded", () => {
+                        // Script injection
+                        #<@@(@crud_context,"script")>
+                    });
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

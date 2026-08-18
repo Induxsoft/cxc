@@ -518,6 +518,18 @@ model "erp.cxc"
         @"detalle"      memo                                  // Detalle del resultado o error
     }
 
+    entity "grupoclientes" : "TableModel"
+    {
+        @"nombre" string(25) unique required
+        @"notas" string(4096)
+    }
+
+    entity "cliente_grupoclientes_" : "TableModel"
+    {
+        @"igrupos" int ref:"grupoclientes" ["sys_pk"] required
+        @"iclientes" int ref:"cliente" ["sys_pk"] required
+    }
+
     //* ======================================== [ ... ]
     // Información de la aplicación
     entity "sys_app_catalog"

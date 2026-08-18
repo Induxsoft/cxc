@@ -1,0 +1,246 @@
+#include "dkli.dkh"
+#!
+module ":grupo.clientes"
+{
+    @table_name = "grupoclientes"
+    @keyfield = "sys_pk"
+
+    @list_query = "SELECT sys_pk, nombre, notas FROM #<@table_name> WHERE NOT ifnull(sys_deleted,0);"
+    @read_query = "SELECT sys_pk, sys_recver, nombre, notas FROM #<@table_name> WHERE NOT ifnull(sys_deleted,0);"
+    @childs_query = "
+    SELECT
+        gc.sys_pk,
+        gc.sys_recver,
+        gc.igrupos,
+        gc.iclientes,
+        c.codigo,
+        c.nombre,
+        tc.tipo
+    FROM
+        cliente_grupoclientes_ gc
+        INNER JOIN cliente c ON gc.iclientes = c.sys_pk
+        INNER JOIN tipocliente AS tc ON c.tipo = tc.sys_pk
+    WHERE
+        gc.igrupos = COALESCE(@_entity_id,@igrupo,@sys_pk)
+    "
+
+
+
+    // Manejador de excepciones, propaga mensajes de error amigables para el usuario final.
+    function catch(&db,&params,&data)
+    {
+        code = last_error_code()
+        error = last_error()
+
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if isset("@@_action_context") { do dbr.apps.action.log() }
+
+        if isanyword(@@(params,"$_operation"),"create,update")
+        {
+            if contains(error,"Duplicate entry") { error = "Entrada duplicada, ya existe un registro con los mismos valores." }
+
+            // do prepareView(db,params,data)
+        }
+        else if @@(params,"$_operation") == "delete"
+        {
+            if contains(error,"Cannot delete or update a parent row") || contains(error,"DELETE Error") {
+                error = "No es posible eliminar, otros registros dependen del elemento proporcionado."
+            }
+        }
+        
+        do clear_exceptions()
+        do rise_error(code,error)
+    }
+
+    // Preparar vistas: Establece el conjunto de datos necesario para poblar las vistas de formulario
+    function prepareView(&db,&params,&data)
+    {
+        is_new = (@@(params,"$_entity_id") == "_new")
+        
+        if isnull(@@(data,"&entity")) && not(is_new) {
+            data<"entity*"> : entity.read(db,params)
+            data<"clientes*"> : dbr.list(db,@childs_query,params)
+        }
+
+        // Implementación...
+    }
+
+    function buildGroup(&data)
+    {
+        new grupo
+        {
+            @"nombre": trim(@@(data,"$nombre"))
+            @"notas": trim(@@(data,"$notas"))
+        }
+
+        if grupo.nombre == "" { do rise_error(511,"No se proporciono un 'nombre' para el grupo.") }
+        if field.exist(data,"clientes")
+        {
+            fields = ifstr(@@(data,"#sys_pk")>0, "sys_pk,sys_recver,", "") + "iclientes"
+
+            t = field.typeof(data,"clientes")
+            if t == 1 { grupo<"clientes*"> : from.json(@@(data,"$clientes")) }
+            if t == 3 { grupo<"clientes*"> : @@(data,"&clientes") }
+
+            using @childs
+            {
+                member "clientes"
+                {
+                    @"joinfield": "igrupos"
+                    @"keyfield": "sys_pk"
+                    @"table": "cliente_grupoclientes_"
+                    @"select_query": @childs_query
+                    @"fields": fields
+                }
+            }
+        }
+
+        return grupo
+    }
+
+    function list(&db,&params)
+    {
+        do dbr.apps.action.grant("GB90")
+
+        new data
+        {
+            @"data*": entity.list(db,params)
+            @"itemactions*": dbr.apps.itemactions(db,"DET0C6","action","",0)
+            @"itemreports*": dbr.apps.itemactions(db,"DET0C6","report","",0)
+        }
+
+        return data
+        exception{ do catch(db,params,data) }
+    }
+
+    function read(&db,&params)
+    {
+        do dbr.apps.action.grant("GB90")
+
+        ref entity = entity.read(db,params)
+        if not(isset("@just_read_entity")) { @just_read_entity = @false }
+        if @just_read_entity { return entity }
+
+        new data { @"entity*": entity }
+        do prepareView(db,params,data)
+
+        return data
+        exception{ do catch(db,params,data) }
+    }
+
+    function blank(&db,&params)
+    {
+        do dbr.apps.action.grant("GB90")
+
+        new data {}
+
+        return data
+        exception{ do catch(db,params,data) }
+    }
+
+    function create(&db,&params,&data)
+    {
+        @use_transaction = @false //¿usar la transación del marco CRUD-L?
+        @just_read_entity = @true //
+        ref grupo = buildGroup(data)
+
+        // Privilegios sobre entidades: "priv_id:DET:_entity_id"
+        do dbr.apps.action.pre("GB91")
+        do dbr.begin(db)
+
+        ref entity = entity.create(db,params,grupo)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+        exception{ do catch(db,params,data) }
+    }
+
+    function update(&db,&params,&data)
+    {
+        @use_transaction = @false //¿usar la transación del marco CRUD-L?
+        @just_read_entity = @true //
+        ref grupo = buildGroup(data)
+
+        // Privilegios sobre entidades: "priv_id:DET:_entity_id"
+        do dbr.apps.action.pre("GB92")
+        do dbr.begin(db)
+
+        ref entity = entity.create(db,params,grupo)
+
+        do dbr.apps.action.pos(entity)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(entity)
+
+        return entity
+        exception{ do catch(db,params,data) }
+    }
+
+    function delete(&db,&params)
+    {
+        @use_transaction = @false //¿usar la transación del marco CRUD-L?
+        @just_read_entity = @true
+        deleted = @false
+
+        // Privilegios sobre entidades: "priv_id:DET:_entity_id"
+        do dbr.apps.action.pre("GB93")
+
+        codeblock "Intentar eliminación física"
+        {
+            do dbr.begin(db)
+
+            do dbr.delete(db,"cliente_grupoclientes_","igrupos=@_entity_id",params)
+            do entity.delete(db,params)
+            
+            do dbr.apps.action.pos(@null)
+            do dbr.commit(db)
+
+            ref entity = @null
+            deleted = @true
+
+            do dbr.apps.action.ext(@null)
+            
+            exception
+            {
+                do dbr.apps.action.log()
+                do pop_exception()
+            }
+        }
+        if not(deleted)
+        {
+            do dbr.begin(db)
+
+            lastuser = @@(@http_context,"$session/user/uid")
+            sql = ftext("
+            UPDATE #<@table_name>
+            SET
+                sys_timestamp = now(),
+                sys_lastuser = '#<lastuser>',
+                sys_deleted = 1,
+                sys_info = nombre,
+                nombre = CONCAT('~',sys_pk)
+            WHERE #<@keyfield> = @_entity_id
+            ")
+            do dbr.execute(db,sql,params)
+            ref entity = entity.read(db,params)
+
+            do dbr.apps.action.pos(entity)
+            do dbr.commit(db)
+            do dbr.apps.action.ext(entity)
+        }
+
+        return entity
+        exception{ do catch(db,params,@null) }
+    }
+
+
+
+    point @list to grupo.clientes.list
+    point @read to grupo.clientes.read
+    point @blank to grupo.clientes.blank
+    point @create to grupo.clientes.create
+    point @update to grupo.clientes.update
+    point @delete to grupo.clientes.delete
+}

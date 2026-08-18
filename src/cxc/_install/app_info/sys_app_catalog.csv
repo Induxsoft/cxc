@@ -6,3 +6,4 @@
 "cxc","cxc.acuerdo_pago","Acuerdos de pago","2026-04-15T23:59:59","Administración de los acuerdos de pago de un documento"
 "cxc","cxc.notificacion","Notificaciones de cobranza","2026-04-15T23:59:59","Configuración de las notificaciones de cobranza"
 "cxc","cxc.cfg_cxc_docs","Configuración de documentos","2026-06-24 16:00:00","Configurar usos de documentos por cobrar"
+"cxc","cxc.grupoclientes","Grupos de clientes","2026-08-17 23:59:59",""
