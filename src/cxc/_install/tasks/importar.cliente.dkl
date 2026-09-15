@@ -148,7 +148,7 @@ program
                                     if (duplicated != "") {
                                         do dbr.execute(db,query9,itm)
 
-                                        id_domicilio = dbr.str(db,"SELECT domicilio1 FROM cliente WHERE codigo =" + @@(itm,"codigo"),@null)
+                                        id_domicilio = dbr.str(db,"SELECT domicilio1 FROM cliente WHERE codigo =@codigo",itm)
                                         itm<"id_domicilio">: id_domicilio
 
                                         do dbr.execute(db,query10,itm)
