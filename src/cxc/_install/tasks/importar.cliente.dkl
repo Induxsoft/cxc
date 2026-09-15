@@ -120,11 +120,13 @@ program
                     if (token != "") {
                         do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El email (" + @@(itm,"email") + ") debe ser de mínimo 1 caracter y máximo 80 caracteres.")
                     }
-                } else if (website < 1 || website > 150) {
-                    if (token != "") {
-                        do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El website (" + @@(itm,"website") + ") debe ser de mínimo 1 caracter y máximo 150 caracteres.")
-                    }
-                } else {
+                } 
+                // else if (website < 1 || website > 150) {
+                //     if (token != "") {
+                //         do batch.saveLog(token,"No se pudo insertar/actualizar el registro. El website (" + @@(itm,"website") + ") debe ser de mínimo 1 caracter y máximo 150 caracteres.")
+                //     }
+                // } 
+                else {
                     id_divisa = dbr.str(db,query3,itm)
 
                     if (id_divisa != "") {
