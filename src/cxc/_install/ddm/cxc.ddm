@@ -346,7 +346,7 @@ model "erp.cxc"
         @"curp" string(25) unique
         @"descuento" decimal(19,8)
         @"diascredito" int
-        @"email" string(80)
+        @"email" string(250)
         @"fax" string(150)
         @"limitecredito" decimal(19,8)
         @"monedero" decimal(19,8)
