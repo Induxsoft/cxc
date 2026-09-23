@@ -45,5 +45,11 @@ module "controller"
             @form_view = "cxc.aplicar.dk"
             break
         }
+        case "get_folio"
+        {
+            point @read to cxc.get.folio
+            point @blank to cxc.get.folio
+            break
+        }
     }
 }

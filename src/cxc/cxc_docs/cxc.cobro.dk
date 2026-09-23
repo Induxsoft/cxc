@@ -89,6 +89,27 @@ module "cxc.cobro.dk"
         @"selected": form("documento_cobro","nm",@null)
     }
 
+    new sel_serie
+    {
+        @"datatable*": ifnull(@("&./list_series"),list.create())
+        @"id": "sel_serie"
+        new member "attributes"
+        {
+            @"class": "form-select form-select-sm rounded-0"
+            @"style": "max-width:6rem;"
+            @"name": "serie"
+            @"required": ""
+            @"onchange":"cliente.form.get_folio()"
+        }
+        @"value_field": "serie"
+        @"text_field": "serie"
+        new member "attr_options"
+        {
+            @"data-iblock": "#<@@(row,'#sys_pk')>"
+        }
+        @"selected": form('serie','tx',@null)
+    }
+
     fn_print_buttons::
     {
         act_btn_cls = "btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"
@@ -252,7 +273,32 @@ module "cxc.cobro.dk"
                             )
                         }
                     }
-                    
+                    /*
+                     * Summary:
+                     * - referencia
+                    */
+
+                    div(class="row d-flex justify-content-end align-items-center")
+                    {
+                        label(class="col-auto col-form-label fw-bolder py-0" "for"="txt_referencia"){$"Serie/Folio:"}
+                        div(class="col-6 text-end")
+                        {
+                            div(class="input-group input-group-sm ")
+                            {
+                                ##
+                                do uie.dbSelect(sel_serie)
+                                folio = @("#./folio")
+                                ##
+                                input(class="form-control form-control-sm rounded-0 text-end" type="number" name="folio" value="#<folio>" id="txt_folio" min="1" step="1" placeholder="<A>")
+                                button(class="btn btn-light btn-sm rounded-0 border" type="button" id="btn_get_folio" title="Obtener folio disponible para la serie seleccionada" onclick="cliente.form.get_folio()")
+                                {
+                                    $'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots" viewBox="0 0 16 16">
+                                        <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"></path>
+                                    </svg>'
+                                }
+                            }
+                        }
+                    }
                     hr{}
                 }
             }

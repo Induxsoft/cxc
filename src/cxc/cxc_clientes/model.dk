@@ -235,6 +235,7 @@ module "model"
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"doc_retiros*"> : dbr.list(db,sql_doc_retiros,@null)
                 data<"doc_cargos*"> : dbr.list(db,sql_doc_cargos,@null)
+
                 break
             }
             case "cobrar"
@@ -243,12 +244,33 @@ module "model"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
                 sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
-
-                data<"infoCliente*"> : cte.obtenerCliente(db,@@(params,"_entity_id"))
+                qry_list_series = "SELECT b.sys_pk, serie
+                                FROM blockdocumentos  b
+                                INNER JOIN cfg_cxc_docs AS cfg ON  b.documento=cfg.documento
+                                WHERE NOT IFNULL(b.sys_deleted,0) 
+                                AND activo 
+                                AND IFNULL(cfg.apl_pago,0);"
+                ref cte=cte.obtenerCliente(db,@@(params,"_entity_id"))
+                
+                data<"infoCliente*"> : cte
                 data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+
+                data<"list_series*">:dbr.list(db,qry_list_series,@null)
+                data<"folio">:1
+
+                ref itm_block=@item(data.list_series,0)
+                if not(isnull(itm_block))
+                {
+                    data<"folio">:dbr.folios.get_new(db,@@(itm_block,"#sys_pk"))
+                    reference=dbr.autocode.reference(@@(itm_block,"$serie"),data.folio,dbr.autocode.get.mascara(db,@@(itm_block,"#sys_pk")),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+                    
+                    if not(field.exist(data,"form")){data<"form*">:record.create()}
+                    
+                    data<"form/referencia">:reference
+                }
                 break
             }
             case ""
@@ -731,6 +753,18 @@ module "model"
         do dbr.begin(db)
 
         do cte.movimiento.relacionable.validate(db,params,data)
+
+        id_block=dbr.folios.id_block(db,@@(data,"#documento_cobro"),@@(data,"$serie"))
+
+        folio=dbr.folios.set_new(db,id_block,@@(data,"#folio"),3)
+        ref info=dbr.folios.info(db,id_block,folio)
+        data<"ifolio">:@@(info,"#sys_pk")
+
+        // if folio > 0 && folio != @@(data,"#folio")
+        // {
+        //     data<"referencia">:dbr.autocode.reference(@@(data,"$serie"),folio,dbr.autocode.get.mascara(db,id_block),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+        // }
+        
         do erp.cxc.movimientos.cobrarCliente(db,data)
 
         do dbr.apps.action.pos(@null)

@@ -51,6 +51,18 @@ module "model"
         }
     }
 
+    cxc.get.folio::&db,&params
+    {
+        ref itm_block=dbr.rec(db,"SELECT sys_pk, serie FROM blockdocumentos WHERE NOT IFNULL(sys_deleted,0) AND activo AND sys_pk = @block",params)
+        new data{}
+        data<"folio">:dbr.folios.get_new(db,@@(itm_block,"#sys_pk"))
+        reference=dbr.autocode.reference(@@(itm_block,"$serie"),data.folio,dbr.autocode.get.mascara(db,@@(itm_block,"#sys_pk")),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+                    
+        data<"referencia">:reference
+
+        return data
+    }
+
     cxc.prepareView::&db,&params,&data
     {
         if not(field.exist(params,"decimals")){ params<"decimals"> : parse.num(dbr.vars.get(db,"FXCA001")) }
@@ -107,12 +119,31 @@ module "model"
                 sql_categorias = "SELECT sys_pk,descripcion FROM categoria WHERE tipo = 1 AND NOT IFNULL(sys_deleted,0) ORDER BY sys_pk;"
                 sql_doc_cobros = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_cxc_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.apl_pago,0);"
                 sql_doc_depositos = "SELECT doc.id, doc.const FROM cdocumentos AS doc INNER JOIN cfg_chq_docs AS cfg ON cfg.documento = doc.id WHERE IFNULL(cfg.depositos,0);"
+                qry_list_series = "SELECT b.sys_pk, serie
+                                FROM blockdocumentos  b
+                                INNER JOIN cfg_cxc_docs AS cfg ON  b.documento=cfg.documento
+                                WHERE NOT IFNULL(b.sys_deleted,0) 
+                                AND activo 
+                                AND IFNULL(cfg.apl_pago,0);"
 
                 data<"infoDoc*"> : dcxc
                 data<"cuentas*"> : dbr.list(db,sql_cuentas,@null)
                 data<"categorias*"> : dbr.list(db,sql_categorias,@null)
                 data<"docCobros*"> : dbr.list(db,sql_doc_cobros,@null)
                 data<"docDepositos*"> : dbr.list(db,sql_doc_depositos,@null)
+                data<"list_series*">:dbr.list(db,qry_list_series,dcxc)
+                data<"folio">:1
+
+                ref itm_block=@item(data.list_series,0)
+                if not(isnull(itm_block))
+                {
+                    data<"folio">:dbr.folios.get_new(db,@@(itm_block,"#sys_pk"))
+                    reference=dbr.autocode.reference(@@(itm_block,"$serie"),data.folio,dbr.autocode.get.mascara(db,@@(itm_block,"#sys_pk")),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+                    
+                    if not(field.exist(data,"form")){data<"form*">:record.create()}
+                    
+                    data<"form/referencia">:reference
+                }
                 break
             }
             case "bonificacion"
@@ -189,6 +220,17 @@ module "model"
 
         if @@(data,"#pkparent")>0{params<"pkparent">:@@(data,"#pkparent")}
         do cxc.validateAplicable(db,params)
+        
+        id_block=dbr.folios.id_block(db,@@(data,"#documento_cobro"),@@(data,"$serie"))
+
+        folio=dbr.folios.set_new(db,id_block,@@(data,"#folio"),3)
+        ref info=dbr.folios.info(db,id_block,folio)
+        data<"ifolio">:@@(info,"#sys_pk")
+
+        // if folio > 0 && folio != @@(data,"#folio")
+        // {
+        //     data<"referencia">:dbr.autocode.reference(@@(data,"$serie"),folio,dbr.autocode.get.mascara(db,id_block),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+        // }
 
         new p { @"_entity_id": erp.cxc.movimientos.cobrarCxC(db,data) }
         ref entity = entity.read(db,p)
@@ -799,7 +841,7 @@ module "model"
         
         if @@(params,"#doc")<1{return}
         
-        aplicable=dbr.num(db,"select aplicable from dcxc where sys_pk=@doc",params)
+        aplicable=dbr.num(db,"select IFNULL(aplicable,0) from dcxc where sys_pk=@doc",params)
         if not(aplicable){do rise_error(500,"El documento proporcionado no es aplicable")}
     }
 }

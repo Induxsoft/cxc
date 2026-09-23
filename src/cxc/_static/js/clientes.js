@@ -506,7 +506,31 @@ var cliente =
             let onFailure = (error) => { console.error(error) }
             InduxsoftCrudlModel.InvokeService(url,null,onSuccess,onFailure,"GET",false,false);
         },
+        get_folio()
+        {
+            let onSuccess = (data) => 
+            {
+                if (data.message) {
+                    console.error(data.message);
+                    return;
+                }
+                
+                let txt_folio=document.getElementById("txt_folio");
+                let txt_referencia=document.getElementById("txt_referencia");
+                if(txt_folio)txt_folio.value=data.folio;
+                if(txt_referencia)txt_referencia.value=data.referencia;
+            }
+            let onFailure = (error) => { console.error(error) }
+            
+            const select = document.getElementById("sel_serie");
+            if(!select)return;
+            const opcion = select.options[select.selectedIndex];
+            if(!opcion)return;
 
+            const block = opcion.getAttribute("data-iblock");
+
+            InduxsoftCrudlModel.InvokeService("/!/cxc/documentos/serie/get_folio/?block="+block,null,onSuccess,onFailure,"GET",false,false);
+        },
         setContacto(ik,icontacto){
             let url = this.url_buscar_contacto.replace("search","id");
             url = InduxsoftCrudlModel.UrlReplace(url,{id:icontacto})

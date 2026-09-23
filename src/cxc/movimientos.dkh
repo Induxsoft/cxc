@@ -325,7 +325,8 @@ module ":erp.cxc.movimientos"
             @"tipocambio": tcambio_doc
             @"icliente": @@(data,"#icliente")
         }
-
+        if @@(data,"#ifolio") > 0{dcxc<"ifolio">: @@(data,"#ifolio")}
+        
         new aplcxc
         {
             @"sys_pk": 0
@@ -621,7 +622,8 @@ module ":erp.cxc.movimientos"
             @"xaplicar": importe_cte
             @"icliente": @@(data,"#icliente")
         }
-
+        if @@(data,"#ifolio") > 0{dcxc<"ifolio">: @@(data,"#ifolio")}
+        
         if not(dbr.in_transaction(db)) {
             do dbr.begin(db)
             start_transaction = @true
