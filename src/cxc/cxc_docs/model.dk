@@ -781,7 +781,7 @@ module "model"
         do dbr.apps.action.pre("GB19")
         do dbr.begin(db)
         
-        ref dcxc = dbr.rec(db,"select sys_pk, documento, ifnull(debe,0) debe, ifnull(haber,0) haber, pagos, bonificaciones, icliente, iventa, imovcaja, imovcuenta from dcxc where sys_pk = @_entity_id;",params)
+        ref dcxc = dbr.rec(db,"select sys_pk, documento, ifnull(debe,0) debe, ifnull(haber,0) haber, pagos, bonificaciones, icliente, iventa, imovcaja, imovcuenta, ifolio from dcxc where sys_pk = @_entity_id;",params)
         
         if isnull(dcxc) { do rise_error(511,"No se encontró datos del documento") }
         /**
@@ -810,6 +810,12 @@ module "model"
         r = dbr.execute(db,"update cliente set saldo = (ifnull(saldo,0) - @debe + @haber) where sys_pk = @icliente",dcxc)
         if r < 1 { do rise_error(500,"No se logró afectar el saldo del cliente, revise sus datos") }
 
+        /*
+         * Summary:
+         * - revertir folio
+        */
+        if @@(dcxc,"#ifolio") > 0{do dbr.folios.recover_folio_block(db,@@(dcxc,"#ifolio"))}
+        
         do dbr.apps.action.pos(entity)
         do dbr.commit(db)
         do dbr.apps.action.ext(entity)
