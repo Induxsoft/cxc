@@ -24,6 +24,7 @@ module "cxc.crear.dk"
 
     num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
     num_max = "9999999999."+padright("",@DECIMAL_PRECISION,"9")
+    num_min = num_step
 
     new sel_documento
     {
@@ -165,10 +166,9 @@ module "cxc.crear.dk"
                     input(
                         class="form-control rounded-0 induxsoft-num-field mw-100 validate-number"
                         type="number" name="importe" value="#<importe>" id="txt_importe"
-                        step="#<num_step>" min="1" max="#<num_max>" required="true"
+                        step="#<num_step>" min="#<num_min>" max="#<num_max>" required="true"
                         "num-style"="currency"
                         "num-decs"="#<@DECIMAL_PRECISION>"
-                        onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
                     )
                 }
             }

@@ -26,6 +26,7 @@ module "cte.cobro.dk"
 
     num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
     num_max = "9999999999."+padright("",@DECIMAL_PRECISION,"9")
+    num_min = num_step
 
     new sel_cuenta_deposito
     {
@@ -238,9 +239,9 @@ module "cte.cobro.dk"
                                 input(
                                     class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number" name="importe" value="#<form('importe','nm',@null)>" id="txt_importe"
-                                    step="#<num_step>" min="1" max="#<num_max>" required="true"
+                                    step="#<num_step>" min="#<num_min>" max="#<num_max>" required="true"
                                     "num-decs"="#<@DECIMAL_PRECISION>"
-                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
+                                    
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(cliente,'$divisa')>"}
                             }
@@ -371,7 +372,7 @@ module "cte.cobro.dk"
                                     input(
                                         class="form-control rounded-0 induxsoft-num-field mw-100"
                                         type="number" name="importe_deposito" value="#<form('importe_deposito','nm',@null)>" id="txt_importe_deposito"
-                                        step="#<num_step>" min="1" max="#<num_max>"
+                                        step="#<num_step>" min="#<num_min>" max="#<num_max>"
                                         "num-decs"="#<@DECIMAL_PRECISION>"
                                     )
                                     span(class="input-group-text rounded-0" id="spn_importe_deposito"){$""}

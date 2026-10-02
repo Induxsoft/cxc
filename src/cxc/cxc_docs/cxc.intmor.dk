@@ -25,6 +25,7 @@ module "cxc.intmor.dk"
 
     num_step = "0."+padright("",(@DECIMAL_PRECISION-1),"0")+"1"
     num_max = "9999999999."+padright("",@DECIMAL_PRECISION,"9")
+    num_min = num_step
 
     new sel_documento
     {
@@ -271,9 +272,8 @@ module "cxc.intmor.dk"
                                 input(
                                     class="form-control form-control-sm rounded-0 induxsoft-num-field mw-100 validate-number"
                                     type="number" name="importe" value="#<form('importe','nm',@null)>" id="txt_importe"
-                                    step="#<num_step>" min="1" required="true"
+                                    step="#<num_step>" min="#<num_min>" max="#<num_max>" required="true"
                                     "num-decs"="#<@DECIMAL_PRECISION>"
-                                    onkeypress="return InduxsoftNumberFields.filterFloat(event,this,#<@DECIMAL_PRECISION>)"
                                 )
                                 span(class="input-group-text rounded-0"){$"#<@@(infoDoc,'$divisa')>"}
                             }

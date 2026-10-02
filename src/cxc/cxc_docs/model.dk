@@ -336,12 +336,12 @@ module "model"
     cxc.getConditionFilter::&params
     {
         // fdr_init
-        if not(field.exist(params,"fdr_mode")) { params<"fdr_mode"> : "month" }
+        if not(field.exist(params,"fdr_mode")) { params<"fdr_mode"> : "lastdays" }
         // [month]
         if not(field.exist(params,"fdr_year")) { params<"fdr_year"> : @curr_year }
         if not(field.exist(params,"fdr_month")) { params<"fdr_month"> : @curr_month }
         // [lastdays]
-        if not(field.exist(params,"fdr_range")) { params<"fdr_range"> : 30 }
+        if not(field.exist(params,"fdr_range")) { params<"fdr_range"> : 90 }
         // [range]
         if not(field.exist(params,"fdr_from")) { params<"fdr_from"> : "" }
         if not(field.exist(params,"fdr_to")) { params<"fdr_to"> : "" }
