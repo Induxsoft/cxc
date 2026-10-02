@@ -240,7 +240,7 @@ module "cxp.aplicar.dk"
                             }
                         }
                         #!
-                        if @@(xaplicar,"#xaplicar") == 0 && not(@@(xaplicar,"#has_cfdi")) {
+                        if /* @@(xaplicar,"#xaplicar") == 0 && */ not(@@(xaplicar,"#has_cfdi")) {
                             #$ button(class="btn btn-sm btn-primary no-print" type="button" id="btn_desaplicar"){"Desaplicar todo"}
                         }
                         #$
