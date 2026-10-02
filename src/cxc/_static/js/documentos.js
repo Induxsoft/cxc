@@ -445,7 +445,13 @@ var documento =
             if (lista.length === 0) return;
             let data = { aplicacion: lista }
 
-            this.submit("./?_act=aplicar", data, function(res){ window.location.reload() });
+            this.submit("./?_act=aplicar", data, function(res){
+                if (res.redirect) {
+                    window.location.href = res.redirect;
+                    return;
+                }
+                window.location.reload();
+            });
         },
 
         desaplicar()

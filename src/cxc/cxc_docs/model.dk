@@ -598,7 +598,14 @@ module "model"
         //do dbr.commit(db)
         do dbr.apps.action.ext(aplicacion)
 
-        return aplicacion
+        new response
+        {
+            @"success": @true
+            @"data*": aplicacion
+            @"redirect": @@(@http_context,"$response/headers/location")
+        }
+        if response.redirect != "" { do field.remove(@http_context,"response/headers/location") }
+        return response
 
         exception
         {

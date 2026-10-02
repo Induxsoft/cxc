@@ -765,13 +765,14 @@ module "model"
         //     data<"referencia">:dbr.autocode.reference(@@(data,"$serie"),folio,dbr.autocode.get.mascara(db,id_block),parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
         // }
         
-        do erp.cxc.movimientos.cobrarCliente(db,data)
+        sys_pk = erp.cxc.movimientos.cobrarCliente(db,data)
 
         do dbr.apps.action.pos(@null)
         do dbr.commit(db)
         do dbr.apps.action.ext(@null)
 
-        @url_redir = @CXC_CLIENTES
+        // @url_redir = @CXC_CLIENTES
+        @url_redir = replace(@DOC_APLICAR_ABONOS,"{_documento}",sys_pk)
 
         exception
         {
