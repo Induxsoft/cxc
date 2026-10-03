@@ -41,7 +41,11 @@ module "list.dk"
     new table_definition
     {
         @"datatable*": ifnull(@("&./data"),list.create())
+        @"pagination": @("#./pagination")
+        @"rows_per_page": @("#./max_rows")
+        @"tableheight": ifstr(@("#./pagination"), "70vh", "75vh")
         @"table_footer": "Mostrando los primeros # clientes ordenados por código"
+
         member @"columns"
         {
             member @"codigo" { @"caption":"Código" }

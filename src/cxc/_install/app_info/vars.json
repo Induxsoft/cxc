@@ -31,5 +31,42 @@
                 "vartype": "text"
             }
         ]
+    },
+    {
+        "id": "cxc.views",
+        "parent":"cxc",
+        "caption": "Interfaces / Vistas",
+        "help": "Ajustar el diseño de las vistas",
+        "vars": [
+            {
+                "varname": "cxc.clientes.max_rows",
+                "vardefault": "250",
+                "varvalue": "250",
+                "varcaption": "Mostrar los primeros N clientes",
+                "varhelp": "Máximo de filas a mostrar en: \"Clientes\"",
+                "vartype": "int",
+                "varinput": { "control": "number" }
+            },
+            {
+                "varname": "cxc.clientes.pagination",
+                "vardefault": "0",
+                "varvalue": "0",
+                "varcaption": "Paginar lista de clientes",
+                "varhelp": "Habilitar la paginación en: \"Clientes\"",
+                "vartype": "bool",
+                "varinput": {
+                    "control": "select",
+                    "source":{
+                        "type":"list",
+                        "values":[
+                            {"val":"1", "text":"Sí"},
+                            {"val":"0", "text":"No"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            }
+        ]
     }
 ]

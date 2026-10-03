@@ -844,8 +844,13 @@ module "model"
         WHERE NOT IFNULL(cte.sys_deleted,0)
             #<conditions>
         ORDER BY cte.codigo
-        LIMIT #<@default_max_rows>;
         "
+
+        max_rows = trun(parse.num(dbr.vars.get(db,"cxc.clientes.max_rows")))
+        pagination = parse.bool(dbr.vars.get(db,"cxc.clientes.pagination"))
+
+        if max_rows < 1 { max_rows = @default_max_rows }
+        if not(pagination) { sql_clientes = sql_clientes + ftext(" LIMIT #<max_rows>;") }
 
         conditions = ""
         if @@(params,"#fil_tipo") > 0 { conditions = conditions + " AND tpc.sys_pk = @fil_tipo" }
@@ -860,6 +865,8 @@ module "model"
 
         new data
         {
+            @"max_rows": max_rows
+            @"pagination": pagination
             @"data*": dbr.list(db,ftext(sql_clientes),params)
             @"list_tipos*": dbr.list(db,"select sys_pk, descripcion from tipocliente where not ifnull(sys_deleted,0)",@null)
         }
