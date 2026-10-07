@@ -40,8 +40,8 @@
         "vars": [
             {
                 "varname": "cxc.clientes.max_rows",
-                "vardefault": "250",
-                "varvalue": "250",
+                "vardefault": "500",
+                "varvalue": "500",
                 "varcaption": "Mostrar los primeros N clientes",
                 "varhelp": "Máximo de filas a mostrar en: \"Clientes\"",
                 "vartype": "int",

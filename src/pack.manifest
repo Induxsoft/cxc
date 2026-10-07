@@ -1,6 +1,6 @@
 {
 	"id":"cxc",
 	"installable":["cxc"],
-	"version":"1.0.159",
-	"schema_ver":"1.0.14"
+	"version":"1.0.160",
+	"schema_ver":"1.0.15"
 }
