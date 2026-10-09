@@ -464,6 +464,23 @@ var documento =
             this.submit("./?_act=desaplicar", {}, function(res){ window.location.reload() });
         },
 
+        saldoAFavor()
+        {
+            if (!this.tbl_aplicados.DataArray.length) {
+                alert("Aun no se han aplicado documentos.")
+                return
+            }
+            if (!confirm("¿Timbrar este recibo por el saldo aplicado?\r\nSe creará un nuevo documento con el saldo a favor.")) return;
+            
+            this.submit("./?_act=saldo-a-favor", {}, function(res){
+                if (res.redirect) {
+                    window.location.href = res.redirect;
+                    return;
+                }
+                window.location.reload();
+            });
+        },
+
         importesAplicar(e)
         {
             let cur_row = e.sender.RowIndexOfTd(e.td);

@@ -528,9 +528,91 @@ module "model"
         return result
     }
 
+    cxc.saldoAFavorDeCobros::&db,&params
+    {
+        do errordet(@false)
+        @use_transaction = @false
+
+        ref source = dbr.rec(db,ftext("SELECT * FROM dcxc WHERE NOT IFNULL(sys_deleted,0) AND #<@keyfield> = @_entity_id AND documento IN(5,19)"),params)
+        
+        if isnull(source) { do rise_error(404,"No se encontro información del recibo/nota de crédito proporcionado.") }
+        if @@(source,"#xaplicar") == @@(source,"#haber") { do rise_error(400,"Aun no se han aplicado documentos.") }
+        if @@(source,"#xaplicar") <= 0 { do rise_error(400,"No es posible dejar saldo a favor de este documento.") }
+
+        s_haber = @@(source,"#haber")
+        s_xaplicar = @@(source,"#xaplicar")
+
+        do dbr.apps.action.pre("GB16")
+        do dbr.begin(db)
+
+        // Generar referencia y folio del nuevo documento
+        ref block = dbr.rec(db,"
+        SELECT b.sys_pk AS iblock, b.serie
+        FROM foliosdocumentos f
+            INNER JOIN blockdocumentos b ON f.block = b.sys_pk
+        WHERE f.sys_pk = @ifolio
+        ",record.copy(source,"ifolio"))
+
+        iblock, serie << block 
+        fultimo = dbr.folios.set_new(db, iblock, dbr.folios.get_new(db,iblock), 3)
+        referencia = dbr.autocode.reference(serie, fultimo, dbr.autocode.get.mascara(db,iblock), parse.num(dbr.vars.getd(db,"ventas_fix_ref_size",8)))
+
+        ref folio = dbr.folios.info(db, iblock, fultimo)
+
+        // Reutilizar estructura para el nuevo documento
+        ref dcxc = record.copy(source,"*")
+        ref dbnow = dbr.sql("now()")
+        using dcxc
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbnow
+            @"sys_dtcreated*": dbnow
+            @"sys_dtexported*": dbnow
+            @"sys_recver": 0
+
+            @"referencia": referencia
+            @"ifolio": @@(folio,"#sys_pk")
+            @"haber": s_xaplicar
+            @"xaplicar": s_xaplicar
+        }
+        // Crear nuevo documento
+        do dbr.insert(db,"dcxc",dcxc)
+        sys_pk = dbr.num(db,"SELECT LAST_INSERT_ID()",@null)
+        
+        // Actualizar importes del documento origen para marcarlo como "Completamente aplicado"
+        do dbr.execute(db,ftext("UPDATE dcxc SET haber = (haber - xaplicar), xaplicar = 0 WHERE #<@keyfield> = @_entity_id"),params)
+
+        //do dbr.apps.action.pos(@null)
+        do dbr.commit(db)
+        do dbr.apps.action.ext(@null)
+
+        new response
+        {
+            @"success": @true
+            @"data*": @null
+            @"redirect": @@(@http_context,"$response/headers/location")
+        }
+        if response.redirect != "" { do field.remove(@http_context,"response/headers/location") }
+        return response
+
+        exception
+        {
+            code = last_error_code()
+            error = last_error()
+
+            if dbr.in_transaction(db) { do dbr.rollback(db) }
+            if isset("@@_action_context") { do dbr.apps.action.log() }
+            
+            do clear_exceptions()
+            do rise_error(code,error)
+        }
+    }
+
     cxc.aplicarCobros::&db,&params,&data
     {
         if @@(params,"$_act") == "desaplicar" { return erp.cxc.movimientos.desaplicarCobros(db,params) }
+        if @@(params,"$_act") == "saldo-a-favor" { return cxc.saldoAFavorDeCobros(db,params) }
 
         @use_transaction = @false
 

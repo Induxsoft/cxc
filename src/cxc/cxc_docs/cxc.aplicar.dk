@@ -185,14 +185,19 @@ module "cxp.aplicar.dk"
                         // small(class="flex-grow-1 text-muted"){"Indique el importe a 'Aplicar' a los documentos en la cuadrícula"}
                         #!
                         if not(@@(xaplicar,"#has_cfdi")) {
-                            #$ div(class="alert alert-info my-0 py-1 flex-grow-1" role="alert")
-                            {
+                            #$ div(class="alert alert-info my-0 py-1 flex-grow-1" role="alert") {
                                 "Cuando el cobro/bonificación se encuentre aplicado en su totalidad, puede timbrarlo en: "b{"GX10 - Facturación electrónica"}
                             }
                         }
                         #!
-                        if @@(xaplicar,"#xaplicar") > 0 {
+                        if @@(xaplicar,"#xaplicar") > 0
+                        {
                             #$ button(class="btn btn-sm btn-primary no-print" type="button" id="btn_aplicar"){"Aplicar"}
+                            #!
+                            // Ya se han aplicado a documentos
+                            if @@(xaplicar,"#xaplicar") < @@(xaplicar,"#haber") {
+                                #$ button(class="btn btn-sm btn-primary no-print" type="button" onclick="documento.aplicar.saldoAFavor()"){"Dejar saldo a favor"}
+                            }
                         }
                         #$
                     }
